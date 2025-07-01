@@ -1,14 +1,13 @@
-import { View, Text, StyleSheet, FlatList, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Dimensions, Platform, Modal, Pressable } from 'react-native';
 import { useState } from 'react';
 import { PieChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 
-// Sample data
 const sampleExpenses = [
-  { id: '1', tag: 'Food', price: '1234', description: 'Hello', date: '2025-07-01T20:13:00.000Z' },
+  { id: '1', tag: 'Food', price: '1234', description: 'Hello world I am eating.', date: '2025-07-01T20:13:00.000Z' },
   { id: '2', tag: 'Travel', price: '500', description: 'Uber ride', date: '2025-06-30T18:45:00.000Z' },
   { id: '3', tag: 'Shopping', price: '2999', description: 'New shoes', date: '2025-06-29T15:20:00.000Z' },
-  { id: '4', tag: 'Food', price: '250', description: 'Snacks', date: '2025-06-28T13:00:00.000Z' },
+  { id: '4', tag: 'Food', price: '250', description: 'Just spent some in the snacks', date: '2025-06-28T13:00:00.000Z' },
   { id: '5', tag: 'Bills', price: '800', description: 'Electricity', date: '2025-07-02T10:00:00.000Z' },
   { id: '6', tag: 'Travel', price: '1200', description: 'Train ticket', date: '2025-07-03T09:00:00.000Z' },
   { id: '7', tag: 'Shopping', price: '450', description: 'T-shirt', date: '2025-07-04T12:00:00.000Z' },
@@ -70,15 +69,37 @@ export default function HistoryScreen() {
     legendFontSize: 14,
   }));
 
+  // Total spent for the filtered month
+  const totalSpent = filteredExpenses.reduce((sum, item) => sum + Number(item.price), 0);
+
+  // Modal state for details
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<typeof sampleExpenses[0] | null>(null);
+
   // Table header
   const TableHeader = () => (
     <View style={styles.tableRow}>
       <Text style={[styles.tableHeader, { flex: 1 }]}>Date</Text>
       <Text style={[styles.tableHeader, { flex: 1 }]}>Tag</Text>
-      <Text style={[styles.tableHeader, { flex: 1 }]}>Desc</Text>
+      <Text style={[styles.tableHeader, { flex: 1.2 }]}>Description</Text>
       <Text style={[styles.tableHeader, { flex: 1 }]}>₹</Text>
     </View>
   );
+
+  // Table total row (fixed)
+  const TableTotal = () => (
+    <View style={styles.totalRow}>
+      <Text style={[styles.totalText, { flex: 3 }]}>Total</Text>
+      <Text style={[styles.totalText, { flex: 1 }]}>₹{totalSpent}</Text>
+    </View>
+  );
+
+  // Limit description to 2 words
+  const getShortDesc = (desc: string) => {
+    const words = desc.split(' ');
+    if (words.length <= 2) return desc;
+    return words.slice(0, 2).join(' ') + '...';
+  };
 
   return (
     <View style={styles.container}>
@@ -144,18 +165,56 @@ export default function HistoryScreen() {
           data={filteredExpenses}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <View style={styles.tableRow}>
+            <Pressable
+              onPress={() => {
+                setSelectedExpense(item);
+                setModalVisible(true);
+              }}
+              style={({ pressed }) => [
+                styles.tableRow,
+                pressed && { backgroundColor: '#e3f0ff' },
+              ]}
+            >
               <Text style={[styles.tableCell, { flex: 1 }]}>{formatDate(item.date)}</Text>
               <Text style={[styles.tableCell, { flex: 1 }]}>{item.tag}</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]} numberOfLines={1}>{item.description}</Text>
+              <Text style={[styles.tableCell, { flex: 1 }]} numberOfLines={1}>
+                {getShortDesc(item.description)}
+              </Text>
               <Text style={[styles.tableCell, { flex: 1 }]}>₹{item.price}</Text>
-            </View>
+            </Pressable>
           )}
           ListEmptyComponent={
             <Text style={{ color: COLORS.placeholder, textAlign: 'center', marginVertical: 12 }}>No expenses found.</Text>
           }
+          style={{ maxHeight: 260 }}
         />
+        <TableTotal />
       </View>
+
+      {/* Modal for expense details */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Expense Details</Text>
+            {selectedExpense && (
+              <>
+                <Text style={styles.modalLabel}>Date: <Text style={styles.modalValue}>{formatDate(selectedExpense.date)}</Text></Text>
+                <Text style={styles.modalLabel}>Tag: <Text style={styles.modalValue}>{selectedExpense.tag}</Text></Text>
+                <Text style={styles.modalLabel}>Description: <Text style={styles.modalValue}>{selectedExpense.description}</Text></Text>
+                <Text style={styles.modalLabel}>Amount: <Text style={styles.modalValue}>₹{selectedExpense.price}</Text></Text>
+              </>
+            )}
+            <Pressable style={styles.closeButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -210,4 +269,73 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: COLORS.background, paddingVertical: 8 },
   tableHeader: { fontWeight: 'bold', color: COLORS.primary, fontSize: 16, textAlign: 'center', letterSpacing: 0.5 },
   tableCell: { color: COLORS.text, fontSize: 15, textAlign: 'center' },
+  totalRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1.5,
+    borderTopColor: COLORS.accent,
+    paddingVertical: 10,
+    marginTop: 2,
+    alignItems: 'center',
+    backgroundColor: '#eaf3ff',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  totalText: {
+    color: COLORS.primary,
+    fontWeight: 'bold',
+    fontSize: 17,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(30,41,59,0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    padding: 28,
+    width: '85%',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 18,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 18,
+    letterSpacing: 0.7,
+  },
+  modalLabel: {
+    fontSize: 16,
+    color: COLORS.text,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  modalValue: {
+    fontWeight: '400',
+    color: COLORS.primary,
+  },
+  closeButton: {
+    marginTop: 18,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    elevation: 4,
+  },
+  closeButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
 });

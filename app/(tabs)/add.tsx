@@ -1,7 +1,8 @@
-import { View, Text, TextInput, StyleSheet, Platform, Pressable, Animated, Easing, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Platform, Pressable, KeyboardAvoidingView, Animated, Easing } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 // Blueish theme colors
 const COLORS = {
@@ -14,6 +15,7 @@ const COLORS = {
   placeholder: '#7da0c4',
   white: '#fff',
   rupee: '#2563eb',
+  error: '#f43f5e',
 };
 
 const shadowStyle = {
@@ -28,23 +30,24 @@ export default function AddScreen() {
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([
-    { label: 'Food', value: 'Food' },
-    { label: 'Travel', value: 'Travel' },
-    { label: 'Shopping', value: 'Shopping' },
+    { label: 'Food 🍔', value: 'Food' },
+    { label: 'Travel 🚗', value: 'Travel' },
+    { label: 'Shopping 🛍️', value: 'Shopping' },
+    { label: 'Bills 💡', value: 'Bills' },
+    { label: 'Entertainment 🎬', value: 'Entertainment' },
   ]);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Animation for Add button and date card
+  // Animation for Add button
   const scaleAnim = useRef(new Animated.Value(1)).current;
-
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.06,
+          toValue: 1.08,
           duration: 700,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.ease),
@@ -62,7 +65,7 @@ export default function AddScreen() {
   // Handler to add a new tag if not present
   const handleAddTag = (newTag: string) => {
     if (newTag && !tags.find(t => t.value.toLowerCase() === newTag.toLowerCase())) {
-      setTags([...tags, { label: newTag, value: newTag }]);
+      setTags([...tags, { label: `${newTag} 🆕`, value: newTag }]);
       setTag(newTag);
     }
   };
@@ -72,8 +75,9 @@ export default function AddScreen() {
     setTag('');
     setPrice('');
     setDescription('');
-    console.log('Expense added:', { tag, price, description, date });
     setDate(new Date());
+    console.log('Expense added:', { tag, price, description, date });
+    // Optionally show a success message or navigate back
   };
 
   const onChangeDate = (event: any, selectedDate?: Date) => {
@@ -91,8 +95,8 @@ export default function AddScreen() {
         <View style={styles.container}>
           <Text style={styles.title}>ExpenseMate</Text>
           <Text style={styles.subtitle}>Add your expense</Text>
-          <View style={[styles.inputRow]}>
-            <View style={{ flex: 0.48, zIndex: open ? 1000 : 10 }}>
+          <View style={styles.inputRow}>
+            <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
               <DropDownPicker
                 open={open}
                 value={tag}
@@ -103,16 +107,35 @@ export default function AddScreen() {
                 placeholder="Select or add Tag"
                 searchable={true}
                 addCustomItem={true}
-                style={[styles.dropdown, shadowStyle]}
-                dropDownContainerStyle={{ borderColor: COLORS.accent, ...shadowStyle }}
-                listItemLabelStyle={{ fontWeight: '600', color: COLORS.text }}
-                placeholderStyle={{ color: COLORS.placeholder }}
+                onAddItem={handleAddTag}
+                style={[styles.dropdown, shadowStyle, open && styles.dropdownOpen]}
+                dropDownContainerStyle={{
+                  borderColor: COLORS.accent,
+                  ...shadowStyle,
+                  backgroundColor: COLORS.background,
+                  borderRadius: 18,
+                }}
+                listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
+                placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
                 modalAnimationType="slide"
                 theme="LIGHT"
-                />
+                ArrowDownIconComponent={({ style }) => (
+                  <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} style={style} />
+                )}
+                ArrowUpIconComponent={({ style }) => (
+                  <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} style={style} />
+                )}
+                TickIconComponent={({ style }) => (
+                  <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={style} />
+                )}
+                searchContainerStyle={{ borderBottomColor: COLORS.accent, backgroundColor: COLORS.card }}
+                searchTextInputStyle={{ color: COLORS.text, fontSize: 15, backgroundColor: COLORS.card, borderRadius: 10 }}
+                listItemContainerStyle={{ borderRadius: 12, marginVertical: 2 }}
+                selectedItemLabelStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
+              />
             </View>
             <View style={[styles.priceInputWrapper, shadowStyle]}>
-              <Text style={styles.rupee}>₹</Text>
+              <MaterialCommunityIcons name="currency-inr" size={24} color={COLORS.rupee} style={styles.rupeeIcon} />
               <TextInput
                 style={styles.priceInput}
                 placeholder="Price"
@@ -125,11 +148,12 @@ export default function AddScreen() {
             </View>
           </View>
           <Pressable onPress={() => setShowDatePicker(true)} style={{ alignSelf: 'center', width: '100%' }}>
-            <Animated.View style={[styles.dateCard, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
+            <View style={[styles.dateCard, shadowStyle]}>
+              <Ionicons name="calendar" size={22} color={COLORS.primary} style={{ marginBottom: 2, marginRight: 6 }} />
               <Text style={styles.dateText}>
                 {date.toLocaleDateString()} <Text style={{ color: COLORS.placeholder, fontSize: 13 }}>(Tap to change)</Text>
               </Text>
-            </Animated.View>
+            </View>
           </Pressable>
           {showDatePicker && (
             <DateTimePicker
@@ -151,9 +175,10 @@ export default function AddScreen() {
               returnKeyType="done"
             />
           </View>
-          <Animated.View style={{ transform: [{ scale: scaleAnim }], marginTop: 28, alignSelf: 'center', width: '100%' }}>
+          <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
             <Pressable style={styles.addButton} android_ripple={{ color: COLORS.accent }} onPress={handleAdd}>
-              <Text style={styles.addButtonText}>+ Add</Text>
+              <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
+              <Text style={styles.addButtonText}>Add Expense</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -203,12 +228,23 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderColor: COLORS.accent,
-    borderRadius: 14,
+    borderRadius: 18,
     backgroundColor: COLORS.card,
-    minHeight: 52,
+    minHeight: 54,
+    fontSize: 16,
+    paddingHorizontal: 8,
+  },
+  dropdownOpen: {
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.background,
   },
   priceInputWrapper: {
-    flex: 0.48,
+    flex: 0.40,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
@@ -216,11 +252,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 52,
     marginLeft: 8,
+    borderWidth: 1.2,
+    borderColor: COLORS.accent,
   },
-  rupee: {
-    fontSize: 24,
-    color: COLORS.rupee,
-    fontWeight: 'bold',
+  rupeeIcon: {
     marginRight: 6,
     marginTop: 2,
     textShadowColor: '#b6d0f7',
@@ -236,6 +271,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dateCard: {
+    flexDirection: 'row',
     backgroundColor: COLORS.card,
     borderRadius: 16,
     paddingVertical: 16,
@@ -246,6 +282,11 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1.5,
     borderColor: COLORS.accent,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.13,
+    shadowRadius: 10,
+    elevation: 8,
   },
   dateText: {
     fontSize: 18,
@@ -253,19 +294,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  addButton: {
+  addButtonWrapper: {
+    marginTop: 28,
+    alignSelf: 'center',
+    width: '100%',
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
+    ...shadowStyle,
+  },
+  addButton: {
+    flexDirection: 'row',
     borderRadius: 18,
     paddingVertical: 16,
     paddingHorizontal: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    elevation: 12,
     width: '100%',
+    backgroundColor: COLORS.primary,
   },
   addButtonText: {
     color: COLORS.white,
@@ -285,6 +330,11 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1.5,
     borderColor: COLORS.accent,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 6,
   },
   descInput: {
     fontSize: 17,
