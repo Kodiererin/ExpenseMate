@@ -1,10 +1,22 @@
-import { View, Text, TextInput, StyleSheet, Platform, Pressable, KeyboardAvoidingView, Animated, Easing } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Platform,
+  Pressable,
+  KeyboardAvoidingView,
+  Animated,
+  Easing,
+  TouchableWithoutFeedback,
+  Keyboard,
+  ScrollView,
+} from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
-// Blueish theme colors
 const COLORS = {
   background: '#e3f0ff',
   card: '#fafdff',
@@ -35,6 +47,7 @@ export default function AddScreen() {
     { label: 'Shopping 🛍️', value: 'Shopping' },
     { label: 'Bills 💡', value: 'Bills' },
     { label: 'Entertainment 🎬', value: 'Entertainment' },
+    { label: 'Play 🎮', value: 'Play' },
   ]);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -65,24 +78,38 @@ export default function AddScreen() {
   // Handler to add a new tag if not present
   const handleAddTag = (newTag: string) => {
     if (newTag && !tags.find(t => t.value.toLowerCase() === newTag.toLowerCase())) {
-      setTags([...tags, { label: `${newTag} 🆕`, value: newTag }]);
+      setTags(prev => [...prev, { label: `${newTag} 🆕`, value: newTag }]);
       setTag(newTag);
+      setTimeout(() => setOpen(true), 100);
     }
   };
 
+  // User feedback state
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   const handleAdd = () => {
-    // Save logic here
+    if (!tag || !price) {
+      setFeedback({ type: 'error', message: 'Please select a tag and enter a price.' });
+      return;
+    }
     setTag('');
     setPrice('');
     setDescription('');
     setDate(new Date());
-    console.log('Expense added:', { tag, price, description, date });
-    // Optionally show a success message or navigate back
+    setFeedback({ type: 'success', message: 'Expense added!' });
+    Keyboard.dismiss();
+    setTimeout(() => setFeedback(null), 1500);
   };
 
-  const onChangeDate = (event: any, selectedDate?: Date) => {
+  const onChangeDate = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) setDate(selectedDate);
+  };
+
+  // Dismiss keyboard and dropdown on outside press
+  const handleContainerPress = () => {
+    Keyboard.dismiss();
+    setOpen(false);
   };
 
   return (
@@ -91,110 +118,149 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-      <View style={styles.scrollContainer}>
-        <View style={styles.container}>
-          <Text style={styles.title}>ExpenseMate</Text>
-          <Text style={styles.subtitle}>Add your expense</Text>
-          <View style={styles.inputRow}>
-            <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
-              <DropDownPicker
-                open={open}
-                value={tag}
-                items={tags}
-                setOpen={setOpen}
-                setValue={setTag}
-                setItems={setTags}
-                placeholder="Select or add Tag"
-                searchable={true}
-                addCustomItem={true}
-                onAddItem={handleAddTag}
-                style={[styles.dropdown, shadowStyle, open && styles.dropdownOpen]}
-                dropDownContainerStyle={{
-                  borderColor: COLORS.accent,
-                  ...shadowStyle,
-                  backgroundColor: COLORS.background,
-                  borderRadius: 18,
-                }}
-                listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
-                placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
-                modalAnimationType="slide"
-                theme="LIGHT"
-                ArrowDownIconComponent={({ style }) => (
-                  <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} style={style} />
-                )}
-                ArrowUpIconComponent={({ style }) => (
-                  <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} style={style} />
-                )}
-                TickIconComponent={({ style }) => (
-                  <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={style} />
-                )}
-                searchContainerStyle={{ borderBottomColor: COLORS.accent, backgroundColor: COLORS.card }}
-                searchTextInputStyle={{ color: COLORS.text, fontSize: 15, backgroundColor: COLORS.card, borderRadius: 10 }}
-                listItemContainerStyle={{ borderRadius: 12, marginVertical: 2 }}
-                selectedItemLabelStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
-              />
+      <TouchableWithoutFeedback onPress={handleContainerPress}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.container}>
+            <Text style={styles.title}>ExpenseMate</Text>
+            <Text style={styles.subtitle}>Add your expense</Text>
+            <View style={styles.inputRow}>
+              <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
+                <DropDownPicker
+                    open={open}
+                    value={tag}
+                    items={tags}
+                    setOpen={setOpen}
+                    setValue={setTag}
+                    setItems={setTags}
+                    placeholder="Select or add Tag"
+                    searchable
+                    addCustomItem={true}
+                    onSelectItem={(item) => {
+                        if (item?.value && !tags.find(t => t.value.toLowerCase() === item.value.toLowerCase())) {
+                          handleAddTag(item.value);
+                        }
+                    }}
+                    style={[styles.dropdown, shadowStyle, open && styles.dropdownOpen]}
+                    dropDownContainerStyle={{
+                        borderColor: COLORS.accent,
+                        ...shadowStyle,
+                        backgroundColor: COLORS.background,
+                        borderRadius: 18,
+                        maxHeight: 220,
+                        zIndex: 2000,
+                    }}
+                    listMode="SCROLLVIEW"
+                    scrollViewProps={{
+                        persistentScrollbar: true,
+                        keyboardShouldPersistTaps: 'handled',
+                    }}
+                    listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
+                    placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
+                    modalAnimationType="slide"
+                    theme="LIGHT"
+                    ArrowDownIconComponent={({ style }) => (
+                        <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} style={style} />
+                    )}
+                    ArrowUpIconComponent={({ style }) => (
+                        <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} style={style} />
+                    )}
+                    TickIconComponent={({ style }) => (
+                        <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={style} />
+                    )}
+                    searchContainerStyle={{ borderBottomColor: COLORS.accent, backgroundColor: COLORS.card }}
+                    searchTextInputStyle={{ color: COLORS.text, fontSize: 15, backgroundColor: COLORS.card, borderRadius: 10 }}
+                    listItemContainerStyle={{ borderRadius: 12, marginVertical: 2 }}
+                    selectedItemLabelStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
+                    />
+              </View>
+              <View style={[styles.priceInputWrapper, shadowStyle]}>
+                <MaterialCommunityIcons name="currency-inr" size={24} color={COLORS.rupee} style={styles.rupeeIcon} />
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="Price"
+                  keyboardType="numeric"
+                  value={price}
+                  onChangeText={setPrice}
+                  placeholderTextColor={COLORS.placeholder}
+                  returnKeyType="done"
+                />
+              </View>
             </View>
-            <View style={[styles.priceInputWrapper, shadowStyle]}>
-              <MaterialCommunityIcons name="currency-inr" size={24} color={COLORS.rupee} style={styles.rupeeIcon} />
+            <Pressable onPress={() => setShowDatePicker(true)} style={{ alignSelf: 'center', width: '100%' }}>
+              <View style={[styles.dateCard, shadowStyle]}>
+                <Ionicons name="calendar" size={22} color={COLORS.primary} style={{ marginBottom: 2, marginRight: 6 }} />
+                <Text style={styles.dateText}>
+                  {date.toLocaleDateString()} <Text style={{ color: COLORS.placeholder, fontSize: 13 }}>(Tap to change)</Text>
+                </Text>
+              </View>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onChangeDate}
+                maximumDate={new Date()}
+              />
+            )}
+            <View style={[styles.descInputWrapper, shadowStyle]}>
               <TextInput
-                style={styles.priceInput}
-                placeholder="Price"
-                keyboardType="numeric"
-                value={price}
-                onChangeText={setPrice}
+                style={styles.descInput}
+                placeholder="Add Description (if any)"
+                value={description}
+                onChangeText={setDescription}
                 placeholderTextColor={COLORS.placeholder}
+                multiline
                 returnKeyType="done"
               />
             </View>
+            <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
+              <Pressable
+                style={styles.addButton}
+                android_ripple={{ color: COLORS.accent }}
+                onPress={handleAdd}
+              >
+                <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
+                <Text style={styles.addButtonText}>Add Expense</Text>
+              </Pressable>
+            </Animated.View>
+            {feedback && (
+              <View style={[
+                styles.feedback,
+                feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError
+              ]}>
+                <Ionicons
+                  name={feedback.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                  size={20}
+                  color={feedback.type === 'success' ? COLORS.primary : COLORS.error}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={{
+                  color: feedback.type === 'success' ? COLORS.primary : COLORS.error,
+                  fontWeight: 'bold'
+                }}>
+                  {feedback.message}
+                </Text>
+              </View>
+            )}
           </View>
-          <Pressable onPress={() => setShowDatePicker(true)} style={{ alignSelf: 'center', width: '100%' }}>
-            <View style={[styles.dateCard, shadowStyle]}>
-              <Ionicons name="calendar" size={22} color={COLORS.primary} style={{ marginBottom: 2, marginRight: 6 }} />
-              <Text style={styles.dateText}>
-                {date.toLocaleDateString()} <Text style={{ color: COLORS.placeholder, fontSize: 13 }}>(Tap to change)</Text>
-              </Text>
-            </View>
-          </Pressable>
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onChangeDate}
-              maximumDate={new Date()}
-            />
-          )}
-          <View style={[styles.descInputWrapper, shadowStyle]}>
-            <TextInput
-              style={styles.descInput}
-              placeholder="Add Description (if any)"
-              value={description}
-              onChangeText={setDescription}
-              placeholderTextColor={COLORS.placeholder}
-              multiline
-              returnKeyType="done"
-            />
-          </View>
-          <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
-            <Pressable style={styles.addButton} android_ripple={{ color: COLORS.accent }} onPress={handleAdd}>
-              <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
-              <Text style={styles.addButtonText}>Add Expense</Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     backgroundColor: COLORS.background,
+    minHeight: '100%',
   },
   container: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -343,5 +409,28 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: 'transparent',
     fontWeight: '500',
+  },
+  feedback: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  feedbackSuccess: {
+    borderColor: COLORS.primary,
+    borderWidth: 1.2,
+  },
+  feedbackError: {
+    borderColor: COLORS.error,
+    borderWidth: 1.2,
   },
 });
