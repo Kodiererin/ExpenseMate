@@ -4,6 +4,7 @@ import { PieChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 
 const sampleExpenses = [
+  { id: '0', tag: 'Rent', price: '20000', description: 'Hello world I am eating.', date: '2025-07-01T20:13:00.000Z' },
   { id: '1', tag: 'Food', price: '1234', description: 'Hello world I am eating.', date: '2025-07-01T20:13:00.000Z' },
   { id: '2', tag: 'Travel', price: '500', description: 'Uber ride', date: '2025-06-30T18:45:00.000Z' },
   { id: '3', tag: 'Shopping', price: '2999', description: 'New shoes', date: '2025-06-29T15:20:00.000Z' },
@@ -15,6 +16,8 @@ const sampleExpenses = [
   { id: '9', tag: 'Bills', price: '1200', description: 'Internet', date: '2025-07-05T09:00:00.000Z' },
   { id: '10', tag: 'Entertainment', price: '700', description: 'Movie', date: '2025-07-06T20:00:00.000Z' },
   { id: '11', tag: 'Food', price: '350', description: 'Lunch', date: '2025-07-07T13:00:00.000Z' },
+  { id: '12', tag: 'Food', price: '3000', description: 'Hello world I am eating.', date: '2025-07-01T20:14:00.000Z' },
+  { id: '13', tag: 'Food', price: '10000', description: 'Hello world I am eating.', date: '2025-07-17T20:14:00.000Z' },
 ];
 
 const COLORS = {
