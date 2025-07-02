@@ -1,6 +1,6 @@
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, FlatList, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, FlatList, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import { Expense } from '../../types/Expense';
 import { deleteExpenseFromFirestore, getExpensesByMonth } from '../../utils/firebaseUtils';
@@ -54,6 +54,11 @@ export default function HistoryScreen() {
       setExpenses(monthExpenses);
     } catch (error) {
       console.error('Error loading expenses for month:', error);
+      if (error instanceof Error && error.message.includes('Network')) {
+        Alert.alert('Network Error', 'Please check your internet connection and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to load expenses. Please try again.');
+      }
       setExpenses([]);
     } finally {
       setLoading(false);
@@ -97,7 +102,7 @@ export default function HistoryScreen() {
       console.log('Expense deleted successfully');
     } catch (error) {
       console.error('Error deleting expense:', error);
-      // You could add a toast or alert here to show error to user
+      Alert.alert('Error', 'Failed to delete expense. Please try again.');
     } finally {
       setDeleting(false);
     }

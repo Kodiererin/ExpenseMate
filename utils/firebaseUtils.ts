@@ -40,24 +40,33 @@ export const getExpensesByMonth = async (year: number, month: number): Promise<E
       const data = doc.data();
       console.log(`Processing expense with date: ${data.date}`);
       
-      // Parse "M/D/YYYY" format manually
-      const dateParts = data.date.split('/');
-      if (dateParts.length === 3) {
-        const expenseMonth = parseInt(dateParts[0], 10);
-        const expenseDay = parseInt(dateParts[1], 10);
-        const expenseYear = parseInt(dateParts[2], 10);
-        
-        console.log(`Parsed: month=${expenseMonth}, day=${expenseDay}, year=${expenseYear}`);
-        
-        // Check if the expense belongs to the requested month and year
-        if (expenseYear === year && expenseMonth === month) {
-          expenses.push({
-            id: doc.id,
-            date: data.date,
-            description: data.description,
-            price: data.price,
-            tag: data.tag
-          } as Expense);
+      // Parse "M/D/YYYY" format manually with validation
+      if (data.date && typeof data.date === 'string') {
+        const dateParts = data.date.split('/');
+        if (dateParts.length === 3) {
+          const expenseMonth = parseInt(dateParts[0], 10);
+          const expenseDay = parseInt(dateParts[1], 10);
+          const expenseYear = parseInt(dateParts[2], 10);
+          
+          // Validate parsed values
+          if (!isNaN(expenseMonth) && !isNaN(expenseDay) && !isNaN(expenseYear) &&
+              expenseMonth >= 1 && expenseMonth <= 12 &&
+              expenseDay >= 1 && expenseDay <= 31 &&
+              expenseYear >= 1900 && expenseYear <= 2100) {
+            
+            console.log(`Parsed: month=${expenseMonth}, day=${expenseDay}, year=${expenseYear}`);
+            
+            // Check if the expense belongs to the requested month and year
+            if (expenseYear === year && expenseMonth === month) {
+              expenses.push({
+                id: doc.id,
+                date: data.date,
+                description: data.description || '',
+                price: data.price || '0',
+                tag: data.tag || 'Unknown'
+              } as Expense);
+            }
+          }
         }
       }
     });
@@ -66,7 +75,15 @@ export const getExpensesByMonth = async (year: number, month: number): Promise<E
     expenses.sort((a, b) => {
       const parseDate = (dateStr: string) => {
         const parts = dateStr.split('/');
-        return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+        if (parts.length === 3) {
+          const month = parseInt(parts[0], 10);
+          const day = parseInt(parts[1], 10);
+          const year = parseInt(parts[2], 10);
+          if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
+            return new Date(year, month - 1, day);
+          }
+        }
+        return new Date(0); // Return epoch if parsing fails
       };
       return parseDate(b.date).getTime() - parseDate(a.date).getTime();
     });
@@ -75,6 +92,10 @@ export const getExpensesByMonth = async (year: number, month: number): Promise<E
     return expenses;
   } catch (error) {
     console.error("Error fetching expenses by month: ", error);
+    // Check if it's a network error
+    if (error instanceof Error && error.message.includes('network')) {
+      throw new Error('Network error. Please check your internet connection.');
+    }
     return [];
   }
 };

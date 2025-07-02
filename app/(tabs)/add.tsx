@@ -57,8 +57,10 @@ export default function AddScreen() {
 
   // Animation for Add button
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  
   useEffect(() => {
-    Animated.loop(
+    animationRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
           toValue: 1.08,
@@ -73,7 +75,14 @@ export default function AddScreen() {
           easing: Easing.inOut(Easing.ease),
         }),
       ])
-    ).start();
+    );
+    animationRef.current.start();
+
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
   }, [scaleAnim]);
 
   // User feedback state
@@ -81,16 +90,41 @@ export default function AddScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAdd = async () => {
-    if (!tag || !price) {
-      setFeedback({ type: 'error', message: 'Please select a tag and enter a price.' });
+    // Enhanced validation
+    if (!tag?.trim()) {
+      setFeedback({ type: 'error', message: 'Please select a category.' });
+      return;
+    }
+
+    if (!price?.trim()) {
+      setFeedback({ type: 'error', message: 'Please enter an amount.' });
+      return;
+    }
+
+    // Validate price is a valid number
+    const numericPrice = parseFloat(price.trim());
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      setFeedback({ type: 'error', message: 'Please enter a valid positive amount.' });
+      return;
+    }
+
+    // Validate price is not too large (max 1 crore)
+    if (numericPrice > 10000000) {
+      setFeedback({ type: 'error', message: 'Amount cannot exceed ₹1 crore.' });
+      return;
+    }
+
+    // Validate description length
+    if (description.length > 500) {
+      setFeedback({ type: 'error', message: 'Description cannot exceed 500 characters.' });
       return;
     }
 
     setIsLoading(true);
     const expenseData = {
-      tag,
-      price: price, // Keep as string to match Expense interface
-      description,
+      tag: tag.trim(),
+      price: numericPrice.toFixed(2), // Store as formatted string
+      description: description.trim(),
       date: date.toLocaleDateString(),
     };
     
@@ -222,7 +256,21 @@ export default function AddScreen() {
                   placeholder="Price"
                   keyboardType="numeric"
                   value={price}
-                  onChangeText={setPrice}
+                  onChangeText={(text) => {
+                    // Allow only numbers and single decimal point
+                    const cleanText = text.replace(/[^0-9.]/g, '');
+                    // Prevent multiple decimal points
+                    const parts = cleanText.split('.');
+                    if (parts.length > 2) {
+                      return;
+                    }
+                    // Limit to 2 decimal places
+                    if (parts[1] && parts[1].length > 2) {
+                      return;
+                    }
+                    setPrice(cleanText);
+                  }}
+                  maxLength={10} // Prevent extremely long numbers
                   placeholderTextColor={COLORS.placeholder}
                   returnKeyType="done"
                 />
@@ -250,11 +298,22 @@ export default function AddScreen() {
                 style={styles.descInput}
                 placeholder="Add Description (if any)"
                 value={description}
-                onChangeText={setDescription}
+                onChangeText={(text) => {
+                  // Limit description to 500 characters
+                  if (text.length <= 500) {
+                    setDescription(text);
+                  }
+                }}
                 placeholderTextColor={COLORS.placeholder}
                 multiline
+                maxLength={500}
                 returnKeyType="done"
               />
+              {description.length > 450 && (
+                <Text style={styles.characterCount}>
+                  {description.length}/500
+                </Text>
+              )}
             </View>
             <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
               <Pressable
@@ -262,6 +321,9 @@ export default function AddScreen() {
                 android_ripple={{ color: COLORS.accent }}
                 onPress={handleAdd}
                 disabled={isLoading}
+                accessibilityLabel="Add expense"
+                accessibilityHint="Tap to add the expense to your records"
+                accessibilityRole="button"
               >
                 {isLoading ? (
                   <>
@@ -485,5 +547,12 @@ const styles = StyleSheet.create({
   feedbackError: {
     borderColor: COLORS.error,
     borderWidth: 1.2,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: COLORS.placeholder,
+    textAlign: 'right',
+    marginTop: 4,
+    paddingHorizontal: 12,
   },
 });

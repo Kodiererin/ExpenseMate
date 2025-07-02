@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Goal } from '../../types/Goal';
 import { addGoalToFirestore, deleteGoalFromFirestore, getGoalsByMonthYear, updateGoalInFirestore } from '../../utils/firebaseUtils';
 
@@ -84,7 +84,15 @@ export default function GoalsScreen() {
 
   // Add new goal
   const handleAddGoal = async () => {
-    if (!goal.trim()) return;
+    if (!goal.trim()) {
+      return; // Don't add empty goals
+    }
+
+    // Validate goal length
+    if (goal.trim().length > 200) {
+      Alert.alert('Error', 'Goal cannot exceed 200 characters.');
+      return;
+    }
 
     setAddingGoal(true);
     try {
@@ -104,6 +112,7 @@ export default function GoalsScreen() {
       console.log('Goal added successfully');
     } catch (error) {
       console.error('Error adding goal:', error);
+      Alert.alert('Error', 'Failed to add goal. Please try again.');
     } finally {
       setAddingGoal(false);
     }
@@ -340,10 +349,16 @@ export default function GoalsScreen() {
           style={styles.input}
           placeholder="Add a new to-do..."
           value={goal}
-          onChangeText={setGoal}
+          onChangeText={(text) => {
+            // Limit goal text to 200 characters
+            if (text.length <= 200) {
+              setGoal(text);
+            }
+          }}
           onSubmitEditing={handleAddGoal}
           returnKeyType="done"
           placeholderTextColor="#7da0c4"
+          maxLength={200}
         />
         <Pressable 
           style={[styles.addBtn, addingGoal && { opacity: 0.6 }]} 
