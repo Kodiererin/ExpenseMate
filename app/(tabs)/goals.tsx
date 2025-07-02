@@ -1,11 +1,32 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, FlatList, KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Easing,
+    Platform,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from 'react-native';
+import { Button, Card, Section, Separator } from '../../components/common';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Goal } from '../../types/Goal';
-import { addGoalToFirestore, deleteGoalFromFirestore, getGoalsByMonthYear, updateGoalInFirestore } from '../../utils/firebaseUtils';
+import {
+    addGoalToFirestore,
+    deleteGoalFromFirestore,
+    getGoalsByMonthYear,
+    updateGoalInFirestore
+} from '../../utils/firebaseUtils';
 
 export default function GoalsScreen() {
+  const { colors } = useTheme();
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -16,8 +37,10 @@ export default function GoalsScreen() {
 
   // Helper function to get month-year string from month and year numbers
   const getMonthYearString = (month: number, year: number) => {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
     return `${monthNames[month - 1]} ${year}`;
   };
 
@@ -26,90 +49,107 @@ export default function GoalsScreen() {
 
   // Animation for add button
   const addBtnAnim = useRef(new Animated.Value(1)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+
   useEffect(() => {
-    Animated.loop(
+    animationRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(addBtnAnim, {
-          toValue: 1.08,
-          duration: 700,
+          toValue: 1.05,
+          duration: 1000,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.ease),
         }),
         Animated.timing(addBtnAnim, {
           toValue: 1,
-          duration: 700,
+          duration: 1000,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.ease),
         }),
       ])
-    ).start();
+    );
+    animationRef.current.start();
+
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
   }, [addBtnAnim]);
 
   // Animation for goal row press
   const rowScaleAnim = useRef<{ [key: string]: Animated.Value }>({}).current;
 
-  // Load goals for selected month
-  const loadGoalsForMonth = useCallback(async () => {
-    setLoading(true);
+  const getRowAnimation = (id: string) => {
+    if (!rowScaleAnim[id]) {
+      rowScaleAnim[id] = new Animated.Value(1);
+    }
+    return rowScaleAnim[id];
+  };
+
+  const animateRowPress = (id: string) => {
+    const anim = getRowAnimation(id);
+    Animated.sequence([
+      Animated.timing(anim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const loadGoals = useCallback(async () => {
     try {
-      const monthGoals = await getGoalsByMonthYear(selectedMonthYear);
-      setGoals(monthGoals);
+      const fetchedGoals = await getGoalsByMonthYear(selectedMonthYear);
+      setGoals(fetchedGoals);
     } catch (error) {
-      console.error('Error loading goals for month:', error);
-      setGoals([]);
+      console.error('Error loading goals:', error);
+      Alert.alert('Error', 'Failed to load goals. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [selectedMonthYear]);
 
-  // Load goals when month or year changes
-  useEffect(() => {
-    loadGoalsForMonth();
-  }, [selectedMonth, selectedYear, loadGoalsForMonth]);
-
-  // Refresh function for pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await loadGoalsForMonth();
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadGoalsForMonth]);
+    await loadGoals();
+    setRefreshing(false);
+  }, [loadGoals]);
 
-  // When month or year changes, goals will be updated via useEffect
-  // No need for separate handler since we're using separate month/year pickers
+  useEffect(() => {
+    loadGoals();
+  }, [loadGoals]);
 
-  // Add new goal
   const handleAddGoal = async () => {
-    if (!goal.trim()) {
-      return; // Don't add empty goals
+    const trimmedGoal = goal.trim();
+    
+    if (!trimmedGoal) {
+      Alert.alert('Invalid Input', 'Please enter a goal text.');
+      return;
     }
 
-    // Validate goal length
-    if (goal.trim().length > 200) {
-      Alert.alert('Error', 'Goal cannot exceed 200 characters.');
+    if (trimmedGoal.length > 200) {
+      Alert.alert('Text Too Long', 'Goal text cannot exceed 200 characters.');
       return;
     }
 
     setAddingGoal(true);
     try {
-      const goalData = {
-        text: goal.trim(),
+      await addGoalToFirestore({
+        text: trimmedGoal,
         completed: false,
         monthYear: selectedMonthYear,
-        createdAt: new Date().toISOString()
-      };
-
-      await addGoalToFirestore(goalData);
-      
-      // Reload goals to get the new one with proper ID
-      await loadGoalsForMonth();
+        createdAt: new Date().toISOString(),
+      });
       
       setGoal('');
-      console.log('Goal added successfully');
+      await loadGoals();
+      Alert.alert('Success', 'Goal added successfully! 🎯');
     } catch (error) {
       console.error('Error adding goal:', error);
       Alert.alert('Error', 'Failed to add goal. Please try again.');
@@ -118,379 +158,438 @@ export default function GoalsScreen() {
     }
   };
 
-  // Toggle goal completion
   const handleToggleGoal = async (goalItem: Goal) => {
-    const { id } = goalItem;
+    animateRowPress(goalItem.id);
     
-    if (!rowScaleAnim[id]) {
-      rowScaleAnim[id] = new Animated.Value(1);
-    }
-    
-    Animated.sequence([
-      Animated.timing(rowScaleAnim[id], {
-        toValue: 0.95,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rowScaleAnim[id], {
-        toValue: 1,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-    ]).start(async () => {
-      try {
-        const updatedGoal = { ...goalItem, completed: !goalItem.completed };
-        await updateGoalInFirestore(id, { completed: updatedGoal.completed });
-        
-        // Update local state
-        setGoals(prevGoals => 
-          prevGoals.map(g => g.id === id ? updatedGoal : g)
-        );
-        
-        console.log('Goal toggled successfully');
-      } catch (error) {
-        console.error('Error toggling goal:', error);
-      }
-    });
-  };
-
-  // Delete goal (long press or swipe action could be added later)
-  const handleDeleteGoal = async (goalId: string) => {
     try {
-      await deleteGoalFromFirestore(goalId);
-      setGoals(prevGoals => prevGoals.filter(g => g.id !== goalId));
-      console.log('Goal deleted successfully');
+      await updateGoalInFirestore(goalItem.id, { completed: !goalItem.completed });
+      await loadGoals();
     } catch (error) {
-      console.error('Error deleting goal:', error);
+      console.error('Error updating goal:', error);
+      Alert.alert('Error', 'Failed to update goal. Please try again.');
     }
   };
 
-  // Separate active and completed
-  const activeGoals = goals.filter(g => !g.completed);
-  const completedGoals = goals.filter(g => g.completed);
+  const handleDeleteGoal = async (goalItem: Goal) => {
+    Alert.alert(
+      'Delete Goal',
+      `Are you sure you want to delete this goal: "${goalItem.text}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteGoalFromFirestore(goalItem.id);
+              await loadGoals();
+              Alert.alert('Success', 'Goal deleted successfully!');
+            } catch (error) {
+              console.error('Error deleting goal:', error);
+              Alert.alert('Error', 'Failed to delete goal. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const completedGoals = goals.filter(goal => goal.completed).length;
+  const totalGoals = goals.length;
+  const completionPercentage = totalGoals > 0 ? (completedGoals / totalGoals * 100) : 0;
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#e3f0ff' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          colors={[colors.primary]}
+          tintColor={colors.primary}
+        />
+      }
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#2563eb']}
-            tintColor="#2563eb"
-          />
-        }
-      >
-        {/* Month and Year Pickers - Single Row */}
-        <View style={styles.pickerContainer}>
-          <View style={styles.singleRowPicker}>
-            <View style={styles.pickerSection}>
-              <Text style={styles.pickerLabel}>Month</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={selectedMonth}
-                  style={styles.picker}
-                  onValueChange={setSelectedMonth}
-                  mode="dropdown"
-                  dropdownIconColor="#2563eb"
-                >
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const monthNames = [
-                      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-                    ];
-                    return (
-                      <Picker.Item
-                        key={i + 1}
-                        label={monthNames[i]}
-                        value={i + 1}
-                      />
-                    );
-                  })}
-                </Picker>
-              </View>
-            </View>
+      {/* Header */}
+      <Card style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={[styles.title, { color: colors.text }]}>🎯 Goals</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Set and track your monthly goals
+          </Text>
+        </View>
+      </Card>
 
-            <View style={styles.pickerSection}>
-              <Text style={styles.pickerLabel}>Year</Text>
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={selectedYear}
-                  style={styles.picker}
-                  onValueChange={setSelectedYear}
-                  mode="dropdown"
-                  dropdownIconColor="#2563eb"
-                >
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const year = new Date().getFullYear() - i;
-                    return (
-                      <Picker.Item
-                        key={year}
-                        label={year.toString()}
-                        value={year}
-                      />
-                    );
-                  })}
-                </Picker>
-              </View>
-            </View>
+      <Separator height={20} />
+
+      {/* Month/Year Selector */}
+      <Card>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
+        <View style={styles.pickerContainer}>
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
+            <Picker
+              selectedValue={selectedMonth}
+              style={[styles.picker, { color: colors.text }]}
+              onValueChange={(itemValue) => setSelectedMonth(itemValue)}
+              mode="dropdown"
+            >
+              {months.map((month, index) => (
+                <Picker.Item 
+                  key={index} 
+                  label={month} 
+                  value={index + 1} 
+                  color={colors.text}
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
+            <Picker
+              selectedValue={selectedYear}
+              style={[styles.picker, { color: colors.text }]}
+              onValueChange={(itemValue) => setSelectedYear(itemValue)}
+              mode="dropdown"
+            >
+              {years.map((year) => (
+                <Picker.Item 
+                  key={year} 
+                  label={year.toString()} 
+                  value={year} 
+                  color={colors.text}
+                />
+              ))}
+            </Picker>
           </View>
         </View>
+      </Card>
 
-        <Text style={styles.title}>To-Do List</Text>
+      <Separator height={20} />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
-        ) : (
-          <>
-            <FlatList
-              data={activeGoals}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <Animated.View
-                  style={[
-                    styles.goalRow,
-                    {
-                      // 3D shadow effect
-                      shadowColor: '#2563eb',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.16,
-                      shadowRadius: 8,
-                      elevation: 5,
-                      transform: [{ scale: rowScaleAnim[item.id] || 1 }],
-                    },
-                  ]}
-                >
-                  <Pressable
-                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                    onPress={() => handleToggleGoal(item)}
-                  >
-                    <Ionicons
-                      name={item.completed ? 'checkbox' : 'square-outline'}
-                      size={26}
-                      color={item.completed ? '#10b981' : '#2563eb'}
-                      style={{ marginRight: 12 }}
-                    />
-                    <Text style={styles.goalText}>{item.text}</Text>
-                  </Pressable>
-                  
-                  {/* Delete button */}
-                  <Pressable
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteGoal(item.id)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  </Pressable>
-                </Animated.View>
-              )}
-              ListEmptyComponent={
-                <Text style={{ color: '#7da0c4', textAlign: 'center', marginTop: 24 }}>
-                  No to-dos for this month.
-                </Text>
-              }
-              style={{ marginTop: 18 }}
-              scrollEnabled={false}
+      {/* Progress Summary */}
+      <Card>
+        <View style={styles.progressHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {getMonthYearString(selectedMonth, selectedYear)}
+          </Text>
+          <Text style={[styles.progressText, { color: colors.primary }]}>
+            {completedGoals}/{totalGoals} completed
+          </Text>
+        </View>
+        
+        {totalGoals > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBar, { backgroundColor: colors.surfaceVariant }]}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${completionPercentage}%`,
+                    backgroundColor: colors.success 
+                  }
+                ]} 
+              />
+            </View>
+            <Text style={[styles.progressPercentage, { color: colors.textSecondary }]}>
+              {Math.round(completionPercentage)}%
+            </Text>
+          </View>
+        )}
+      </Card>
+
+      <Separator height={20} />
+
+      {/* Add Goal Section */}
+      <Card>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Add New Goal</Text>
+        <View style={styles.addGoalContainer}>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <TextInput
+              style={[styles.goalInput, { color: colors.text }]}
+              placeholder="What do you want to achieve this month?"
+              placeholderTextColor={colors.placeholder}
+              value={goal}
+              onChangeText={(text) => {
+                if (text.length <= 200) {
+                  setGoal(text);
+                }
+              }}
+              maxLength={200}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
             />
+            {goal.length > 150 && (
+              <Text style={[styles.characterCount, { color: colors.textSecondary }]}>
+                {goal.length}/200
+              </Text>
+            )}
+          </View>
+          
+          <Animated.View style={{ transform: [{ scale: addBtnAnim }] }}>
+            <Button
+              title={addingGoal ? "Adding..." : "Add Goal"}
+              onPress={handleAddGoal}
+              loading={addingGoal}
+              disabled={addingGoal || !goal.trim()}
+              icon="add-circle"
+              style={styles.addButton}
+            />
+          </Animated.View>
+        </View>
+      </Card>
 
-            {completedGoals.length > 0 && (
-              <>
-                <Text style={styles.completedTitle}>Completed</Text>
-                <FlatList
-                  data={completedGoals}
-                  keyExtractor={item => item.id}
-                  renderItem={({ item }) => (
-                    <Animated.View
-                      style={[
-                        styles.goalRow,
-                        { opacity: 0.6, transform: [{ scale: rowScaleAnim[item.id] || 1 }] },
-                      ]}
-                    >
-                      <Pressable
-                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+      <Separator height={20} />
+
+      {/* Goals List */}
+      <Section title="📋 Your Goals" subtitle="Tap to mark as complete">
+        {loading ? (
+          <Card style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Loading goals...
+            </Text>
+          </Card>
+        ) : goals.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <Ionicons name="flag-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No goals set for {getMonthYearString(selectedMonth, selectedYear)}
+            </Text>
+            <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+              Start by adding your first goal above!
+            </Text>
+          </Card>
+        ) : (
+          <View style={styles.goalsList}>
+            {goals.map((item) => {
+              const scaleAnim = getRowAnimation(item.id);
+              
+              return (
+                <Animated.View key={item.id} style={{ transform: [{ scale: scaleAnim }] }}>
+                  <Card style={[
+                    styles.goalCard, 
+                    { 
+                      borderLeftColor: item.completed ? colors.success : colors.warning,
+                      backgroundColor: item.completed ? colors.surface : colors.card,
+                    }
+                  ]}>
+                    <View style={styles.goalHeader}>
+                      <Pressable 
                         onPress={() => handleToggleGoal(item)}
+                        style={styles.goalToggle}
                       >
                         <Ionicons
-                          name="checkbox"
-                          size={26}
-                          color="#10b981"
-                          style={{ marginRight: 12 }}
+                          name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={24}
+                          color={item.completed ? colors.success : colors.textSecondary}
                         />
-                        <Text style={[styles.goalText, { textDecorationLine: 'line-through' }]}>
-                          {item.text}
-                        </Text>
                       </Pressable>
                       
-                      {/* Delete button */}
-                      <Pressable
-                        style={styles.deleteButton}
-                        onPress={() => handleDeleteGoal(item.id)}
+                      <Text 
+                        style={[
+                          styles.goalText, 
+                          { 
+                            color: item.completed ? colors.textSecondary : colors.text,
+                            textDecorationLine: item.completed ? 'line-through' : 'none',
+                          }
+                        ]}
+                        numberOfLines={3}
                       >
-                        <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                        {item.text}
+                      </Text>
+                      
+                      <Pressable 
+                        onPress={() => handleDeleteGoal(item)}
+                        style={styles.deleteButton}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={colors.error} />
                       </Pressable>
-                    </Animated.View>
-                  )}
-                  scrollEnabled={false}
-                />
-              </>
-            )}
-          </>
+                    </View>
+                    
+                    {item.createdAt && (
+                      <Text style={[styles.goalDate, { color: colors.placeholder }]}>
+                        Added {new Date(item.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Text>
+                    )}
+                  </Card>
+                </Animated.View>
+              );
+            })}
+          </View>
         )}
-      </ScrollView>
+      </Section>
 
-      {/* Add new goal input at the bottom with animated 3D button */}
-      <Animated.View style={[styles.addGoalBar, { transform: [{ scale: addBtnAnim }] }]}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add a new to-do..."
-          value={goal}
-          onChangeText={(text) => {
-            // Limit goal text to 200 characters
-            if (text.length <= 200) {
-              setGoal(text);
-            }
-          }}
-          onSubmitEditing={handleAddGoal}
-          returnKeyType="done"
-          placeholderTextColor="#7da0c4"
-          maxLength={200}
-        />
-        <Pressable 
-          style={[styles.addBtn, addingGoal && { opacity: 0.6 }]} 
-          onPress={handleAddGoal}
-          disabled={addingGoal}
-        >
-          {addingGoal ? (
-            <ActivityIndicator size="small" color="#2563eb" />
-          ) : (
-            <Ionicons name="add-circle" size={32} color="#2563eb" />
-          )}
-        </Pressable>
-      </Animated.View>
-    </KeyboardAvoidingView>
+      <Separator height={32} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flexGrow: 1, 
-    padding: 20, 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-    backgroundColor: '#e3f0ff',
-    paddingBottom: 100, // Extra space for fixed add goal bar
+  container: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 60,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  header: {
+    padding: 20,
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   pickerContainer: {
-    marginBottom: 20,
-    backgroundColor: '#fafdff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    flexDirection: 'row',
+    gap: 12,
   },
-  singleRowPicker: {
+  pickerWrapper: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  pickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  picker: {
+    height: Platform.OS === 'ios' ? 120 : 50,
+  },
+  progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addGoalContainer: {
     gap: 16,
   },
-  pickerSection: {
-    flex: 1,
-  },
-  pickerLabel: { 
-    fontSize: 14, 
-    color: '#2563eb', 
-    marginBottom: 8, 
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  pickerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  pickerWrapper: { 
-    backgroundColor: '#e3f0ff', 
-    borderRadius: 12, 
-    overflow: 'hidden', 
-    borderWidth: 1.5, 
-    borderColor: '#60a5fa',
-  },
-  picker: { width: '100%', color: '#1e293b', backgroundColor: 'transparent' },
-  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 12, color: '#1e293b', textAlign: 'center' },
-  goalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fafdff',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  goalText: { fontSize: 16, color: '#1e293b', flex: 1 },
-  deleteButton: {
-    backgroundColor: '#fee2e2',
-    borderRadius: 20,
-    padding: 8,
-    marginLeft: 8,
-  },
-  completedTitle: {
-    fontSize: 18,
-    color: '#10b981',
-    fontWeight: 'bold',
-    marginTop: 18,
-    marginBottom: 6,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  addGoalBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fafdff',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 16,
-    borderWidth: 1.5,
-    borderColor: '#60a5fa',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 8,
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 24,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#fafdff',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#1e293b',
+  inputWrapper: {
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e3f0ff',
-    marginRight: 8,
+    padding: 16,
   },
-  addBtn: {
-    backgroundColor: '#fafdff',
-    borderRadius: 50,
-    padding: 2,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+  goalInput: {
+    fontSize: 16,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  characterCount: {
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 8,
+  },
+  addButton: {
+    alignSelf: 'flex-end',
+  },
+  loadingCard: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  emptyCard: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  goalsList: {
+    width: '100%',
+  },
+  goalCard: {
+    marginBottom: 12,
+    borderLeftWidth: 4,
+  },
+  goalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  goalToggle: {
+    marginRight: 12,
+    paddingTop: 2,
+  },
+  goalText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 22,
+    marginRight: 12,
+  },
+  deleteButton: {
+    padding: 4,
+  },
+  goalDate: {
+    fontSize: 12,
+    marginTop: 8,
+    marginLeft: 36,
   },
 });

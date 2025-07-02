@@ -22,9 +22,9 @@ export const deleteExpenseFromFirestore = async (expenseId: string): Promise<voi
   }
 };
 
-export const getExpensesByMonth = async (year: number, month: number): Promise<Expense[]> => {
+export const getExpensesByMonth = async (month: number, year: number): Promise<Expense[]> => {
   try {
-    console.log(`Filtering expenses for year: ${year}, month: ${month}`);
+    console.log(`Filtering expenses for month: ${month}, year: ${year}`);
     
     // Get all expenses and filter by month on the client side
     // This is needed because Firestore date field is stored as string in "M/D/YYYY" format
@@ -268,5 +268,32 @@ export const getAllAvailableGoalMonths = async (): Promise<string[]> => {
   } catch (error) {
     console.error("Error fetching available goal months: ", error);
     return [];
+  }
+};
+
+// Debug function to test basic Firebase connectivity
+export const testFirebaseConnection = async (): Promise<boolean> => {
+  try {
+    console.log('Testing Firebase connection...');
+    const q = query(collection(db, "expenses"));
+    const querySnapshot = await getDocs(q);
+    console.log(`Firebase connection successful. Found ${querySnapshot.size} total documents in expenses collection`);
+    
+    // Log first few documents for debugging
+    let count = 0;
+    querySnapshot.forEach((doc) => {
+      if (count < 3) {
+        console.log(`Sample expense ${count + 1}:`, {
+          id: doc.id,
+          data: doc.data()
+        });
+        count++;
+      }
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Firebase connection test failed:', error);
+    return false;
   }
 };
