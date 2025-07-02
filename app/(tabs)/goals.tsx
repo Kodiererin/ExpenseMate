@@ -2,27 +2,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Easing,
-    Platform,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Goal } from '../../types/Goal';
 import {
-    addGoalToFirestore,
-    deleteGoalFromFirestore,
-    getGoalsByMonthYear,
-    updateGoalInFirestore
+  addGoalToFirestore,
+  deleteGoalFromFirestore,
+  getGoalsByMonthYear,
+  updateGoalInFirestore
 } from '../../utils/firebaseUtils';
 
 export default function GoalsScreen() {

@@ -185,39 +185,41 @@ export default function HistoryScreen() {
       <Card>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
         <View style={styles.pickerContainer}>
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+          <View style={[styles.pickerWrapper, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
             <Picker
               selectedValue={selectedMonth}
-              style={[styles.picker, { color: colors.text }]}
+              style={[styles.picker, { color: isDark ? '#000000' : colors.text }]}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
               mode="dropdown"
+              dropdownIconColor={colors.textSecondary}
             >
               {months.map((month, index) => (
                 <Picker.Item 
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={colors.text}
+                  color={isDark ? '#000000' : colors.text}
                 />
               ))}
             </Picker>
           </View>
 
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+          <View style={[styles.pickerWrapper, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
             <Picker
               selectedValue={selectedYear}
-              style={[styles.picker, { color: colors.text }]}
+              style={[styles.picker, { color: isDark ? '#000000' : colors.text }]}
               onValueChange={(itemValue) => setSelectedYear(itemValue)}
               mode="dropdown"
+              dropdownIconColor={colors.textSecondary}
             >
               {years.map((year) => (
                 <Picker.Item 
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={colors.text}
+                  color={isDark ? '#000000' : colors.text}
                 />
               ))}
             </Picker>
