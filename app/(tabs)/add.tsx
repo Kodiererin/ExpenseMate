@@ -1,21 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Platform,
-  Pressable,
-  KeyboardAvoidingView,
   Animated,
   Easing,
-  TouchableWithoutFeedback,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 
 const COLORS = {
   background: '#e3f0ff',
@@ -47,7 +48,7 @@ export default function AddScreen() {
     { label: 'Shopping 🛍️', value: 'Shopping' },
     { label: 'Bills 💡', value: 'Bills' },
     { label: 'Entertainment 🎬', value: 'Entertainment' },
-    { label: 'Play 🎮', value: 'Play' },
+    { label: 'Games 🎮', value: 'Games' },
   ]);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -73,24 +74,43 @@ export default function AddScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [scaleAnim]);
 
   // User feedback state
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!tag || !price) {
       setFeedback({ type: 'error', message: 'Please select a tag and enter a price.' });
       return;
     }
-    setTag('');
-    setPrice('');
-    setDescription('');
-    setDate(new Date());
-    setFeedback({ type: 'success', message: 'Expense added!' });
-    Keyboard.dismiss();
-    console.log('Expense Added:', { tag, price, description, date: date.toLocaleDateString() });
-    setTimeout(() => setFeedback(null), 1500);
+
+    setIsLoading(true);
+    const expenseData = {
+      tag,
+      price: price, // Keep as string to match Expense interface
+      description,
+      date: date.toLocaleDateString(),
+    };
+    
+    try {
+      await addExpenseToFirestore(expenseData);
+      setTag('');
+      setPrice('');
+      setDescription('');
+      setDate(new Date());
+      setFeedback({ type: 'success', message: 'Expense added successfully!' });
+      Keyboard.dismiss();
+      console.log('Expense Added:', expenseData);
+    } catch (error) {
+      setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });
+      console.error('Error adding expense:', error);
+    } finally {
+      setIsLoading(false);
+    }
+    
+    setTimeout(() => setFeedback(null), 2000);
   };
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
@@ -130,13 +150,8 @@ export default function AddScreen() {
                     placeholder="Select or add Tag"
                     searchable={true}
                     addCustomItem={true}
-                    onAddCustomItem={(item) => {
-                        const newTag = item.label;
-                        if (newTag && !tags.find(t => t.value.toLowerCase() === newTag.toLowerCase())) {
-                            const newItem = { label: `${newTag} 🆕`, value: newTag };
-                            setTags(prev => [...prev, newItem]);
-                            setTag(newTag);
-                        }
+                    onSelectItem={(item: any) => {
+                        setTag(item.value);
                     }}
                     customItemLabelStyle={{
                         fontStyle: 'italic',
@@ -163,14 +178,14 @@ export default function AddScreen() {
                     listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
                     placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
                     theme="LIGHT"
-                    ArrowDownIconComponent={({ style }) => (
-                        <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} style={style} />
+                    ArrowDownIconComponent={() => (
+                        <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} />
                     )}
-                    ArrowUpIconComponent={({ style }) => (
-                        <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} style={style} />
+                    ArrowUpIconComponent={() => (
+                        <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} />
                     )}
-                    TickIconComponent={({ style }) => (
-                        <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={style} />
+                    TickIconComponent={() => (
+                        <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />
                     )}
                     searchContainerStyle={{ 
                         borderBottomColor: COLORS.accent, 
@@ -196,6 +211,7 @@ export default function AddScreen() {
                     }}
                     flatListProps={{
                         keyboardShouldPersistTaps: 'handled',
+                        keyExtractor: (item: any, index: number) => `${item.value}_${index}`,
                     }}
                 />
               </View>
@@ -242,12 +258,22 @@ export default function AddScreen() {
             </View>
             <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
               <Pressable
-                style={styles.addButton}
+                style={[styles.addButton, isLoading && styles.addButtonDisabled]}
                 android_ripple={{ color: COLORS.accent }}
                 onPress={handleAdd}
+                disabled={isLoading}
               >
-                <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
-                <Text style={styles.addButtonText}>Add Expense</Text>
+                {isLoading ? (
+                  <>
+                    <Ionicons name="hourglass" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
+                    <Text style={styles.addButtonText}>Adding...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
+                    <Text style={styles.addButtonText}>Add Expense</Text>
+                  </>
+                )}
               </Pressable>
             </Animated.View>
             {feedback && (
@@ -409,6 +435,10 @@ const styles = StyleSheet.create({
     textShadowColor: '#60a5fa',
     textShadowOffset: { width: 1, height: 2 },
     textShadowRadius: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: COLORS.placeholder,
+    opacity: 0.7,
   },
   descInputWrapper: {
     marginTop: 18,

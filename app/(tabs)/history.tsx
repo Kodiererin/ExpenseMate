@@ -1,24 +1,9 @@
-import { View, Text, StyleSheet, FlatList, Dimensions, Platform, Modal, Pressable } from 'react-native';
-import { useState } from 'react';
-import { PieChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
-
-const sampleExpenses = [
-  { id: '0', tag: 'Rent', price: '20000', description: 'Hello world I am eating.', date: '2025-07-01T20:13:00.000Z' },
-  { id: '1', tag: 'Food', price: '1234', description: 'Hello world I am eating.', date: '2025-07-01T20:13:00.000Z' },
-  { id: '2', tag: 'Travel', price: '500', description: 'Uber ride', date: '2025-06-30T18:45:00.000Z' },
-  { id: '3', tag: 'Shopping', price: '2999', description: 'New shoes', date: '2025-06-29T15:20:00.000Z' },
-  { id: '4', tag: 'Food', price: '250', description: 'Just spent some in the snacks', date: '2025-06-28T13:00:00.000Z' },
-  { id: '5', tag: 'Bills', price: '800', description: 'Electricity', date: '2025-07-02T10:00:00.000Z' },
-  { id: '6', tag: 'Travel', price: '1200', description: 'Train ticket', date: '2025-07-03T09:00:00.000Z' },
-  { id: '7', tag: 'Shopping', price: '450', description: 'T-shirt', date: '2025-07-04T12:00:00.000Z' },
-  { id: '8', tag: 'Food', price: '600', description: 'Dinner', date: '2025-06-15T20:00:00.000Z' },
-  { id: '9', tag: 'Bills', price: '1200', description: 'Internet', date: '2025-07-05T09:00:00.000Z' },
-  { id: '10', tag: 'Entertainment', price: '700', description: 'Movie', date: '2025-07-06T20:00:00.000Z' },
-  { id: '11', tag: 'Food', price: '350', description: 'Lunch', date: '2025-07-07T13:00:00.000Z' },
-  { id: '12', tag: 'Food', price: '3000', description: 'Hello world I am eating.', date: '2025-07-01T20:14:00.000Z' },
-  { id: '13', tag: 'Food', price: '10000', description: 'Hello world I am eating.', date: '2025-07-17T20:14:00.000Z' },
-];
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, FlatList, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PieChart } from 'react-native-chart-kit';
+import { Expense } from '../../types/Expense';
+import { deleteExpenseFromFirestore, getExpensesByMonth } from '../../utils/firebaseUtils';
 
 const COLORS = {
   background: '#e3f0ff',
@@ -33,35 +18,94 @@ const COLORS = {
 };
 
 function formatDate(dateString: string) {
-  const d = new Date(dateString);
-  return d.toLocaleDateString();
-}
-
-function getMonthYearOptions(data: typeof sampleExpenses) {
-  const options = Array.from(
-    new Set(
-      data.map(item => {
-        const d = new Date(item.date);
-        return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-      })
-    )
-  );
-  return options.sort().reverse();
+  // Parse "M/D/YYYY" format manually
+  const dateParts = dateString.split('/');
+  if (dateParts.length === 3) {
+    const month = parseInt(dateParts[0], 10);
+    const day = parseInt(dateParts[1], 10);
+    const year = parseInt(dateParts[2], 10);
+    
+    // Create a proper Date object
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString();
+  }
+  return dateString; // Fallback to original string if parsing fails
 }
 
 export default function HistoryScreen() {
-  // Month/Year logic
-  const monthYearOptions = getMonthYearOptions(sampleExpenses);
-  const [selectedMonthYear, setSelectedMonthYear] = useState(monthYearOptions[0]);
-  const filteredExpenses = sampleExpenses.filter(item => {
-    const d = new Date(item.date);
-    const key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-    return key === selectedMonthYear;
-  });
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+
+  const loadAvailableMonths = useCallback(async () => {
+    // This function can be simplified or removed since we're using direct month/year selection
+    setLoading(false);
+  }, []);
+
+  const loadExpensesForMonth = useCallback(async () => {
+    setLoading(true);
+    try {
+      const monthExpenses = await getExpensesByMonth(selectedYear, selectedMonth);
+      setExpenses(monthExpenses);
+    } catch (error) {
+      console.error('Error loading expenses for month:', error);
+      setExpenses([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedYear, selectedMonth]);
+
+  // Load available months on component mount
+  useEffect(() => {
+    loadAvailableMonths();
+  }, [loadAvailableMonths]);
+
+  // Load expenses when month or year changes
+  useEffect(() => {
+    loadExpensesForMonth();
+  }, [selectedMonth, selectedYear, loadExpensesForMonth]);
+
+  // Refresh function for pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      // Reload expenses for current month/year
+      await loadExpensesForMonth();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadExpensesForMonth]);
+
+  // Delete expense function
+  const handleDeleteExpense = useCallback(async () => {
+    if (!selectedExpense) return;
+    
+    setDeleting(true);
+    try {
+      await deleteExpenseFromFirestore(selectedExpense.id);
+      // Remove the deleted expense from local state
+      setExpenses(prev => prev.filter(expense => expense.id !== selectedExpense.id));
+      setModalVisible(false);
+      setSelectedExpense(null);
+      console.log('Expense deleted successfully');
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      // You could add a toast or alert here to show error to user
+    } finally {
+      setDeleting(false);
+    }
+  }, [selectedExpense]);
 
   // Pie chart data
   const tagTotals: { [tag: string]: number } = {};
-  filteredExpenses.forEach(item => {
+  expenses.forEach(item => {
     tagTotals[item.tag] = (tagTotals[item.tag] || 0) + Number(item.price);
   });
   const pieData = Object.keys(tagTotals).map((tag, i) => ({
@@ -73,11 +117,7 @@ export default function HistoryScreen() {
   }));
 
   // Total spent for the filtered month
-  const totalSpent = filteredExpenses.reduce((sum, item) => sum + Number(item.price), 0);
-
-  // Modal state for details
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<typeof sampleExpenses[0] | null>(null);
+  const totalSpent = expenses.reduce((sum, item) => sum + Number(item.price), 0);
 
   // Table header
   const TableHeader = () => (
@@ -106,93 +146,145 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Expense History</Text>
-      <View style={styles.pickerRow}>
-        <Text style={styles.pickerLabel}>Month:</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={selectedMonthYear}
-            style={styles.picker}
-            onValueChange={setSelectedMonthYear}
-            mode="dropdown"
-            dropdownIconColor={COLORS.primary}
-          >
-            {monthYearOptions.map(opt => {
-              const [year, month] = opt.split('-');
-              return (
-                <Picker.Item
-                  key={opt}
-                  label={`${new Date(Number(year), Number(month) - 1).toLocaleString('default', { month: 'long' })} ${year}`}
-                  value={opt}
-                />
-              );
-            })}
-          </Picker>
-        </View>
-      </View>
-
-      {/* Pie Chart Card with 3D effect */}
-      <View style={styles.pieCard}>
-        {pieData.length > 0 ? (
-          <PieChart
-            data={pieData.map(d => ({
-              name: d.name,
-              population: d.amount,
-              color: d.color,
-              legendFontColor: d.legendFontColor,
-              legendFontSize: d.legendFontSize,
-            }))}
-            width={Dimensions.get('window').width - 48}
-            height={190}
-            chartConfig={{
-              color: () => COLORS.primary,
-              labelColor: () => COLORS.text,
-              backgroundColor: COLORS.background,
-              backgroundGradientFrom: COLORS.background,
-              backgroundGradientTo: COLORS.background,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="10"
-            absolute
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
           />
-        ) : (
-          <Text style={{ textAlign: 'center', color: COLORS.placeholder, marginVertical: 12 }}>No data for this month.</Text>
-        )}
-      </View>
+        }
+      >
+        <Text style={styles.title}>Expense History</Text>
+        
+        {/* Month and Year Pickers - Single Row */}
+        <View style={styles.pickerContainer}>
+          <View style={styles.singleRowPicker}>
+            <View style={styles.pickerSection}>
+              <Text style={styles.pickerLabel}>Month</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedMonth}
+                  style={styles.picker}
+                  onValueChange={setSelectedMonth}
+                  mode="dropdown"
+                  dropdownIconColor={COLORS.primary}
+                >
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const monthNames = [
+                      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                    ];
+                    return (
+                      <Picker.Item
+                        key={i + 1}
+                        label={monthNames[i]}
+                        value={i + 1}
+                      />
+                    );
+                  })}
+                </Picker>
+              </View>
+            </View>
 
-      {/* Table Card with 3D effect */}
-      <View style={styles.table}>
-        <TableHeader />
-        <FlatList
-          data={filteredExpenses}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => {
-                setSelectedExpense(item);
-                setModalVisible(true);
+            <View style={styles.pickerSection}>
+              <Text style={styles.pickerLabel}>Year</Text>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedYear}
+                  style={styles.picker}
+                  onValueChange={setSelectedYear}
+                  mode="dropdown"
+                  dropdownIconColor={COLORS.primary}
+                >
+                  {Array.from({ length: 10 }, (_, i) => {
+                    const year = new Date().getFullYear() - i;
+                    return (
+                      <Picker.Item
+                        key={year}
+                        label={year.toString()}
+                        value={year}
+                      />
+                    );
+                  })}
+                </Picker>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Pie Chart Card with 3D effect */}
+        <View style={styles.pieCard}>
+          {loading ? (
+            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 20 }} />
+          ) : pieData.length > 0 ? (
+            <PieChart
+              data={pieData.map(d => ({
+                name: d.name,
+                population: d.amount,
+                color: d.color,
+                legendFontColor: d.legendFontColor,
+                legendFontSize: d.legendFontSize,
+              }))}
+              width={Dimensions.get('window').width - 48}
+              height={190}
+              chartConfig={{
+                color: () => COLORS.primary,
+                labelColor: () => COLORS.text,
+                backgroundColor: COLORS.background,
+                backgroundGradientFrom: COLORS.background,
+                backgroundGradientTo: COLORS.background,
               }}
-              style={({ pressed }) => [
-                styles.tableRow,
-                pressed && { backgroundColor: '#e3f0ff' },
-              ]}
-            >
-              <Text style={[styles.tableCell, { flex: 1 }]}>{formatDate(item.date)}</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]}>{item.tag}</Text>
-              <Text style={[styles.tableCell, { flex: 1 }]} numberOfLines={1}>
-                {getShortDesc(item.description)}
-              </Text>
-              <Text style={[styles.tableCell, { flex: 1 }]}>₹{item.price}</Text>
-            </Pressable>
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="10"
+              absolute
+            />
+          ) : (
+            <Text style={{ textAlign: 'center', color: COLORS.placeholder, marginVertical: 12 }}>No data for this month.</Text>
           )}
-          ListEmptyComponent={
-            <Text style={{ color: COLORS.placeholder, textAlign: 'center', marginVertical: 12 }}>No expenses found.</Text>
-          }
-          style={{ maxHeight: 260 }}
-        />
-        <TableTotal />
-      </View>
+        </View>
+
+        {/* Table Card with 3D effect */}
+        <View style={styles.table}>
+          <TableHeader />
+          {loading ? (
+            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 20 }} />
+          ) : (
+            <FlatList
+              data={expenses}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    setSelectedExpense(item);
+                    setModalVisible(true);
+                  }}
+                  style={({ pressed }) => [
+                    styles.tableRow,
+                    pressed && { backgroundColor: '#e3f0ff' },
+                  ]}
+                >
+                  <Text style={[styles.tableCell, { flex: 1 }]}>{formatDate(item.date)}</Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>{item.tag}</Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]} numberOfLines={1}>
+                    {getShortDesc(item.description)}
+                  </Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>₹{item.price}</Text>
+                </Pressable>
+              )}
+              ListEmptyComponent={
+                <Text style={{ color: COLORS.placeholder, textAlign: 'center', marginVertical: 12 }}>No expenses found.</Text>
+              }
+              style={{ maxHeight: 260 }}
+              scrollEnabled={false}
+            />
+          )}
+          <TableTotal />
+        </View>
+      </ScrollView>
 
       {/* Modal for expense details */}
       <Modal
@@ -212,9 +304,25 @@ export default function HistoryScreen() {
                 <Text style={styles.modalLabel}>Amount: <Text style={styles.modalValue}>₹{selectedExpense.price}</Text></Text>
               </>
             )}
-            <Pressable style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </Pressable>
+            
+            {/* Action Buttons */}
+            <View style={styles.modalButtons}>
+              <Pressable 
+                style={[styles.actionButton, styles.deleteButton, deleting && styles.disabledButton]} 
+                onPress={handleDeleteExpense}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Text style={styles.deleteButtonText}>Delete</Text>
+                )}
+              </Pressable>
+              
+              <Pressable style={[styles.actionButton, { backgroundColor: COLORS.primary }]} onPress={() => setModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -225,9 +333,11 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
     padding: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    backgroundColor: COLORS.background,
   },
   title: {
     fontSize: 30,
@@ -240,9 +350,40 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 8,
   },
-  pickerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  pickerLabel: { fontSize: 16, color: COLORS.primary, marginRight: 8, fontWeight: 'bold' },
-  pickerWrapper: { flex: 1, backgroundColor: COLORS.card, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.accent },
+  pickerContainer: {
+    marginBottom: 20,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  singleRowPicker: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 16,
+  },
+  pickerSection: {
+    flex: 1,
+  },
+  pickerLabel: { 
+    fontSize: 14, 
+    color: COLORS.primary, 
+    marginBottom: 8, 
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  pickerWrapper: { 
+    backgroundColor: COLORS.background, 
+    borderRadius: 12, 
+    overflow: 'hidden', 
+    borderWidth: 1.5, 
+    borderColor: COLORS.accent,
+  },
   picker: { width: '100%', color: COLORS.text, backgroundColor: 'transparent' },
   pieCard: {
     backgroundColor: COLORS.card,
@@ -326,14 +467,34 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: COLORS.primary,
   },
-  closeButton: {
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 18,
-    backgroundColor: COLORS.primary,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  actionButton: {
     borderRadius: 12,
     paddingVertical: 10,
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
     alignItems: 'center',
+    justifyContent: 'center',
     elevation: 4,
+    minWidth: 80,
+  },
+  deleteButton: {
+    backgroundColor: '#ef4444', // Red color for delete
+  },
+  disabledButton: {
+    backgroundColor: '#9ca3af', // Gray color when disabled
+    elevation: 0,
+  },
+  deleteButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   closeButtonText: {
     color: COLORS.white,
