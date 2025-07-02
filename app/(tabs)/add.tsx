@@ -75,15 +75,6 @@ export default function AddScreen() {
     ).start();
   }, []);
 
-  // Handler to add a new tag if not present
-  const handleAddTag = (newTag: string) => {
-    if (newTag && !tags.find(t => t.value.toLowerCase() === newTag.toLowerCase())) {
-      setTags(prev => [...prev, { label: `${newTag} 🆕`, value: newTag }]);
-      setTag(newTag);
-      setTimeout(() => setOpen(true), 100);
-    }
-  };
-
   // User feedback state
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -98,6 +89,7 @@ export default function AddScreen() {
     setDate(new Date());
     setFeedback({ type: 'success', message: 'Expense added!' });
     Keyboard.dismiss();
+    console.log('Expense Added:', { tag, price, description, date: date.toLocaleDateString() });
     setTimeout(() => setFeedback(null), 1500);
   };
 
@@ -136,12 +128,20 @@ export default function AddScreen() {
                     setValue={setTag}
                     setItems={setTags}
                     placeholder="Select or add Tag"
-                    searchable
+                    searchable={true}
                     addCustomItem={true}
-                    onSelectItem={(item) => {
-                        if (item?.value && !tags.find(t => t.value.toLowerCase() === item.value.toLowerCase())) {
-                          handleAddTag(item.value);
+                    onAddCustomItem={(item) => {
+                        const newTag = item.label;
+                        if (newTag && !tags.find(t => t.value.toLowerCase() === newTag.toLowerCase())) {
+                            const newItem = { label: `${newTag} 🆕`, value: newTag };
+                            setTags(prev => [...prev, newItem]);
+                            setTag(newTag);
                         }
+                    }}
+                    customItemLabelStyle={{
+                        fontStyle: 'italic',
+                        color: COLORS.primary,
+                        fontWeight: '600',
                     }}
                     style={[styles.dropdown, shadowStyle, open && styles.dropdownOpen]}
                     dropDownContainerStyle={{
@@ -149,17 +149,19 @@ export default function AddScreen() {
                         ...shadowStyle,
                         backgroundColor: COLORS.background,
                         borderRadius: 18,
-                        maxHeight: 220,
+                        maxHeight: 200,
                         zIndex: 2000,
                     }}
-                    listMode="SCROLLVIEW"
-                    scrollViewProps={{
-                        persistentScrollbar: true,
-                        keyboardShouldPersistTaps: 'handled',
+                    listMode="MODAL"
+                    modalAnimationType="slide"
+                    modalTitle="Select Tag"
+                    modalTitleStyle={{
+                        fontWeight: 'bold',
+                        fontSize: 18,
+                        color: COLORS.primary,
                     }}
                     listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
                     placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
-                    modalAnimationType="slide"
                     theme="LIGHT"
                     ArrowDownIconComponent={({ style }) => (
                         <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} style={style} />
@@ -170,11 +172,32 @@ export default function AddScreen() {
                     TickIconComponent={({ style }) => (
                         <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={style} />
                     )}
-                    searchContainerStyle={{ borderBottomColor: COLORS.accent, backgroundColor: COLORS.card }}
-                    searchTextInputStyle={{ color: COLORS.text, fontSize: 15, backgroundColor: COLORS.card, borderRadius: 10 }}
-                    listItemContainerStyle={{ borderRadius: 12, marginVertical: 2 }}
+                    searchContainerStyle={{ 
+                        borderBottomColor: COLORS.accent, 
+                        backgroundColor: COLORS.card,
+                        borderRadius: 10,
+                        marginHorizontal: 10,
+                        marginTop: 10,
+                    }}
+                    searchTextInputStyle={{ 
+                        color: COLORS.text, 
+                        fontSize: 15, 
+                        backgroundColor: COLORS.card, 
+                        borderRadius: 10 
+                    }}
+                    listItemContainerStyle={{ 
+                        borderRadius: 12, 
+                        marginVertical: 2,
+                        marginHorizontal: 10,
+                    }}
                     selectedItemLabelStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
-                    />
+                    modalContentContainerStyle={{
+                        backgroundColor: COLORS.background,
+                    }}
+                    flatListProps={{
+                        keyboardShouldPersistTaps: 'handled',
+                    }}
+                />
               </View>
               <View style={[styles.priceInputWrapper, shadowStyle]}>
                 <MaterialCommunityIcons name="currency-inr" size={24} color={COLORS.rupee} style={styles.rupeeIcon} />
