@@ -2,22 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useData } from '../../contexts/DataContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../types/Expense';
 import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
 

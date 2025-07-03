@@ -4,8 +4,8 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useData } from '../../contexts/DataContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();

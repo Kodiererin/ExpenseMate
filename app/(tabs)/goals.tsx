@@ -16,8 +16,8 @@ import {
   View,
 } from 'react-native';
 import { Button, Card, Section, Separator } from '../../components/common';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useData } from '../../contexts/DataContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Goal } from '../../types/Goal';
 import {
   addGoalToFirestore,
