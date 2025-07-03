@@ -3,10 +3,26 @@ import { db } from "../constants/firebase";
 import { Expense } from "../types/Expense";
 import { Goal } from "../types/Goal";
 
+// Cache invalidation callbacks
+let onDataChangeCallbacks: (() => void)[] = [];
+
+export const registerDataChangeCallback = (callback: () => void) => {
+  onDataChangeCallbacks.push(callback);
+};
+
+export const unregisterDataChangeCallback = (callback: () => void) => {
+  onDataChangeCallbacks = onDataChangeCallbacks.filter(cb => cb !== callback);
+};
+
+const notifyDataChange = () => {
+  onDataChangeCallbacks.forEach(callback => callback());
+};
+
 export const addExpenseToFirestore = async (expense: Omit<Expense, 'id'>): Promise<void> => {
   try {
     const docRef = await addDoc(collection(db, "expenses"), expense);
     console.log("Expense stored with ID: ", docRef.id);
+    notifyDataChange(); // Invalidate cache
   } catch (error) {
     console.error("Error adding expense to Firestore: ", error);
   }
@@ -16,6 +32,7 @@ export const deleteExpenseFromFirestore = async (expenseId: string): Promise<voi
   try {
     await deleteDoc(doc(db, "expenses", expenseId));
     console.log("Expense deleted with ID: ", expenseId);
+    notifyDataChange(); // Invalidate cache
   } catch (error) {
     console.error("Error deleting expense from Firestore: ", error);
     throw error;
@@ -169,6 +186,7 @@ export const addGoalToFirestore = async (goal: Omit<Goal, 'id'>): Promise<void> 
   try {
     const docRef = await addDoc(collection(db, "goals"), goal);
     console.log("Goal stored with ID: ", docRef.id);
+    notifyDataChange(); // Invalidate cache
   } catch (error) {
     console.error("Error adding goal to Firestore: ", error);
     throw error;
@@ -179,6 +197,7 @@ export const deleteGoalFromFirestore = async (goalId: string): Promise<void> => 
   try {
     await deleteDoc(doc(db, "goals", goalId));
     console.log("Goal deleted with ID: ", goalId);
+    notifyDataChange(); // Invalidate cache
   } catch (error) {
     console.error("Error deleting goal from Firestore: ", error);
     throw error;
@@ -189,6 +208,7 @@ export const updateGoalInFirestore = async (goalId: string, updates: Partial<Omi
   try {
     await updateDoc(doc(db, "goals", goalId), updates);
     console.log("Goal updated with ID: ", goalId);
+    notifyDataChange(); // Invalidate cache
   } catch (error) {
     console.error("Error updating goal in Firestore: ", error);
     throw error;

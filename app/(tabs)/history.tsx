@@ -17,8 +17,9 @@ import {
 import { PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useData } from '../../contexts/DataContext';
 import { Expense } from '../../types/Expense';
-import { deleteExpenseFromFirestore, getExpensesByMonth, testFirebaseConnection } from '../../utils/firebaseUtils';
+import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
 
 function formatDate(dateString: string) {
   // Parse "M/D/YYYY" format manually
@@ -42,49 +43,40 @@ function formatDate(dateString: string) {
 
 export default function HistoryScreen() {
   const { colors, isDark } = useTheme();
+  const { 
+    getExpensesByMonth, 
+    refreshExpenses, 
+    expensesLoading: loading
+  } = useData();
+  
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
 
-  const loadExpensesForMonth = useCallback(async () => {
+  const loadExpensesForMonth = useCallback(() => {
     console.log(`Loading expenses for month: ${selectedMonth}, year: ${selectedYear}`);
-    setLoading(true);
-    try {
-      const fetchedExpenses = await getExpensesByMonth(selectedMonth, selectedYear);
-      console.log(`Received ${fetchedExpenses.length} expenses from Firebase`);
-      setExpenses(fetchedExpenses);
-    } catch (error) {
-      console.error('Error loading expenses:', error);
-      Alert.alert('Error', 'Failed to load expenses. Please try again.');
-      setExpenses([]); // Reset to empty array on error
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth, selectedYear]);
+    const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
+    console.log(`Received ${fetchedExpenses.length} expenses from cache`);
+    setExpenses(fetchedExpenses);
+  }, [selectedMonth, selectedYear, getExpensesByMonth]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadExpensesForMonth();
+    await refreshExpenses();
     setRefreshing(false);
-  }, [loadExpensesForMonth]);
+  }, [refreshExpenses]);
 
   useEffect(() => {
-    // Test Firebase connection first
-    testFirebaseConnection().then((connected) => {
-      if (connected) {
-        console.log('Firebase is working, loading expenses...');
-        loadExpensesForMonth();
-      } else {
-        console.error('Firebase connection failed, cannot load expenses');
-        setLoading(false);
-        Alert.alert('Error', 'Failed to connect to Firebase. Please check your internet connection.');
-      }
-    });
+    loadExpensesForMonth();
+  }, [loadExpensesForMonth]);
+
+  // Update expenses when the cached data changes
+  useEffect(() => {
+    loadExpensesForMonth();
   }, [loadExpensesForMonth]);
 
   const handleDelete = async (expense: Expense) => {
@@ -100,9 +92,9 @@ export default function HistoryScreen() {
             setDeleting(true);
             try {
               await deleteExpenseFromFirestore(expense.id);
-              await loadExpensesForMonth(); // Reload data
               setModalVisible(false);
               Alert.alert('Success', 'Expense deleted successfully!');
+              // No need to manually reload - DataContext will handle cache invalidation
             } catch (error) {
               console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense. Please try again.');

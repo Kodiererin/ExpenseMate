@@ -17,21 +17,26 @@ import {
 } from 'react-native';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useData } from '../../contexts/DataContext';
 import { Goal } from '../../types/Goal';
 import {
   addGoalToFirestore,
   deleteGoalFromFirestore,
-  getGoalsByMonthYear,
   updateGoalInFirestore
 } from '../../utils/firebaseUtils';
 
 export default function GoalsScreen() {
   const { colors } = useTheme();
+  const { 
+    getGoalsByMonth, 
+    refreshGoals, 
+    goalsLoading 
+  } = useData();
+  
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [goals, setGoals] = useState<Goal[]>([]);
   const [goal, setGoal] = useState('');
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [addingGoal, setAddingGoal] = useState(false);
 
@@ -103,24 +108,27 @@ export default function GoalsScreen() {
     ]).start();
   };
 
-  const loadGoals = useCallback(async () => {
+  const loadGoals = useCallback(() => {
     try {
-      const fetchedGoals = await getGoalsByMonthYear(selectedMonthYear);
+      const fetchedGoals = getGoalsByMonth(selectedMonthYear);
       setGoals(fetchedGoals);
     } catch (error) {
       console.error('Error loading goals:', error);
       Alert.alert('Error', 'Failed to load goals. Please try again.');
-    } finally {
-      setLoading(false);
     }
-  }, [selectedMonthYear]);
+  }, [selectedMonthYear, getGoalsByMonth]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadGoals();
+    await refreshGoals(selectedMonthYear);
     setRefreshing(false);
+  }, [refreshGoals, selectedMonthYear]);
+
+  useEffect(() => {
+    loadGoals();
   }, [loadGoals]);
 
+  // Update goals when the cached data changes or month changes
   useEffect(() => {
     loadGoals();
   }, [loadGoals]);
@@ -148,8 +156,8 @@ export default function GoalsScreen() {
       });
       
       setGoal('');
-      await loadGoals();
       Alert.alert('Success', 'Goal added successfully! 🎯');
+      // No need to manually reload - DataContext will handle cache invalidation
     } catch (error) {
       console.error('Error adding goal:', error);
       Alert.alert('Error', 'Failed to add goal. Please try again.');
@@ -163,7 +171,7 @@ export default function GoalsScreen() {
     
     try {
       await updateGoalInFirestore(goalItem.id, { completed: !goalItem.completed });
-      await loadGoals();
+      // No need to manually reload - DataContext will handle cache invalidation
     } catch (error) {
       console.error('Error updating goal:', error);
       Alert.alert('Error', 'Failed to update goal. Please try again.');
@@ -182,8 +190,8 @@ export default function GoalsScreen() {
           onPress: async () => {
             try {
               await deleteGoalFromFirestore(goalItem.id);
-              await loadGoals();
               Alert.alert('Success', 'Goal deleted successfully!');
+              // No need to manually reload - DataContext will handle cache invalidation
             } catch (error) {
               console.error('Error deleting goal:', error);
               Alert.alert('Error', 'Failed to delete goal. Please try again.');
@@ -355,7 +363,7 @@ export default function GoalsScreen() {
 
       {/* Goals List */}
       <Section title="📋 Your Goals" subtitle="Tap to mark as complete">
-        {loading ? (
+        {goalsLoading ? (
           <Card style={styles.loadingCard}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textSecondary }]}>

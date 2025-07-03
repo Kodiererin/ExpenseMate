@@ -5,13 +5,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Expense } from '../../types/Expense';
-import { getAllExpenses } from '../../utils/firebaseUtils';
+import { useData } from '../../contexts/DataContext';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { expenses, expensesLoading } = useData();
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [stats, setStats] = useState({
@@ -50,21 +48,19 @@ export default function ProfileScreen() {
   };
 
   // Load all expenses and calculate stats
-  const loadExpensesAndStats = useCallback(async () => {
-    setLoading(true);
+  const loadExpensesAndStats = useCallback(() => {
     try {
-      const allExpenses = await getAllExpenses();
-      setExpenses(allExpenses);
+      const allExpenses = expenses; // Use cached data
 
       // Calculate statistics
-      const totalAmount = allExpenses.reduce((sum, exp) => sum + parseFloat(exp.price), 0);
+      const totalAmount = allExpenses.reduce((sum: number, exp: any) => sum + parseFloat(exp.price), 0);
       
       // Current month expenses
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
       
-      const currentMonthExpenses = allExpenses.filter(exp => {
+      const currentMonthExpenses = allExpenses.filter((exp: any) => {
         const dateParts = exp.date.split('/');
         if (dateParts.length === 3) {
           const expMonth = parseInt(dateParts[0], 10);
@@ -74,11 +70,11 @@ export default function ProfileScreen() {
         return false;
       });
       
-      const currentMonthAmount = currentMonthExpenses.reduce((sum, exp) => sum + parseFloat(exp.price), 0);
+      const currentMonthAmount = currentMonthExpenses.reduce((sum: number, exp: any) => sum + parseFloat(exp.price), 0);
 
       // Most spent category
       const categoryTotals: { [key: string]: number } = {};
-      allExpenses.forEach(exp => {
+      allExpenses.forEach((exp: any) => {
         const price = parseFloat(exp.price);
         if (!isNaN(price)) {
           categoryTotals[exp.tag] = (categoryTotals[exp.tag] || 0) + price;
@@ -98,12 +94,10 @@ export default function ProfileScreen() {
         mostSpentCategory,
       });
     } catch (error) {
-      console.error('Error loading expenses:', error);
-      Alert.alert('Error', 'Failed to load expenses. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Error calculating stats:', error);
+      Alert.alert('Error', 'Failed to calculate statistics. Please try again.');
     }
-  }, []);
+  }, [expenses]);
 
   useEffect(() => {
     loadExpensesAndStats();
@@ -389,7 +383,7 @@ export default function ProfileScreen() {
 
       <Separator height={24} />
 
-      {loading ? (
+      {expensesLoading ? (
         <Card style={styles.loadingCard}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
