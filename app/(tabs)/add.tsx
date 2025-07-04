@@ -2,18 +2,18 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableWithoutFeedback,
-  View,
+    Animated,
+    Easing,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
@@ -23,7 +23,8 @@ import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
-  const { refreshExpenses, getExpensesByMonth } = useData();
+  // Data context is used for automatic refresh after adding expenses
+  useData();
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([
@@ -138,18 +139,8 @@ export default function AddScreen() {
       setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
       Keyboard.dismiss();
       
-      // Force refresh with a slight delay to ensure database is updated
-      console.log('Refreshing expenses after adding...');
-      // First immediate refresh
-      await refreshExpenses();
-      console.log('Immediate refresh completed');
-      
-      // Second refresh after delay to ensure Firestore propagation
-      setTimeout(async () => {
-        console.log('Delayed refresh starting...');
-        await refreshExpenses();
-        console.log('Delayed refresh completed');
-      }, 500);
+      // No need to manually refresh - the data context will handle it automatically
+      console.log('Expense added, context will refresh automatically');
       
       console.log('Expense Added:', expenseData);
     } catch (error) {

@@ -53,6 +53,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
+  // Add debounced refresh to prevent excessive operations
+  const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  
+  const debouncedRefresh = useCallback(async () => {
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    
+    const timeout = setTimeout(async () => {
+      await refreshExpenses();
+    }, 300); // 300ms debounce
+    
+    setRefreshTimeout(timeout);
+  }, [refreshExpenses, refreshTimeout]);
+
   const refreshExpenses = useCallback(async () => {
     console.log('Starting refreshExpenses...');
     setExpensesLoading(true);
@@ -146,19 +161,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Register for data change notifications
     const handleDataChange = async () => {
       console.log('Data changed, refreshing cache...');
-      // Add a small delay to ensure Firestore operation is complete
-      setTimeout(async () => {
-        await refreshExpenses();
-      }, 200);
+      // Use debounced refresh to prevent excessive operations
+      await debouncedRefresh();
     };
     
     registerDataChangeCallback(handleDataChange);
     
     // Cleanup on unmount
     return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
       unregisterDataChangeCallback(handleDataChange);
     };
-  }, [loadCachedData, refreshExpenses]);
+  }, [loadCachedData, debouncedRefresh, refreshTimeout]);
 
   const refreshGoals = useCallback(async (monthYear: string) => {
     setGoalsLoading(true);

@@ -3,8 +3,9 @@ import { db } from "../constants/firebase";
 import { Expense } from "../types/Expense";
 import { Goal } from "../types/Goal";
 
-// Cache invalidation callbacks
+// Cache invalidation callbacks with debouncing
 let onDataChangeCallbacks: (() => void)[] = [];
+let notifyTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export const registerDataChangeCallback = (callback: () => void) => {
   onDataChangeCallbacks.push(callback);
@@ -15,11 +16,18 @@ export const unregisterDataChangeCallback = (callback: () => void) => {
 };
 
 const notifyDataChange = () => {
-  console.log(`Notifying ${onDataChangeCallbacks.length} data change callbacks`);
-  onDataChangeCallbacks.forEach((callback, index) => {
-    console.log(`Calling callback ${index + 1}`);
-    callback();
-  });
+  // Debounce notifications to prevent excessive calls
+  if (notifyTimeout) {
+    clearTimeout(notifyTimeout);
+  }
+  
+  notifyTimeout = setTimeout(() => {
+    console.log(`Notifying ${onDataChangeCallbacks.length} data change callbacks`);
+    onDataChangeCallbacks.forEach((callback, index) => {
+      console.log(`Calling callback ${index + 1}`);
+      callback();
+    });
+  }, 100); // 100ms debounce
 };
 
 export const addExpenseToFirestore = async (expense: Omit<Expense, 'id'>): Promise<void> => {

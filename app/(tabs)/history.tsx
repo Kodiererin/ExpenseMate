@@ -2,17 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
@@ -81,9 +81,13 @@ export default function HistoryScreen() {
     console.log('History: Context data changed, updating local expenses...');
     console.log('History: Total expenses in context:', allExpenses.length);
     const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
-    console.log(`History: Setting ${fetchedExpenses.length} expenses for ${selectedMonth}/${selectedYear}`);
-    setExpenses(fetchedExpenses);
-  }, [allExpenses, getExpensesByMonth, selectedMonth, selectedYear]);
+    
+    // Only update if the data actually changed to prevent unnecessary renders
+    if (JSON.stringify(fetchedExpenses) !== JSON.stringify(expenses)) {
+      console.log(`History: Setting ${fetchedExpenses.length} expenses for ${selectedMonth}/${selectedYear}`);
+      setExpenses(fetchedExpenses);
+    }
+  }, [allExpenses, getExpensesByMonth, selectedMonth, selectedYear, expenses]);
 
   const handleDelete = async (expense: Expense) => {
     Alert.alert(
@@ -101,12 +105,8 @@ export default function HistoryScreen() {
               setModalVisible(false);
               Alert.alert('Success', 'Expense deleted successfully!');
               
-              // Force refresh with a slight delay to ensure database is updated
-              console.log('Refreshing expenses after deletion...');
-              setTimeout(async () => {
-                await refreshExpenses();
-                console.log('Expenses refreshed after deletion');
-              }, 100);
+              // No need to manually refresh - the data context will handle it automatically
+              console.log('Expense deleted, context will refresh automatically');
             } catch (error) {
               console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense. Please try again.');
