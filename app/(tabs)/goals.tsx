@@ -248,16 +248,17 @@ export default function GoalsScreen() {
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
             <Picker
               selectedValue={selectedMonth}
-              style={[styles.picker, { color: colors.text }]}
+              style={[styles.picker, { color: colors.text, backgroundColor: colors.surface }]}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
               mode="dropdown"
+              dropdownIconColor={colors.text}
             >
               {months.map((month, index) => (
                 <Picker.Item 
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={colors.text}
+                  color={Platform.OS === 'ios' ? colors.text : colors.black}
                 />
               ))}
             </Picker>
@@ -267,16 +268,17 @@ export default function GoalsScreen() {
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
             <Picker
               selectedValue={selectedYear}
-              style={[styles.picker, { color: colors.text }]}
+              style={[styles.picker, { color: colors.text, backgroundColor: colors.surface }]}
               onValueChange={(itemValue) => setSelectedYear(itemValue)}
               mode="dropdown"
+              dropdownIconColor={colors.text}
             >
               {years.map((year) => (
                 <Picker.Item 
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={colors.text}
+                  color={Platform.OS === 'ios' ? colors.text : colors.black}
                 />
               ))}
             </Picker>
