@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -16,30 +16,12 @@ import {
   View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { Button, Card, Separator } from '../../components/common';
+import { useTheme } from '../../contexts/ThemeContext';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 
-const COLORS = {
-  background: '#e3f0ff',
-  card: '#fafdff',
-  primary: '#2563eb',
-  accent: '#60a5fa',
-  shadow: '#2563eb',
-  text: '#1e293b',
-  placeholder: '#7da0c4',
-  white: '#fff',
-  rupee: '#2563eb',
-  error: '#f43f5e',
-};
-
-const shadowStyle = {
-  shadowColor: COLORS.shadow,
-  shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.18,
-  shadowRadius: 18,
-  elevation: 12,
-};
-
 export default function AddScreen() {
+  const { colors, isDark } = useTheme();
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([
@@ -49,6 +31,8 @@ export default function AddScreen() {
     { label: 'Bills 💡', value: 'Bills' },
     { label: 'Entertainment 🎬', value: 'Entertainment' },
     { label: 'Games 🎮', value: 'Games' },
+    { label: 'Health 🏥', value: 'Health' },
+    { label: 'Education 📚', value: 'Education' },
   ]);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
@@ -63,14 +47,14 @@ export default function AddScreen() {
     animationRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.08,
-          duration: 700,
+          toValue: 1.05,
+          duration: 1000,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.ease),
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 700,
+          duration: 1000,
           useNativeDriver: true,
           easing: Easing.inOut(Easing.ease),
         }),
@@ -134,7 +118,7 @@ export default function AddScreen() {
       setPrice('');
       setDescription('');
       setDate(new Date());
-      setFeedback({ type: 'success', message: 'Expense added successfully!' });
+      setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
       Keyboard.dismiss();
       console.log('Expense Added:', expenseData);
     } catch (error) {
@@ -144,7 +128,7 @@ export default function AddScreen() {
       setIsLoading(false);
     }
     
-    setTimeout(() => setFeedback(null), 2000);
+    setTimeout(() => setFeedback(null), 3000);
   };
 
   const onChangeDate = (_event: any, selectedDate?: Date) => {
@@ -158,9 +142,17 @@ export default function AddScreen() {
     setOpen(false);
   };
 
+  const shadowStyle = {
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.3 : 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+  };
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: COLORS.background }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
@@ -169,194 +161,255 @@ export default function AddScreen() {
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.container}>
-            <Text style={styles.title}>ExpenseMate</Text>
-            <Text style={styles.subtitle}>Add your expense</Text>
-            <View style={styles.inputRow}>
-              <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
-                <DropDownPicker
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <Card style={styles.header}>
+              <View style={styles.headerContent}>
+                <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  Track your expenses with ease
+                </Text>
+              </View>
+            </Card>
+
+            <Separator height={24} />
+
+            <Card>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
+              
+              <Separator height={16} />
+              
+              <View style={styles.inputRow}>
+                <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Category</Text>
+                  <DropDownPicker
                     open={open}
                     value={tag}
                     items={tags}
                     setOpen={setOpen}
                     setValue={setTag}
                     setItems={setTags}
-                    placeholder="Select or add Tag"
+                    placeholder="Select category"
                     searchable={true}
                     addCustomItem={true}
                     onSelectItem={(item: any) => {
-                        setTag(item.value);
+                      setTag(item.value);
                     }}
                     customItemLabelStyle={{
-                        fontStyle: 'italic',
-                        color: COLORS.primary,
-                        fontWeight: '600',
+                      fontStyle: 'italic',
+                      color: colors.primary,
+                      fontWeight: '600',
                     }}
-                    style={[styles.dropdown, shadowStyle, open && styles.dropdownOpen]}
+                    style={[{
+                      borderColor: colors.border,
+                      borderRadius: 12,
+                      backgroundColor: colors.card,
+                      minHeight: 50,
+                      borderWidth: 1,
+                    }, shadowStyle]}
                     dropDownContainerStyle={{
-                        borderColor: COLORS.accent,
-                        ...shadowStyle,
-                        backgroundColor: COLORS.background,
-                        borderRadius: 18,
-                        maxHeight: 200,
-                        zIndex: 2000,
+                      borderColor: colors.border,
+                      backgroundColor: colors.card,
+                      borderRadius: 12,
+                      maxHeight: 200,
+                      zIndex: 2000,
+                      ...shadowStyle,
                     }}
                     listMode="MODAL"
                     modalAnimationType="slide"
-                    modalTitle="Select Tag"
+                    modalTitle="Select Category"
                     modalTitleStyle={{
-                        fontWeight: 'bold',
-                        fontSize: 18,
-                        color: COLORS.primary,
+                      fontWeight: 'bold',
+                      fontSize: 18,
+                      color: colors.text,
                     }}
-                    listItemLabelStyle={{ fontWeight: '600', color: COLORS.text, fontSize: 16 }}
-                    placeholderStyle={{ color: COLORS.placeholder, fontSize: 16 }}
-                    theme="LIGHT"
+                    listItemLabelStyle={{ 
+                      fontWeight: '600', 
+                      color: colors.text, 
+                      fontSize: 16 
+                    }}
+                    placeholderStyle={{ 
+                      color: colors.placeholder, 
+                      fontSize: 16 
+                    }}
+                    theme={isDark ? "DARK" : "LIGHT"}
                     ArrowDownIconComponent={() => (
-                        <Ionicons name="chevron-down-circle" size={24} color={COLORS.primary} />
+                      <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
                     )}
                     ArrowUpIconComponent={() => (
-                        <Ionicons name="chevron-up-circle" size={24} color={COLORS.primary} />
+                      <Ionicons name="chevron-up" size={20} color={colors.textSecondary} />
                     )}
                     TickIconComponent={() => (
-                        <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} />
+                      <Ionicons name="checkmark" size={20} color={colors.primary} />
                     )}
                     searchContainerStyle={{ 
-                        borderBottomColor: COLORS.accent, 
-                        backgroundColor: COLORS.card,
-                        borderRadius: 10,
-                        marginHorizontal: 10,
-                        marginTop: 10,
+                      borderBottomColor: colors.border, 
+                      backgroundColor: colors.surface,
+                      borderRadius: 8,
+                      marginHorizontal: 10,
+                      marginTop: 10,
                     }}
                     searchTextInputStyle={{ 
-                        color: COLORS.text, 
-                        fontSize: 15, 
-                        backgroundColor: COLORS.card, 
-                        borderRadius: 10 
+                      color: colors.text, 
+                      fontSize: 15, 
+                      backgroundColor: colors.surface,
+                      borderRadius: 8,
                     }}
                     listItemContainerStyle={{ 
-                        borderRadius: 12, 
-                        marginVertical: 2,
-                        marginHorizontal: 10,
+                      borderRadius: 8, 
+                      marginVertical: 2,
+                      marginHorizontal: 10,
                     }}
-                    selectedItemLabelStyle={{ color: COLORS.primary, fontWeight: 'bold' }}
+                    selectedItemLabelStyle={{ 
+                      color: colors.primary, 
+                      fontWeight: 'bold' 
+                    }}
                     modalContentContainerStyle={{
-                        backgroundColor: COLORS.background,
+                      backgroundColor: colors.background,
                     }}
                     flatListProps={{
-                        keyboardShouldPersistTaps: 'handled',
-                        keyExtractor: (item: any, index: number) => `${item.value}_${index}`,
+                      keyboardShouldPersistTaps: 'handled',
+                      keyExtractor: (item: any, index: number) => `${item.value}_${index}`,
                     }}
-                />
+                  />
+                </View>
+
+                <View style={{ flex: 0.4, marginLeft: 12 }}>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Amount</Text>
+                  <View style={[styles.priceInputWrapper, { 
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                  }, shadowStyle]}>
+                    <MaterialCommunityIcons 
+                      name="currency-inr" 
+                      size={20} 
+                      color={colors.primary} 
+                      style={styles.rupeeIcon} 
+                    />
+                    <TextInput
+                      style={[styles.priceInput, { color: colors.text }]}
+                      placeholder="0.00"
+                      keyboardType="numeric"
+                      value={price}
+                      onChangeText={(text) => {
+                        // Allow only numbers and single decimal point
+                        const cleanText = text.replace(/[^0-9.]/g, '');
+                        // Prevent multiple decimal points
+                        const parts = cleanText.split('.');
+                        if (parts.length > 2) {
+                          return;
+                        }
+                        // Limit to 2 decimal places
+                        if (parts[1] && parts[1].length > 2) {
+                          return;
+                        }
+                        setPrice(cleanText);
+                      }}
+                      maxLength={10} // Prevent extremely long numbers
+                      placeholderTextColor={colors.placeholder}
+                      returnKeyType="done"
+                    />
+                  </View>
+                </View>
               </View>
-              <View style={[styles.priceInputWrapper, shadowStyle]}>
-                <MaterialCommunityIcons name="currency-inr" size={24} color={COLORS.rupee} style={styles.rupeeIcon} />
+
+              <Separator height={16} />
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date</Text>
+              <Pressable onPress={() => setShowDatePicker(true)}>
+                <View style={[styles.dateCard, { 
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                }, shadowStyle]}>
+                  <Ionicons name="calendar" size={20} color={colors.primary} />
+                  <Text style={[styles.dateText, { color: colors.text }]}>
+                    {date.toLocaleDateString('en-US', { 
+                      weekday: 'short',
+                      year: 'numeric', 
+                      month: 'short', 
+                      day: 'numeric' 
+                    })}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+                </View>
+              </Pressable>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onChangeDate}
+                  maximumDate={new Date()}
+                />
+              )}
+
+              <Separator height={16} />
+
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                Description (Optional)
+              </Text>
+              <View style={[styles.descInputWrapper, { 
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+              }, shadowStyle]}>
                 <TextInput
-                  style={styles.priceInput}
-                  placeholder="Price"
-                  keyboardType="numeric"
-                  value={price}
+                  style={[styles.descInput, { color: colors.text }]}
+                  placeholder="Add a note about this expense..."
+                  value={description}
                   onChangeText={(text) => {
-                    // Allow only numbers and single decimal point
-                    const cleanText = text.replace(/[^0-9.]/g, '');
-                    // Prevent multiple decimal points
-                    const parts = cleanText.split('.');
-                    if (parts.length > 2) {
-                      return;
+                    // Limit description to 500 characters
+                    if (text.length <= 500) {
+                      setDescription(text);
                     }
-                    // Limit to 2 decimal places
-                    if (parts[1] && parts[1].length > 2) {
-                      return;
-                    }
-                    setPrice(cleanText);
                   }}
-                  maxLength={10} // Prevent extremely long numbers
-                  placeholderTextColor={COLORS.placeholder}
+                  placeholderTextColor={colors.placeholder}
+                  multiline
+                  maxLength={500}
                   returnKeyType="done"
                 />
-              </View>
-            </View>
-            <Pressable onPress={() => setShowDatePicker(true)} style={{ alignSelf: 'center', width: '100%' }}>
-              <View style={[styles.dateCard, shadowStyle]}>
-                <Ionicons name="calendar" size={22} color={COLORS.primary} style={{ marginBottom: 2, marginRight: 6 }} />
-                <Text style={styles.dateText}>
-                  {date.toLocaleDateString()} <Text style={{ color: COLORS.placeholder, fontSize: 13 }}>(Tap to change)</Text>
-                </Text>
-              </View>
-            </Pressable>
-            {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onChangeDate}
-                maximumDate={new Date()}
-              />
-            )}
-            <View style={[styles.descInputWrapper, shadowStyle]}>
-              <TextInput
-                style={styles.descInput}
-                placeholder="Add Description (if any)"
-                value={description}
-                onChangeText={(text) => {
-                  // Limit description to 500 characters
-                  if (text.length <= 500) {
-                    setDescription(text);
-                  }
-                }}
-                placeholderTextColor={COLORS.placeholder}
-                multiline
-                maxLength={500}
-                returnKeyType="done"
-              />
-              {description.length > 450 && (
-                <Text style={styles.characterCount}>
-                  {description.length}/500
-                </Text>
-              )}
-            </View>
-            <Animated.View style={[styles.addButtonWrapper, shadowStyle, { transform: [{ scale: scaleAnim }] }]}>
-              <Pressable
-                style={[styles.addButton, isLoading && styles.addButtonDisabled]}
-                android_ripple={{ color: COLORS.accent }}
-                onPress={handleAdd}
-                disabled={isLoading}
-                accessibilityLabel="Add expense"
-                accessibilityHint="Tap to add the expense to your records"
-                accessibilityRole="button"
-              >
-                {isLoading ? (
-                  <>
-                    <Ionicons name="hourglass" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
-                    <Text style={styles.addButtonText}>Adding...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="add-circle" size={28} color={COLORS.white} style={{ marginRight: 8 }} />
-                    <Text style={styles.addButtonText}>Add Expense</Text>
-                  </>
+                {description.length > 450 && (
+                  <Text style={[styles.characterCount, { color: colors.textSecondary }]}>
+                    {description.length}/500
+                  </Text>
                 )}
-              </Pressable>
-            </Animated.View>
-            {feedback && (
-              <View style={[
-                styles.feedback,
-                feedback.type === 'success' ? styles.feedbackSuccess : styles.feedbackError
-              ]}>
-                <Ionicons
-                  name={feedback.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
-                  size={20}
-                  color={feedback.type === 'success' ? COLORS.primary : COLORS.error}
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={{
-                  color: feedback.type === 'success' ? COLORS.primary : COLORS.error,
-                  fontWeight: 'bold'
-                }}>
-                  {feedback.message}
-                </Text>
               </View>
+            </Card>
+
+            <Separator height={32} />
+
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Button
+                title={isLoading ? "Adding Expense..." : "Add Expense"}
+                onPress={handleAdd}
+                loading={isLoading}
+                icon="add-circle"
+                size="large"
+                style={[styles.addButton, shadowStyle]}
+              />
+            </Animated.View>
+
+            {feedback && (
+              <Card style={[
+                styles.feedback,
+                { 
+                  backgroundColor: feedback.type === 'success' ? colors.success : colors.error,
+                  borderColor: feedback.type === 'success' ? colors.success : colors.error,
+                }
+              ]}>
+                <View style={styles.feedbackContent}>
+                  <Ionicons
+                    name={feedback.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                    size={24}
+                    color={colors.white}
+                  />
+                  <Text style={[styles.feedbackText, { color: colors.white }]}>
+                    {feedback.message}
+                  </Text>
+                </View>
+              </Card>
             )}
+
+            <Separator height={32} />
           </View>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -367,192 +420,107 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-    minHeight: '100%',
+    padding: 20,
+    paddingTop: 60,
   },
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 1,
+  },
+  header: {
     padding: 24,
-    paddingTop: 40,
-    backgroundColor: COLORS.background,
+  },
+  headerContent: {
+    alignItems: 'center',
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 6,
-    color: COLORS.primary,
-    letterSpacing: 1.2,
-    textShadowColor: '#b6d0f7',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 8,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 18,
-    color: COLORS.text,
-    marginBottom: 28,
+    fontSize: 16,
     textAlign: 'center',
-    opacity: 0.7,
-    letterSpacing: 0.5,
+    opacity: 0.8,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   inputRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-    width: '100%',
+    alignItems: 'flex-end',
   },
-  dropdown: {
-    borderColor: COLORS.accent,
-    borderRadius: 18,
-    backgroundColor: COLORS.card,
-    minHeight: 54,
-    fontSize: 16,
-    paddingHorizontal: 8,
-  },
-  dropdownOpen: {
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.background,
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   priceInputWrapper: {
-    flex: 0.40,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    minHeight: 52,
-    marginLeft: 8,
-    borderWidth: 1.2,
-    borderColor: COLORS.accent,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    minHeight: 50,
+    borderWidth: 1,
   },
   rupeeIcon: {
-    marginRight: 6,
-    marginTop: 2,
-    textShadowColor: '#b6d0f7',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
+    marginRight: 8,
   },
   priceInput: {
     flex: 1,
-    fontSize: 19,
-    color: COLORS.text,
-    paddingVertical: 8,
-    backgroundColor: 'transparent',
+    fontSize: 16,
     fontWeight: '600',
   },
   dateCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 22,
-    marginVertical: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    borderWidth: 1.5,
-    borderColor: COLORS.accent,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
-    elevation: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   dateText: {
-    fontSize: 18,
-    color: COLORS.primary,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  addButtonWrapper: {
-    marginTop: 28,
-    alignSelf: 'center',
-    width: '100%',
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    ...shadowStyle,
-  },
-  addButton: {
-    flexDirection: 'row',
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    backgroundColor: COLORS.primary,
-  },
-  addButtonText: {
-    color: COLORS.white,
-    fontSize: 22,
-    fontWeight: 'bold',
-    letterSpacing: 1.1,
-    textShadowColor: '#60a5fa',
-    textShadowOffset: { width: 1, height: 2 },
-    textShadowRadius: 8,
-  },
-  addButtonDisabled: {
-    backgroundColor: COLORS.placeholder,
-    opacity: 0.7,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 12,
   },
   descInputWrapper: {
-    marginTop: 18,
-    backgroundColor: COLORS.card,
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     paddingVertical: 4,
-    width: '100%',
-    borderWidth: 1.5,
-    borderColor: COLORS.accent,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    elevation: 6,
+    borderWidth: 1,
   },
   descInput: {
-    fontSize: 17,
-    color: COLORS.text,
-    minHeight: 48,
-    padding: 10,
-    backgroundColor: 'transparent',
-    fontWeight: '500',
-  },
-  feedback: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginTop: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: COLORS.card,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  feedbackSuccess: {
-    borderColor: COLORS.primary,
-    borderWidth: 1.2,
-  },
-  feedbackError: {
-    borderColor: COLORS.error,
-    borderWidth: 1.2,
+    fontSize: 16,
+    minHeight: 80,
+    paddingVertical: 12,
+    textAlignVertical: 'top',
   },
   characterCount: {
     fontSize: 12,
-    color: COLORS.placeholder,
     textAlign: 'right',
-    marginTop: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  addButton: {
+    marginTop: 8,
+  },
+  feedback: {
+    marginTop: 20,
+    borderWidth: 1,
+  },
+  feedbackContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  feedbackText: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
   },
 });
