@@ -258,41 +258,53 @@ export default function GoalsScreen() {
       <Card>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
         <View style={styles.pickerContainer}>
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+          <View style={[styles.pickerWrapper, { 
+            backgroundColor: colors.surface, 
+            borderColor: colors.border, 
+            borderWidth: 1 
+          }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
             <Picker
               selectedValue={selectedMonth}
-              style={[styles.picker, { color: colors.text, backgroundColor: colors.surface }]}
+              style={[styles.picker, { 
+                color: Platform.OS === 'android' ? colors.text : colors.text 
+              }]}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
               mode="dropdown"
-              dropdownIconColor={colors.text}
+              dropdownIconColor={colors.textSecondary}
             >
               {months.map((month, index) => (
                 <Picker.Item 
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={Platform.OS === 'ios' ? colors.text : colors.black}
+                  color={colors.text}
                 />
               ))}
             </Picker>
           </View>
 
-          <View style={[styles.pickerWrapper, { backgroundColor: colors.surface }]}>
+          <View style={[styles.pickerWrapper, { 
+            backgroundColor: colors.surface, 
+            borderColor: colors.border, 
+            borderWidth: 1 
+          }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
             <Picker
               selectedValue={selectedYear}
-              style={[styles.picker, { color: colors.text, backgroundColor: colors.surface }]}
+              style={[styles.picker, { 
+                color: Platform.OS === 'android' ? colors.text : colors.text 
+              }]}
               onValueChange={(itemValue) => setSelectedYear(itemValue)}
               mode="dropdown"
-              dropdownIconColor={colors.text}
+              dropdownIconColor={colors.textSecondary}
             >
               {years.map((year) => (
                 <Picker.Item 
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={Platform.OS === 'ios' ? colors.text : colors.black}
+                  color={colors.text}
                 />
               ))}
             </Picker>
@@ -475,96 +487,112 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   header: {
-    padding: 20,
+    padding: 24,
+    alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
+    width: '100%',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
+    marginTop: 4,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+    letterSpacing: 0.2,
   },
   pickerContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   pickerWrapper: {
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+    minHeight: 80,
   },
   pickerLabel: {
     fontSize: 12,
     fontWeight: '600',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 4,
+    letterSpacing: 0.2,
   },
   picker: {
     height: Platform.OS === 'ios' ? 120 : 50,
+    marginHorizontal: Platform.OS === 'android' ? 8 : 0,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   progressText: {
     fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
   },
   progressBar: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
     marginRight: 12,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressPercentage: {
     fontSize: 14,
     fontWeight: '600',
+    minWidth: 40,
+    textAlign: 'right',
   },
   addGoalContainer: {
-    gap: 16,
+    gap: 20,
   },
   inputWrapper: {
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     marginBottom: 8,
+    minHeight: 100,
   },
   goalInput: {
     fontSize: 16,
     minHeight: 80,
     textAlignVertical: 'top',
+    lineHeight: 22,
   },
   characterCount: {
     fontSize: 12,
     textAlign: 'right',
     marginTop: 8,
+    fontWeight: '500',
   },
   addButton: {
-    alignSelf: 'flex-end',
+    alignSelf: 'stretch',
+    marginTop: 8,
   },
   loadingCard: {
     padding: 40,
@@ -573,9 +601,10 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
   emptyCard: {
-    padding: 40,
+    padding: 48,
     alignItems: 'center',
   },
   emptyText: {
@@ -583,11 +612,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
   },
   goalsList: {
     width: '100%',
@@ -599,23 +630,33 @@ const styles = StyleSheet.create({
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    minHeight: 44,
   },
   goalToggle: {
     marginRight: 12,
     paddingTop: 2,
+    minHeight: 24,
+    minWidth: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   goalText: {
     flex: 1,
     fontSize: 16,
     lineHeight: 22,
     marginRight: 12,
+    paddingTop: 2,
   },
   deleteButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   goalDate: {
     fontSize: 12,
     marginTop: 8,
     marginLeft: 36,
+    fontWeight: '500',
   },
 });

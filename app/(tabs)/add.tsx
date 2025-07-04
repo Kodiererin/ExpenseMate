@@ -175,10 +175,10 @@ export default function AddScreen() {
 
   const shadowStyle = {
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: isDark ? 0.3 : 0.1,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: isDark ? 0.3 : 0.12,
+    shadowRadius: 10,
+    elevation: 5,
   };
 
   return (
@@ -210,7 +210,7 @@ export default function AddScreen() {
               <Separator height={16} />
               
               <View style={styles.inputRow}>
-                <View style={{ flex: 0.55, zIndex: open ? 1000 : 10 }}>
+                <View style={{ flex: 0.58, zIndex: open ? 1000 : 10 }}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Category</Text>
                   <DropDownPicker
                     open={open}
@@ -233,13 +233,13 @@ export default function AddScreen() {
                     style={[{
                       borderColor: colors.border,
                       borderRadius: 12,
-                      backgroundColor: colors.card,
-                      minHeight: 50,
+                      backgroundColor: colors.surface,
+                      minHeight: 52,
                       borderWidth: 1,
                     }, shadowStyle]}
                     dropDownContainerStyle={{
                       borderColor: colors.border,
-                      backgroundColor: colors.card,
+                      backgroundColor: colors.surface,
                       borderRadius: 12,
                       maxHeight: 200,
                       zIndex: 2000,
@@ -254,7 +254,7 @@ export default function AddScreen() {
                       color: colors.text,
                     }}
                     listItemLabelStyle={{ 
-                      fontWeight: '600', 
+                      fontWeight: '500', 
                       color: colors.text, 
                       fontSize: 16 
                     }}
@@ -294,6 +294,19 @@ export default function AddScreen() {
                       color: colors.primary, 
                       fontWeight: 'bold' 
                     }}
+                    labelStyle={{
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: '500',
+                    }}
+                    textStyle={{
+                      color: colors.text,
+                      fontSize: 16,
+                      fontWeight: '500',
+                    }}
+                    selectedItemContainerStyle={{
+                      backgroundColor: colors.primary + '20',
+                    }}
                     modalContentContainerStyle={{
                       backgroundColor: colors.background,
                     }}
@@ -304,7 +317,7 @@ export default function AddScreen() {
                   />
                 </View>
 
-                <View style={{ flex: 0.4, marginLeft: 12 }}>
+                <View style={{ flex: 0.42 }}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Amount</Text>
                   <View style={[styles.priceInputWrapper, { 
                     backgroundColor: colors.card,
@@ -453,15 +466,18 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 40, // Extra bottom padding
   },
   container: {
     flex: 1,
   },
   header: {
     padding: 24,
+    alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
+    width: '100%',
   },
   title: {
     fontSize: 32,
@@ -474,45 +490,51 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     opacity: 0.8,
+    marginTop: 4,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    gap: 12,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
+    letterSpacing: 0.2,
   },
   priceInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    minHeight: 50,
+    paddingHorizontal: 16,
+    minHeight: 52,
     borderWidth: 1,
   },
   rupeeIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   priceInput: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'right',
   },
   dateCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
+    minHeight: 52,
   },
   dateText: {
     flex: 1,
@@ -523,35 +545,42 @@ const styles = StyleSheet.create({
   descInputWrapper: {
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 8,
     borderWidth: 1,
+    minHeight: 100,
   },
   descInput: {
     fontSize: 16,
     minHeight: 80,
     paddingVertical: 12,
     textAlignVertical: 'top',
+    lineHeight: 22,
   },
   characterCount: {
     fontSize: 12,
     textAlign: 'right',
     paddingVertical: 4,
+    fontWeight: '500',
   },
   addButton: {
-    marginTop: 8,
+    marginTop: 16,
+    alignSelf: 'stretch',
   },
   feedback: {
-    marginTop: 20,
+    marginTop: 24,
     borderWidth: 1,
+    borderRadius: 12,
   },
   feedbackContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
   },
   feedbackText: {
     marginLeft: 12,
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
+    lineHeight: 22,
   },
 });

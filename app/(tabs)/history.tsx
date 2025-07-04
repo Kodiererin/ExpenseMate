@@ -189,11 +189,17 @@ export default function HistoryScreen() {
       <Card>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
         <View style={styles.pickerContainer}>
-          <View style={[styles.pickerWrapper, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
+          <View style={[styles.pickerWrapper, { 
+            backgroundColor: colors.surface, 
+            borderColor: colors.border, 
+            borderWidth: 1 
+          }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
             <Picker
               selectedValue={selectedMonth}
-              style={[styles.picker, { color: isDark ? '#000000' : colors.text }]}
+              style={[styles.picker, { 
+                color: Platform.OS === 'android' ? colors.text : colors.text 
+              }]}
               onValueChange={(itemValue) => setSelectedMonth(itemValue)}
               mode="dropdown"
               dropdownIconColor={colors.textSecondary}
@@ -203,17 +209,23 @@ export default function HistoryScreen() {
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={isDark ? '#000000' : colors.text}
+                  color={colors.text}
                 />
               ))}
             </Picker>
           </View>
 
-          <View style={[styles.pickerWrapper, { backgroundColor: isDark ? colors.card : colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
+          <View style={[styles.pickerWrapper, { 
+            backgroundColor: colors.surface, 
+            borderColor: colors.border, 
+            borderWidth: 1 
+          }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
             <Picker
               selectedValue={selectedYear}
-              style={[styles.picker, { color: isDark ? '#000000' : colors.text }]}
+              style={[styles.picker, { 
+                color: Platform.OS === 'android' ? colors.text : colors.text 
+              }]}
               onValueChange={(itemValue) => setSelectedYear(itemValue)}
               mode="dropdown"
               dropdownIconColor={colors.textSecondary}
@@ -223,7 +235,7 @@ export default function HistoryScreen() {
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={isDark ? '#000000' : colors.text}
+                  color={colors.text}
                 />
               ))}
             </Picker>
@@ -426,46 +438,54 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   header: {
-    padding: 20,
+    padding: 24,
+    alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
+    width: '100%',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
+    marginTop: 4,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+    letterSpacing: 0.2,
   },
   pickerContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   pickerWrapper: {
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+    minHeight: 80,
   },
   pickerLabel: {
     fontSize: 12,
     fontWeight: '600',
-    paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 4,
+    letterSpacing: 0.2,
   },
   picker: {
     height: Platform.OS === 'ios' ? 120 : 50,
+    marginHorizontal: Platform.OS === 'android' ? 8 : 0,
   },
   loadingCard: {
     padding: 40,
@@ -474,26 +494,31 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
+    letterSpacing: 0.3,
   },
   expenseCount: {
     fontSize: 14,
     marginTop: 4,
+    fontWeight: '500',
   },
   chartContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
+    marginBottom: 8,
   },
   emptyCard: {
-    padding: 40,
+    padding: 48,
     alignItems: 'center',
   },
   emptyText: {
@@ -501,11 +526,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
+    letterSpacing: 0.2,
   },
   emptySubtext: {
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
   },
   expenseList: {
     width: '100%',
@@ -518,6 +545,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 4,
   },
   expenseInfo: {
     flex: 1,
@@ -525,19 +553,23 @@ const styles = StyleSheet.create({
   expenseCategory: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
   expenseDate: {
     fontSize: 12,
+    fontWeight: '500',
   },
   expenseAmount: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    letterSpacing: 0.3,
   },
   expenseDescription: {
     fontSize: 14,
     marginTop: 8,
     lineHeight: 20,
+    paddingRight: 8,
   },
   modalContainer: {
     flex: 1,
@@ -548,27 +580,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     paddingTop: 60,
+    borderBottomWidth: 1,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
+    letterSpacing: 0.3,
   },
   closeButton: {
     padding: 8,
+    borderRadius: 20,
   },
   modalContent: {
     flex: 1,
     padding: 20,
   },
   detailRow: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   detailLabel: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
   detailValue: {
     fontSize: 16,
+    lineHeight: 22,
   },
 });

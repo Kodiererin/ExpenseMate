@@ -35,16 +35,16 @@ export const Button: React.FC<ButtonProps> = ({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 4,
     };
 
     const sizes = {
-      small: { paddingHorizontal: 12, paddingVertical: 8, minHeight: 36 },
-      medium: { paddingHorizontal: 16, paddingVertical: 12, minHeight: 44 },
-      large: { paddingHorizontal: 20, paddingVertical: 16, minHeight: 52 },
+      small: { paddingHorizontal: 16, paddingVertical: 10, minHeight: 40 },
+      medium: { paddingHorizontal: 20, paddingVertical: 14, minHeight: 48 },
+      large: { paddingHorizontal: 24, paddingVertical: 16, minHeight: 54 },
     } as const;
 
     const variants = {
@@ -130,10 +130,10 @@ export const Card: React.FC<CardProps> = ({ children, style, padding = 16 }) => 
     borderRadius: 16,
     padding,
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
     borderWidth: 1,
     borderColor: colors.border,
   }), [colors, padding]);
