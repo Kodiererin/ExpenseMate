@@ -15,16 +15,24 @@ export const unregisterDataChangeCallback = (callback: () => void) => {
 };
 
 const notifyDataChange = () => {
-  onDataChangeCallbacks.forEach(callback => callback());
+  console.log(`Notifying ${onDataChangeCallbacks.length} data change callbacks`);
+  onDataChangeCallbacks.forEach((callback, index) => {
+    console.log(`Calling callback ${index + 1}`);
+    callback();
+  });
 };
 
 export const addExpenseToFirestore = async (expense: Omit<Expense, 'id'>): Promise<void> => {
   try {
+    console.log('Adding expense to Firestore:', expense);
     const docRef = await addDoc(collection(db, "expenses"), expense);
     console.log("Expense stored with ID: ", docRef.id);
+    console.log('About to notify data change...');
     notifyDataChange(); // Invalidate cache
+    console.log('Data change notification sent');
   } catch (error) {
     console.error("Error adding expense to Firestore: ", error);
+    throw error;
   }
 };
 
@@ -154,6 +162,7 @@ export const getAllAvailableMonths = async (): Promise<string[]> => {
 
 export const getAllExpenses = async (): Promise<Expense[]> => {
   try {
+    console.log('Fetching all expenses from Firestore...');
     const q = query(
       collection(db, "expenses"),
       orderBy("date", "desc")
@@ -173,7 +182,7 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
       } as Expense);
     });
     
-    console.log(`Fetched ${expenses.length} total expenses`);
+    console.log(`Fetched ${expenses.length} total expenses:`, expenses.map(e => `${e.tag}: ₹${e.price} (${e.date})`));
     return expenses;
   } catch (error) {
     console.error("Error fetching all expenses: ", error);

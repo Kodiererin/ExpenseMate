@@ -17,11 +17,13 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
+import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
+  const { refreshExpenses, getExpensesByMonth } = useData();
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([
@@ -104,22 +106,51 @@ export default function AddScreen() {
       return;
     }
 
+    console.log('About to add expense to Firestore...');
+    console.log('Date object:', date);
+    console.log('Date string (en-US):', date.toLocaleDateString('en-US'));
+    console.log('Date components:', {
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      year: date.getFullYear()
+    });
+    
     setIsLoading(true);
     const expenseData = {
       tag: tag.trim(),
       price: numericPrice.toFixed(2), // Store as formatted string
       description: description.trim(),
-      date: date.toLocaleDateString(),
+      date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
     
+    console.log('Final expense data:', expenseData);
+    
     try {
+      console.log('About to add expense to Firestore...');
       await addExpenseToFirestore(expenseData);
+      console.log('Expense added to Firestore successfully');
+      
+      // Clear form immediately to show success
       setTag('');
       setPrice('');
       setDescription('');
       setDate(new Date());
       setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
       Keyboard.dismiss();
+      
+      // Force refresh with a slight delay to ensure database is updated
+      console.log('Refreshing expenses after adding...');
+      // First immediate refresh
+      await refreshExpenses();
+      console.log('Immediate refresh completed');
+      
+      // Second refresh after delay to ensure Firestore propagation
+      setTimeout(async () => {
+        console.log('Delayed refresh starting...');
+        await refreshExpenses();
+        console.log('Delayed refresh completed');
+      }, 500);
+      
       console.log('Expense Added:', expenseData);
     } catch (error) {
       setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });

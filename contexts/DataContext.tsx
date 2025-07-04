@@ -3,12 +3,12 @@ import React, { createContext, ReactNode, useCallback, useContext, useEffect, us
 import { Expense } from '../types/Expense';
 import { Goal } from '../types/Goal';
 import {
-    getAllAvailableGoalMonths,
-    getAllAvailableMonths,
-    getAllExpenses,
-    getGoalsByMonthYear,
-    registerDataChangeCallback,
-    unregisterDataChangeCallback
+  getAllAvailableGoalMonths,
+  getAllAvailableMonths,
+  getAllExpenses,
+  getGoalsByMonthYear,
+  registerDataChangeCallback,
+  unregisterDataChangeCallback
 } from '../utils/firebaseUtils';
 
 interface DataContextType {
@@ -54,6 +54,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const refreshExpenses = useCallback(async () => {
+    console.log('Starting refreshExpenses...');
     setExpensesLoading(true);
     try {
       const [freshExpenses, freshAvailableMonths] = await Promise.all([
@@ -61,6 +62,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getAllAvailableMonths()
       ]);
       
+      console.log(`Setting ${freshExpenses.length} fresh expenses in context`);
       setExpenses(freshExpenses);
       setAvailableMonths(freshAvailableMonths);
       
@@ -74,7 +76,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         AsyncStorage.setItem(STORAGE_KEYS.LAST_REFRESH, refreshTime.toISOString())
       ]);
       
-      console.log('Expenses refreshed and cached');
+      console.log('Expenses refreshed and cached successfully');
     } catch (error) {
       console.error('Error refreshing expenses:', error);
     } finally {
@@ -142,9 +144,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadCachedData();
     
     // Register for data change notifications
-    const handleDataChange = () => {
+    const handleDataChange = async () => {
       console.log('Data changed, refreshing cache...');
-      refreshExpenses();
+      // Add a small delay to ensure Firestore operation is complete
+      setTimeout(async () => {
+        await refreshExpenses();
+      }, 200);
     };
     
     registerDataChangeCallback(handleDataChange);
@@ -189,15 +194,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [goals]);
 
   const getExpensesByMonth = useCallback((month: number, year: number): Expense[] => {
-    return expenses.filter(expense => {
+    console.log(`DataContext: Getting expenses for month ${month}, year ${year}`);
+    console.log(`DataContext: Total expenses available: ${expenses.length}`);
+    
+    const filteredExpenses = expenses.filter(expense => {
       const dateParts = expense.date.split('/');
       if (dateParts.length === 3) {
         const expenseMonth = parseInt(dateParts[0], 10);
         const expenseYear = parseInt(dateParts[2], 10);
-        return expenseMonth === month && expenseYear === year;
+        const matches = expenseMonth === month && expenseYear === year;
+        if (matches) {
+          console.log(`DataContext: Expense matches - ${expense.tag}: ₹${expense.price} (${expense.date})`);
+        }
+        return matches;
       }
       return false;
     });
+    
+    console.log(`DataContext: Returning ${filteredExpenses.length} expenses for ${month}/${year}`);
+    return filteredExpenses;
   }, [expenses]);
 
   const getGoalsByMonth = useCallback((monthYear: string): Goal[] => {

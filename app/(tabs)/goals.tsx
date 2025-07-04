@@ -6,6 +6,7 @@ import {
   Alert,
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Platform,
   Pressable,
   RefreshControl,
@@ -124,14 +125,16 @@ export default function GoalsScreen() {
     setRefreshing(false);
   }, [refreshGoals, selectedMonthYear]);
 
-  useEffect(() => {
-    loadGoals();
-  }, [loadGoals]);
-
   // Update goals when the cached data changes or month changes
   useEffect(() => {
     loadGoals();
   }, [loadGoals]);
+
+  // Also update when the context data changes (after add/update/delete operations)
+  useEffect(() => {
+    const fetchedGoals = getGoalsByMonth(selectedMonthYear);
+    setGoals(fetchedGoals);
+  }, [getGoalsByMonth, selectedMonthYear]);
 
   const handleAddGoal = async () => {
     const trimmedGoal = goal.trim();
@@ -157,7 +160,9 @@ export default function GoalsScreen() {
       
       setGoal('');
       Alert.alert('Success', 'Goal added successfully! 🎯');
-      // No need to manually reload - DataContext will handle cache invalidation
+      
+      // Force refresh the goals after adding
+      await refreshGoals(selectedMonthYear);
     } catch (error) {
       console.error('Error adding goal:', error);
       Alert.alert('Error', 'Failed to add goal. Please try again.');
@@ -171,7 +176,9 @@ export default function GoalsScreen() {
     
     try {
       await updateGoalInFirestore(goalItem.id, { completed: !goalItem.completed });
-      // No need to manually reload - DataContext will handle cache invalidation
+      
+      // Force refresh the goals after updating
+      await refreshGoals(selectedMonthYear);
     } catch (error) {
       console.error('Error updating goal:', error);
       Alert.alert('Error', 'Failed to update goal. Please try again.');
@@ -191,7 +198,9 @@ export default function GoalsScreen() {
             try {
               await deleteGoalFromFirestore(goalItem.id);
               Alert.alert('Success', 'Goal deleted successfully!');
-              // No need to manually reload - DataContext will handle cache invalidation
+              
+              // Force refresh the goals after deleting
+              await refreshGoals(selectedMonthYear);
             } catch (error) {
               console.error('Error deleting goal:', error);
               Alert.alert('Error', 'Failed to delete goal. Please try again.');
@@ -214,20 +223,25 @@ export default function GoalsScreen() {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl 
-          refreshing={refreshing} 
-          onRefresh={onRefresh}
-          colors={[colors.primary]}
-          tintColor={colors.primary}
-        />
-      }
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
+      <ScrollView 
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Header */}
       <Card style={styles.header}>
         <View style={styles.headerContent}>
@@ -449,6 +463,7 @@ export default function GoalsScreen() {
 
       <Separator height={32} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -460,7 +475,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 100,
   },
   header: {
     padding: 20,
@@ -536,6 +551,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
+    marginBottom: 8,
   },
   goalInput: {
     fontSize: 16,

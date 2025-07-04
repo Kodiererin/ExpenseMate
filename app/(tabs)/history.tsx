@@ -2,17 +2,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    Modal,
-    Platform,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
@@ -46,7 +46,8 @@ export default function HistoryScreen() {
   const { 
     getExpensesByMonth, 
     refreshExpenses, 
-    expensesLoading: loading
+    expensesLoading: loading,
+    expenses: allExpenses
   } = useData();
   
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -70,14 +71,19 @@ export default function HistoryScreen() {
     setRefreshing(false);
   }, [refreshExpenses]);
 
+  // Update expenses when the cached data changes or month changes
   useEffect(() => {
     loadExpensesForMonth();
   }, [loadExpensesForMonth]);
 
-  // Update expenses when the cached data changes
+  // Also update when the context data changes (after add/update/delete operations)
   useEffect(() => {
-    loadExpensesForMonth();
-  }, [loadExpensesForMonth]);
+    console.log('History: Context data changed, updating local expenses...');
+    console.log('History: Total expenses in context:', allExpenses.length);
+    const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
+    console.log(`History: Setting ${fetchedExpenses.length} expenses for ${selectedMonth}/${selectedYear}`);
+    setExpenses(fetchedExpenses);
+  }, [allExpenses, getExpensesByMonth, selectedMonth, selectedYear]);
 
   const handleDelete = async (expense: Expense) => {
     Alert.alert(
@@ -94,7 +100,13 @@ export default function HistoryScreen() {
               await deleteExpenseFromFirestore(expense.id);
               setModalVisible(false);
               Alert.alert('Success', 'Expense deleted successfully!');
-              // No need to manually reload - DataContext will handle cache invalidation
+              
+              // Force refresh with a slight delay to ensure database is updated
+              console.log('Refreshing expenses after deletion...');
+              setTimeout(async () => {
+                await refreshExpenses();
+                console.log('Expenses refreshed after deletion');
+              }, 100);
             } catch (error) {
               console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense. Please try again.');
