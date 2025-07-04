@@ -124,7 +124,7 @@ export default function AddScreen() {
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
     
-    console.log('Final expense data:', expenseData);
+    console.log('Adding expense to Firestore...');
     
     try {
       console.log('About to add expense to Firestore...');
@@ -142,7 +142,7 @@ export default function AddScreen() {
       // No need to manually refresh - the data context will handle it automatically
       console.log('Expense added, context will refresh automatically');
       
-      console.log('Expense Added:', expenseData);
+      console.log('Expense added successfully');
     } catch (error) {
       setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });
       console.error('Error adding expense:', error);

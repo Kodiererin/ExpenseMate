@@ -219,9 +219,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const expenseMonth = parseInt(dateParts[0], 10);
         const expenseYear = parseInt(dateParts[2], 10);
         const matches = expenseMonth === month && expenseYear === year;
-        if (matches) {
-          console.log(`DataContext: Expense matches - ${expense.tag}: ₹${expense.price} (${expense.date})`);
-        }
         return matches;
       }
       return false;

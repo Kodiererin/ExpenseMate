@@ -190,7 +190,7 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
       } as Expense);
     });
     
-    console.log(`Fetched ${expenses.length} total expenses:`, expenses.map(e => `${e.tag}: ₹${e.price} (${e.date})`));
+    console.log(`Fetched ${expenses.length} total expenses`);
     return expenses;
   } catch (error) {
     console.error("Error fetching all expenses: ", error);
@@ -320,10 +320,7 @@ export const testFirebaseConnection = async (): Promise<boolean> => {
     let count = 0;
     querySnapshot.forEach((doc) => {
       if (count < 3) {
-        console.log(`Sample expense ${count + 1}:`, {
-          id: doc.id,
-          data: doc.data()
-        });
+        console.log(`Sample expense ${count + 1} - ID: ${doc.id}`);
         count++;
       }
     });

@@ -22,7 +22,7 @@
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
       ],
-      "package": "com.whoisujjwal.ExpenseMate"
+      "package": "com.expensemate.app"
     },
     "web": {
       "bundler": "metro",
