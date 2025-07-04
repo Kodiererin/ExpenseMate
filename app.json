@@ -18,6 +18,7 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
+        "INTERNET",
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
       ]
@@ -42,6 +43,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a61d88e7-c514-4f35-bbbc-e2b56936a2e7"
+      }
     }
   }
 }
