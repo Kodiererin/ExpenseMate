@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub issue and PR templates
 - Contributing guidelines
 
-## [1.0.0] - 2025-01-XX
+## [1.0.0] - 2025-07-01
 
 ### Added
 - ✨ Initial release of ExpenseMate

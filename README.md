@@ -82,19 +82,7 @@
    ```
 
 3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
    
-   Fill in your Firebase configuration in `.env`:
-   ```env
-   EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
-   EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-   EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
-   ```
 
 4. **Start the development server**
    ```bash
@@ -107,25 +95,6 @@
    - **Web**: `npm run web`
 
 ---
-
-## 🔧 **Configuration**
-
-### Firebase Setup
-
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable **Firestore Database**
-3. Set up **Firestore Security Rules**:
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /{document=**} {
-         allow read, write: if true; // Configure based on your needs
-       }
-     }
-   }
-   ```
-4. Get your Firebase config and add to `.env`
 
 ### EAS Build Setup (Optional)
 
@@ -153,42 +122,6 @@ For building APK/IPA files:
 
 ---
 
-## 📱 **App Structure**
-
-```
-app/
-├── (tabs)/                 # Tab navigation screens
-│   ├── add.tsx            # Add expense screen
-│   ├── history.tsx        # Expense history & analytics
-│   ├── goals.tsx          # Budget goals management
-│   ├── profile.tsx        # User profile & settings
-│   └── _layout.tsx        # Tab layout configuration
-├── _layout.tsx            # Root layout
-├── +not-found.tsx         # 404 screen
-└── index.tsx              # Entry point
-
-components/
-├── common/                # Reusable UI components
-│   └── index.tsx          # Button, Card, Separator, etc.
-├── ParallaxScrollView.tsx # Smooth scrolling component
-├── ThemedText.tsx         # Themed text component
-├── ThemedView.tsx         # Themed view component
-└── ThemedPicker.tsx       # Themed picker component
-
-contexts/
-├── DataContext.tsx        # Global data management
-└── ThemeContext.tsx       # Theme management
-
-utils/
-├── firebaseUtils.ts       # Firebase operations
-└── performanceMonitor.ts  # Performance tracking
-
-types/
-├── Expense.ts             # Expense type definitions
-└── Goal.ts                # Goal type definitions
-```
-
----
 
 ## 🎯 **Features Deep Dive**
 
@@ -231,25 +164,6 @@ types/
 | `npm run build:ios` | Build iOS IPA |
 | `npm run prebuild` | Generate native code |
 
-### Code Quality
-
-- **TypeScript**: Full type safety
-- **ESLint**: Code linting with Expo config
-- **Prettier**: Code formatting (configure as needed)
-- **Husky**: Git hooks for quality checks (optional)
-
-### Testing
-
-```bash
-# Run TypeScript check
-npx tsc --noEmit
-
-# Run linting
-npm run lint
-
-# Check Expo compatibility
-npx expo install --check
-```
 
 ---
 
@@ -321,6 +235,5 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
   
   **⭐ Star this repo if you find it helpful!**
   
-  Made with ❤️ using React Native & Expo
   
 </div>
