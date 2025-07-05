@@ -3,6 +3,11 @@
 # dependencies
 node_modules/
 
+
+/android
+/ios
+
+
 # Expo
 .expo/
 dist/
@@ -33,6 +38,18 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+.env.production
+.env.staging
+
+# Service account keys
+service-account-key.json
+google-services.json
+GoogleService-Info.plist
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
 
 # typescript
 *.tsbuildinfo

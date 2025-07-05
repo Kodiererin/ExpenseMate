@@ -19,15 +19,18 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "INTERNET",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_EXTERNAL_STORAGE"
+        "VIBRATE",
+        "SYSTEM_ALERT_WINDOW",
+        "ACCESS_NETWORK_STATE",
+        "WAKE_LOCK"
       ],
-      "package": "com.whoisujjwal.ExpenseMate"
+      "package": "com.whoisujjwal.ExpenseMate",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",

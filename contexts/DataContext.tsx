@@ -56,18 +56,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Add debounced refresh to prevent excessive operations
   const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   
-  const debouncedRefresh = useCallback(async () => {
-    if (refreshTimeout) {
-      clearTimeout(refreshTimeout);
-    }
-    
-    const timeout = setTimeout(async () => {
-      await refreshExpenses();
-    }, 300); // 300ms debounce
-    
-    setRefreshTimeout(timeout);
-  }, [refreshExpenses, refreshTimeout]);
-
   const refreshExpenses = useCallback(async () => {
     console.log('Starting refreshExpenses...');
     setExpensesLoading(true);
@@ -98,6 +86,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setExpensesLoading(false);
     }
   }, []);
+
+  const debouncedRefresh = useCallback(async () => {
+    if (refreshTimeout) {
+      clearTimeout(refreshTimeout);
+    }
+    
+    const timeout = setTimeout(async () => {
+      await refreshExpenses();
+    }, 300); // 300ms debounce
+    
+    setRefreshTimeout(timeout);
+  }, [refreshExpenses, refreshTimeout]);
 
   const loadCachedData = useCallback(async () => {
     try {
