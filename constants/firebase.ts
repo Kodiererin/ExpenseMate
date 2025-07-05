@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -24,11 +24,19 @@ const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
   console.error('Missing required environment variables:', missingEnvVars);
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  
+  // In development, throw an error to help developers identify missing config
+  if (__DEV__) {
+    throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  } else {
+    // In production/preview, log the error but don't crash the app
+    console.warn('Firebase configuration incomplete. Some features may not work.');
+  }
 }
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db: Firestore = getFirestore(app);
 
 export { app, db };
 
