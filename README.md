@@ -10,7 +10,7 @@
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![Firebase](https://img.shields.io/badge/Firebase-11.10.0-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
   
-  [📱 Download APK](#-download) | [🚀 Quick Start](#-quick-start) | [📖 Documentation](#-features) | [🤝 Contributing](#-contributing)
+  [🚀 Quick Start](#-quick-start) | [📖 Features](#-features) | [🤝 Contributing](#-contributing)
 </div>
 
 ---
@@ -129,7 +129,7 @@
 
 ### EAS Build Setup (Optional)
 
-For production builds:
+For building APK/IPA files:
 
 1. **Install EAS CLI**
    ```bash
@@ -193,30 +193,26 @@ types/
 ## 🎯 **Features Deep Dive**
 
 ### 💰 **Add Expenses**
-- **Smart Categories**: Pre-defined categories with emojis for easy identification
-- **Custom Categories**: Add your own categories on the fly
-- **Amount Validation**: Prevents invalid inputs and extremely large amounts
+- **Smart Categories**: Pre-defined categories with emojis
+- **Custom Categories**: Add your own categories
+- **Amount Validation**: Prevents invalid inputs
 - **Date Selection**: Pick any date for your expense
-- **Offline Support**: Works even when offline (syncs when back online)
 
 ### 📊 **Analytics Dashboard**
 - **Monthly View**: See all expenses for any month/year
 - **Category Breakdown**: Pie chart showing expense distribution
 - **Total Calculations**: Automatic sum calculations
-- **Export Functionality**: Share expense summaries
-- **Refresh to Update**: Pull-to-refresh for latest data
+- **Refresh Support**: Pull-to-refresh for latest data
 
 ### 🎯 **Budget Goals**
 - **Monthly Targets**: Set budget goals for each category
 - **Visual Progress**: Progress bars showing goal completion
-- **Smart Notifications**: Visual feedback when approaching limits
-- **Goal History**: Track your budgeting success over time
+- **Real-time Updates**: Goals update as you add expenses
 
 ### ⚙️ **Settings & Profile**
 - **Theme Toggle**: Switch between light and dark themes
-- **Data Management**: Clear cache, export data
-- **Performance Stats**: Monitor app performance
-- **About Information**: App version and developer info
+- **Data Management**: Clear cache and manage data
+- **App Information**: Version and developer info
 
 ---
 
@@ -254,18 +250,6 @@ npm run lint
 # Check Expo compatibility
 npx expo install --check
 ```
-
----
-
-## 📱 Download
-
-### Android
-- **Preview Build**: Available in releases
-- **Google Play**: Coming soon
-
-### iOS
-- **TestFlight**: Coming soon
-- **App Store**: Coming soon
 
 ---
 
@@ -325,54 +309,11 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-## 👨‍💻 **Author**
-
-**Your Name** - [@yourusername](https://github.com/yourusername)
-
-- 🌐 Website: [yourwebsite.com](https://yourwebsite.com)
-- 🐦 Twitter: [@yourtwitter](https://twitter.com/yourtwitter)
-- 📧 Email: your.email@example.com
-
----
-
-## 🙏 **Acknowledgments**
+##  **Acknowledgments**
 
 - **Expo Team** - For the amazing React Native framework
 - **Firebase** - For the reliable backend services
 - **React Native Community** - For the awesome libraries
-- **Contributors** - Everyone who helps improve this project
-
----
-
-## 📈 **Roadmap**
-
-### 🔮 **Upcoming Features**
-- [ ] **Multi-currency Support** - Handle different currencies
-- [ ] **Receipt Scanning** - OCR for receipt data extraction
-- [ ] **Cloud Sync** - Cross-device synchronization
-- [ ] **Expense Categories AI** - Smart category suggestions
-- [ ] **Recurring Expenses** - Set up recurring transactions
-- [ ] **Budget Alerts** - Push notifications for budget limits
-- [ ] **Export to CSV/PDF** - Advanced export options
-- [ ] **Expense Search** - Full-text search through expenses
-- [ ] **Widget Support** - Home screen widgets
-- [ ] **Apple Watch Support** - Quick expense entry
-
-### 🎯 **Long-term Goals**
-- [ ] **Web Dashboard** - Comprehensive web interface
-- [ ] **Family Sharing** - Shared expense tracking
-- [ ] **Investment Tracking** - Track investments and portfolio
-- [ ] **Business Features** - Invoice generation, tax reports
-- [ ] **API Integration** - Bank account integration
-
----
-
-## 📊 **Project Stats**
-
-![GitHub stars](https://img.shields.io/github/stars/yourusername/ExpenseMate?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/ExpenseMate?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/ExpenseMate)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/ExpenseMate)
 
 ---
 
@@ -380,6 +321,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
   
   **⭐ Star this repo if you find it helpful!**
   
-  Made with ❤️ and ☕ by [Your Name](https://github.com/yourusername)
+  Made with ❤️ using React Native & Expo
   
 </div>
