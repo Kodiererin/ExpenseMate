@@ -2,18 +2,18 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
@@ -107,14 +107,16 @@ export default function AddScreen() {
       return;
     }
 
-    console.log('About to add expense to Firestore...');
-    console.log('Date object:', date);
-    console.log('Date string (en-US):', date.toLocaleDateString('en-US'));
-    console.log('Date components:', {
-      month: date.getMonth() + 1,
-      day: date.getDate(),
-      year: date.getFullYear()
-    });
+    if (__DEV__) {
+      console.log('About to add expense to Firestore...');
+      console.log('Date object:', date);
+      console.log('Date string (en-US):', date.toLocaleDateString('en-US'));
+      console.log('Date components:', {
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+        year: date.getFullYear()
+      });
+    }
     
     setIsLoading(true);
     const expenseData = {
@@ -124,12 +126,18 @@ export default function AddScreen() {
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
     
-    console.log('Final expense data:', expenseData);
+    if (__DEV__) {
+      console.log('Final expense data:', expenseData);
+    }
     
     try {
-      console.log('About to add expense to Firestore...');
+      if (__DEV__) {
+        console.log('About to add expense to Firestore...');
+      }
       await addExpenseToFirestore(expenseData);
-      console.log('Expense added to Firestore successfully');
+      if (__DEV__) {
+        console.log('Expense added to Firestore successfully');
+      }
       
       // Clear form immediately to show success
       setTag('');
@@ -140,9 +148,13 @@ export default function AddScreen() {
       Keyboard.dismiss();
       
       // No need to manually refresh - the data context will handle it automatically
-      console.log('Expense added, context will refresh automatically');
+      if (__DEV__) {
+        console.log('Expense added, context will refresh automatically');
+      }
       
-      console.log('Expense Added:', expenseData);
+      if (__DEV__) {
+        console.log('Expense Added:', expenseData);
+      }
     } catch (error) {
       setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });
       console.error('Error adding expense:', error);
@@ -178,20 +190,20 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-      <TouchableWithoutFeedback onPress={handleContainerPress}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <Card style={styles.header}>
-              <View style={styles.headerContent}>
-                <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
-                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                  Track your expenses with ease
-                </Text>
-              </View>
-            </Card>
+        <TouchableWithoutFeedback onPress={handleContainerPress}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+              <Card style={styles.header}>
+                <View style={styles.headerContent}>
+                  <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
+                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                    Track your expenses with ease
+                  </Text>
+                </View>
+              </Card>
 
             <Separator height={24} />
 
