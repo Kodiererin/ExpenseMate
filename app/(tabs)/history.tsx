@@ -14,7 +14,7 @@ import {
   Text,
   View
 } from 'react-native';
-import { PieChart } from 'react-native-chart-kit';
+import { PieChart, LineChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -147,6 +147,57 @@ export default function HistoryScreen() {
       legendFontColor: isDark ? '#f1f5f9' : '#1e293b',
       legendFontSize: 12,
     }));
+  };
+
+  // Calculate line chart data for daily expenses
+  const getLineChartData = () => {
+    // Get all days in the selected month
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const dailyTotals: { [key: number]: number } = {};
+    
+    // Initialize all days with 0
+    for (let i = 1; i <= daysInMonth; i++) {
+      dailyTotals[i] = 0;
+    }
+    
+    // Calculate daily totals
+    expenses.forEach(expense => {
+      const dateParts = expense.date.split('/');
+      if (dateParts.length === 3) {
+        const day = parseInt(dateParts[1], 10);
+        const amount = parseFloat(expense.price);
+        if (!isNaN(amount) && day >= 1 && day <= daysInMonth) {
+          dailyTotals[day] += amount;
+        }
+      }
+    });
+
+    // Get data for chart (show only days with data or recent days for better visualization)
+    const labels: string[] = [];
+    const data: number[] = [];
+    
+    // Show maximum 10 data points for better readability
+    const step = Math.max(1, Math.floor(daysInMonth / 10));
+    
+    for (let i = 1; i <= daysInMonth; i += step) {
+      labels.push(i.toString());
+      data.push(dailyTotals[i]);
+    }
+    
+    // If we have expenses, always include the last day
+    if (daysInMonth > labels.length * step) {
+      labels.push(daysInMonth.toString());
+      data.push(dailyTotals[daysInMonth]);
+    }
+
+    return {
+      labels,
+      datasets: [{
+        data,
+        color: (opacity = 1) => colors.primary,
+        strokeWidth: 3,
+      }]
+    };
   };
 
   const totalAmount = expenses.reduce((sum, expense) => sum + parseFloat(expense.price), 0);
@@ -295,6 +346,52 @@ export default function HistoryScreen() {
                     absolute
                   />
                 </View>
+              </Card>
+
+              <Separator height={20} />
+
+              {/* Line Chart for Daily Expenses */}
+              <Card>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  📊 Daily Spending Trend
+                </Text>
+                <View style={styles.chartContainer}>
+                  <LineChart
+                    data={getLineChartData()}
+                    width={Dimensions.get('window').width - 80}
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: colors.card,
+                      backgroundGradientFrom: colors.card,
+                      backgroundGradientTo: colors.card,
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                      labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                      style: {
+                        borderRadius: 16
+                      },
+                      propsForDots: {
+                        r: "4",
+                        strokeWidth: "2",
+                        stroke: colors.primary
+                      },
+                      propsForBackgroundLines: {
+                        strokeDasharray: "", // solid background lines
+                        stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+                      }
+                    }}
+                    bezier
+                    style={{
+                      marginVertical: 8,
+                      borderRadius: 16,
+                    }}
+                    fromZero
+                    segments={4}
+                  />
+                </View>
+                <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+                  Daily expenses throughout the month
+                </Text>
               </Card>
 
               <Separator height={20} />
@@ -516,6 +613,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 8,
+  },
+  chartSubtitle: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '500',
   },
   emptyCard: {
     padding: 48,
