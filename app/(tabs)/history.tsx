@@ -14,7 +14,7 @@ import {
   Text,
   View
 } from 'react-native';
-import { PieChart, LineChart } from 'react-native-chart-kit';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
 import SwipeableTabContainer from '../../components/SwipeableTabContainer';
 import { useData } from '../../contexts/DataContext';
