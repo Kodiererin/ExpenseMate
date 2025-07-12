@@ -16,8 +16,10 @@ import {
 } from 'react-native';
 import { PieChart, LineChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
+import SwipeableTabContainer from '../../components/SwipeableTabContainer';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { Expense } from '../../types/Expense';
 import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
 
@@ -43,6 +45,7 @@ function formatDate(dateString: string) {
 
 export default function HistoryScreen() {
   const { colors, isDark } = useTheme();
+  const { currentTabIndex, tabRoutes } = useTabNavigation();
   const { 
     getExpensesByMonth, 
     refreshExpenses, 
@@ -210,7 +213,7 @@ export default function HistoryScreen() {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
   return (
-    <>
+    <SwipeableTabContainer currentTabIndex={currentTabIndex} tabRoutes={tabRoutes}>
       <ScrollView 
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
@@ -523,7 +526,7 @@ export default function HistoryScreen() {
           )}
         </View>
       </Modal>
-    </>
+    </SwipeableTabContainer>
   );
 }
 

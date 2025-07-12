@@ -4,11 +4,14 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
+import SwipeableTabContainer from '../../components/SwipeableTabContainer';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
+  const { currentTabIndex, tabRoutes } = useTabNavigation();
   const { expenses, expensesLoading } = useData();
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
@@ -344,10 +347,11 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
-      contentContainerStyle={styles.contentContainer}
-    >
+    <SwipeableTabContainer currentTabIndex={currentTabIndex} tabRoutes={tabRoutes}>
+      <ScrollView 
+        style={[styles.container, { backgroundColor: colors.background }]} 
+        contentContainerStyle={styles.contentContainer}
+      >
       {/* Header */}
       <Card style={styles.header}>
         <View style={styles.profileSection}>
@@ -490,6 +494,7 @@ export default function ProfileScreen() {
 
       <Separator height={32} />
     </ScrollView>
+    </SwipeableTabContainer>
   );
 }
 

@@ -17,12 +17,15 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
+import SwipeableTabContainer from '../../components/SwipeableTabContainer';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
+  const { currentTabIndex, tabRoutes } = useTabNavigation();
   // Data context is used for automatic refresh after adding expenses
   useData();
   const [open, setOpen] = useState(false);
@@ -185,11 +188,12 @@ export default function AddScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
-    >
+    <SwipeableTabContainer currentTabIndex={currentTabIndex} tabRoutes={tabRoutes}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+      >
         <TouchableWithoutFeedback onPress={handleContainerPress}>
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
@@ -461,6 +465,7 @@ export default function AddScreen() {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SwipeableTabContainer>
   );
 }
 

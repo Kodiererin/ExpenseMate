@@ -17,8 +17,10 @@ import {
   View,
 } from 'react-native';
 import { Button, Card, Section, Separator } from '../../components/common';
+import SwipeableTabContainer from '../../components/SwipeableTabContainer';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTabNavigation } from '../../hooks/useTabNavigation';
 import { Goal } from '../../types/Goal';
 import {
   addGoalToFirestore,
@@ -28,6 +30,7 @@ import {
 
 export default function GoalsScreen() {
   const { colors } = useTheme();
+  const { currentTabIndex, tabRoutes } = useTabNavigation();
   const { 
     getGoalsByMonth, 
     refreshGoals, 
@@ -223,11 +226,12 @@ export default function GoalsScreen() {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
+    <SwipeableTabContainer currentTabIndex={currentTabIndex} tabRoutes={tabRoutes}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
       <ScrollView 
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
@@ -476,6 +480,7 @@ export default function GoalsScreen() {
       <Separator height={32} />
     </ScrollView>
     </KeyboardAvoidingView>
+    </SwipeableTabContainer>
   );
 }
 
