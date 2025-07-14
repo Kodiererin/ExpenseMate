@@ -517,7 +517,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 1.1.0
+                  Version 2.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.

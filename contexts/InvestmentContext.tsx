@@ -1,3 +1,5 @@
+// ...existing code...
+// ...existing code...
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -35,6 +37,28 @@ interface InvestmentProviderProps {
 }
 
 export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children }) => {
+  // Helper to get all recurring dates for a recurring investment
+  const getRecurringDates = (startDateStr: string, frequency: 'monthly' | 'quarterly' | 'yearly'): string[] => {
+    const startDate = new Date(startDateStr);
+    startDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dates: string[] = [];
+    let current = new Date(startDate);
+    while (current <= today) {
+      dates.push(current.toISOString());
+      if (frequency === 'monthly') {
+        current.setMonth(current.getMonth() + 1);
+      } else if (frequency === 'quarterly') {
+        current.setMonth(current.getMonth() + 3);
+      } else if (frequency === 'yearly') {
+        current.setFullYear(current.getFullYear() + 1);
+      } else {
+        break;
+      }
+    }
+    return dates;
+  };
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<number>(0);
@@ -89,15 +113,23 @@ export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children
 
   const refreshInvestments = async (force: boolean = false) => {
     try {
+      // Always fetch fresh data if forced
+      if (force) {
+        setLoading(true);
+        console.log('🔄 Fetching fresh investment data from server (forced)');
+        const userInvestments = await investmentService.getUserInvestments(userId);
+        setInvestments(userInvestments);
+        await saveToCache(userInvestments);
+        return;
+      }
       // If not forced, try to use cache first
-      if (!force && !loading) {
+      if (!loading) {
         const now = Date.now();
         if (now - lastRefresh < CACHE_DURATION) {
           console.log('⚡ Using existing cache, skipping refresh');
           return;
         }
       }
-
       setLoading(true);
       console.log('🔄 Fetching fresh investment data from server');
       const userInvestments = await investmentService.getUserInvestments(userId);
@@ -117,7 +149,15 @@ export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children
 
   const addInvestment = async (investment: Omit<Investment, 'id' | 'createdAt'>) => {
     try {
-      await investmentService.addInvestment(investment);
+      let investmentToAdd = { ...investment };
+      if (investment.isRecurring && investment.recurringFrequency && investment.date && typeof investment.date === 'string') {
+        // For recurring, generate all dates from start to present
+        investmentToAdd.date = getRecurringDates(investment.date as string, investment.recurringFrequency);
+      } else if (typeof investment.date === 'string') {
+        // For normal, wrap date in array
+        investmentToAdd.date = [investment.date as string];
+      }
+      await investmentService.addInvestment(investmentToAdd as Omit<Investment, 'id' | 'createdAt'>);
       await refreshInvestments(true); // Force refresh after adding
     } catch (error) {
       console.error('Error adding investment:', error);
@@ -125,12 +165,25 @@ export const InvestmentProvider: React.FC<InvestmentProviderProps> = ({ children
     }
   };
 
+  // Enhanced deleteInvestment to support recurring investments
   const deleteInvestment = async (id: string) => {
     try {
-      await investmentService.deleteInvestment(id);
+      console.log('[DEBUG] InvestmentContext.deleteInvestment called with id:', id);
+      // Find the investment to delete
+      const investmentToDelete = investments.find(inv => inv.id === id);
+      if (investmentToDelete && investmentToDelete.isRecurring && Array.isArray(investmentToDelete.date)) {
+        // Delete all matching recurring investments
+        await investmentService.deleteInvestment(String(investmentToDelete.id));
+        setInvestments(prev => prev.filter(inv => inv.id !== investmentToDelete.id));
+      } else {
+        // Non-recurring: delete single investment
+        await investmentService.deleteInvestment(id);
+        setInvestments(prev => prev.filter(inv => inv.id !== id));
+      }
       await refreshInvestments(true); // Force refresh after deleting
+      console.log('[DEBUG] Investments refreshed after deletion.');
     } catch (error) {
-      console.error('Error deleting investment:', error);
+      console.error('[DEBUG] Error deleting investment:', error, id);
       throw error;
     }
   };

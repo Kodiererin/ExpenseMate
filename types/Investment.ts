@@ -4,7 +4,7 @@ export interface Investment {
   type: 'salary' | 'bonus' | 'commission' | 'freelance' | 'dividend' | 'interest' | 'rental' | 'mutual_fund' | 'stocks' | 'bonds' | 'real_estate' | 'crypto' | 'fixed_deposit' | 'ppf' | 'nps' | 'insurance' | 'other';
   title: string;
   amount: number;
-  date: string;
+  date: string[]; // For normal investment: [single date], for recurring: [startDate, ..., present]
   description?: string;
   isRecurring: boolean;
   recurringFrequency?: 'monthly' | 'quarterly' | 'yearly';

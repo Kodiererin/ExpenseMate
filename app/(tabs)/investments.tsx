@@ -24,6 +24,7 @@ import { Button, Card, Section, Separator } from '../../components/common';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Investment } from '../../types/Investment';
+import { investmentService } from '../../utils/investmentService';
 import { seedInvestmentData } from '../../utils/seedData';
 
 const screenWidth = Dimensions.get('window').width;
@@ -85,6 +86,8 @@ const getInvestmentCategory = (investment: Investment) => {
 };
 
 const InvestmentsScreen = () => {
+  // Trend type state: 'monthly' or 'yearly'
+  const [trendType, setTrendType] = useState<'monthly' | 'yearly'>('monthly');
   const { colors } = useTheme();
   const { 
     investments, 
@@ -125,6 +128,14 @@ const InvestmentsScreen = () => {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [frequencyDropdownOpen, setFrequencyDropdownOpen] = useState(false);
 
+
+  // State for investment detail modal
+  const [investmentDetailModalVisible, setInvestmentDetailModalVisible] = useState(false);
+  // Extended type for modal to support recurringDates
+  type InvestmentWithDates = Investment & { recurringDates?: string[] };
+  const [selectedInvestment, setSelectedInvestment] = useState<InvestmentWithDates | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Mock user ID - in a real app, this would come from authentication
   const userId = 'mock_user_id';
 
@@ -137,6 +148,72 @@ const InvestmentsScreen = () => {
     }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Automatically add recurring investments on the selected date and frequency.
+   * This effect checks if today matches the selected date and frequency, and if so,
+   * auto-adds the investment for the user. This helps users avoid manual entry for recurring investments.
+   *
+   * Future developers: This logic assumes the formData is set for a recurring investment.
+   * You may want to move this logic to the backend for reliability in production apps.
+   */
+  useEffect(() => {
+    if (!formData.isRecurring) return;
+    // Get today's date (without time)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Get selected start date (without time)
+    const startDate = new Date(selectedDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Helper to get all due dates from startDate up to today
+    const getDueDates = () => {
+      const dates: Date[] = [];
+      let current = new Date(startDate);
+      while (current <= today) {
+        dates.push(new Date(current));
+        if (formData.recurringFrequency === 'monthly') {
+          current.setMonth(current.getMonth() + 1);
+        } else if (formData.recurringFrequency === 'quarterly') {
+          current.setMonth(current.getMonth() + 3);
+        } else if (formData.recurringFrequency === 'yearly') {
+          current.setFullYear(current.getFullYear() + 1);
+        } else {
+          break;
+        }
+      }
+      return dates;
+    };
+
+    // Add all missed recurring investments from startDate up to today
+    const dueDates = getDueDates();
+    // For new recurring investment, add as a single entry with all dates
+    if (formData.title && formData.amount && dueDates.length > 0) {
+      // Check if investment for this title/type/amount already exists
+      const alreadyExists = investments.some(inv =>
+        inv.isRecurring &&
+        inv.title === formData.title &&
+        inv.amount === parseFloat(formData.amount)
+      );
+      if (!alreadyExists) {
+        addInvestment({
+          userId,
+          type: formData.type as Investment['type'],
+          title: formData.title,
+          amount: parseFloat(formData.amount),
+          date: dueDates.map(d => d.toISOString()),
+          description: formData.description,
+          source: formData.source,
+          isRecurring: true,
+          recurringFrequency: formData.recurringFrequency as Investment['recurringFrequency'],
+          taxable: formData.taxable,
+          category: formData.category as Investment['category'],
+        });
+        Alert.alert('Recurring Investments Added', `Recurring investments from ${startDate.toLocaleDateString()} to ${today.toLocaleDateString()} have been auto-added.`);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, selectedDate, investments]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -162,13 +239,37 @@ const InvestmentsScreen = () => {
       // Get the category from the selected investment type
       const selectedInvestmentType = investmentTypes.find(t => t.value === formData.type);
       const category = selectedInvestmentType?.category || 'income';
-
+      let dateArr: string[];
+      if (formData.isRecurring) {
+        // Generate all dates for recurring
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        const dates: string[] = [];
+        let current = new Date(startDate);
+        while (current <= today) {
+          dates.push(current.toISOString());
+          if (formData.recurringFrequency === 'monthly') {
+            current.setMonth(current.getMonth() + 1);
+          } else if (formData.recurringFrequency === 'quarterly') {
+            current.setMonth(current.getMonth() + 3);
+          } else if (formData.recurringFrequency === 'yearly') {
+            current.setFullYear(current.getFullYear() + 1);
+          } else {
+            break;
+          }
+        }
+        dateArr = dates;
+      } else {
+        dateArr = [selectedDate.toISOString()];
+      }
       await addInvestment({
         userId,
         type: formData.type as Investment['type'],
         title: formData.title,
         amount: parseFloat(formData.amount),
-        date: selectedDate.toISOString(),
+        date: dateArr,
         description: formData.description,
         source: formData.source,
         isRecurring: formData.isRecurring,
@@ -176,7 +277,6 @@ const InvestmentsScreen = () => {
         taxable: formData.taxable,
         category: category as Investment['category'],
       });
-
       setModalVisible(false);
       resetForm();
       Alert.alert('Success', 'Investment added successfully!');
@@ -213,39 +313,70 @@ const InvestmentsScreen = () => {
     return chartData;
   };
 
-  const getMonthlyTrend = () => {
-    const monthlyData = investments.reduce((acc, investment) => {
-      const month = new Date(investment.date).toLocaleDateString('en-US', { month: 'short' });
-      acc[month] = (acc[month] || 0) + investment.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const labels = Object.keys(monthlyData).slice(-6);
-    const data = Object.values(monthlyData).slice(-6);
-
-    if (labels.length === 0) {
+  // Returns chart data for monthly or yearly trend, sorted chronologically
+  const getTrendData = () => {
+    if (trendType === 'monthly') {
+      // Group by year-month
+      const monthlyData: Record<string, number> = {};
+      investments.forEach(investment => {
+        // Use first date for normal, all dates for recurring
+        const dates = Array.isArray(investment.date) ? investment.date : [investment.date];
+        dates.forEach(dateStr => {
+          const date = new Date(dateStr);
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // e.g. 2025-07
+          monthlyData[key] = (monthlyData[key] || 0) + investment.amount;
+        });
+      });
+      // Sort keys chronologically
+      const sortedKeys = Object.keys(monthlyData).sort((a, b) => new Date(a + '-01').getTime() - new Date(b + '-01').getTime());
+      // Show last 6 months
+      const lastKeys = sortedKeys.slice(-6);
+      // Only show month name (e.g., Jan, Feb)
+      const labels = lastKeys.map(k => {
+        const [year, month] = k.split('-');
+        return new Date(Number(year), Number(month) - 1).toLocaleString('en-US', { month: 'short' });
+      });
+      const data = lastKeys.map(k => monthlyData[k]);
       return {
-        labels: ['Jan'],
-        datasets: [{ data: [0] }],
+        labels: labels.length ? labels : ['Jan'],
+        datasets: [{
+          data: data.length ? data : [0],
+          strokeWidth: 2,
+          color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+        }],
+      };
+    } else {
+      // Group by year
+      const yearlyData: Record<string, number> = {};
+      investments.forEach(investment => {
+        const dates = Array.isArray(investment.date) ? investment.date : [investment.date];
+        dates.forEach(dateStr => {
+          const date = new Date(dateStr);
+          const key = `${date.getFullYear()}`;
+          yearlyData[key] = (yearlyData[key] || 0) + investment.amount;
+        });
+      });
+      // Sort years
+      const sortedYears = Object.keys(yearlyData).sort((a, b) => Number(a) - Number(b));
+      // Show last 6 years
+      const lastYears = sortedYears.slice(-6);
+      return {
+        labels: lastYears.length ? lastYears : ['2025'],
+        datasets: [{
+          data: lastYears.length ? lastYears.map(y => yearlyData[y]) : [0],
+          strokeWidth: 2,
+          color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+        }],
       };
     }
-
-    return {
-      labels,
-      datasets: [{
-        data,
-        strokeWidth: 2,
-        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-      }],
-    };
   };
 
-  const getFinancialSummary = () => {
+  // Dynamically recalculate summary when investments change
+  const getFinancialSummary = React.useCallback(() => {
     const categoryData = getInvestmentsByCategory();
     const taxableIncome = getTaxableIncome();
     const nonTaxableIncome = getNonTaxableIncome();
     const recurringIncome = getRecurringIncome();
-    
     return {
       ...categoryData,
       taxableIncome,
@@ -253,10 +384,14 @@ const InvestmentsScreen = () => {
       recurringIncome,
       totalWealth: categoryData.income + categoryData.investment + categoryData.savings,
     };
-  };
+  }, [getInvestmentsByCategory, getTaxableIncome, getNonTaxableIncome, getRecurringIncome]);
 
-  const monthlyIncome = getMonthlyIncome();
-  const financialSummary = getFinancialSummary();
+  // Memoize financial summary and monthly income, update when investments change
+  const financialSummary = React.useMemo(() => getFinancialSummary(), [getFinancialSummary]);
+  const monthlyIncome = React.useMemo(() => getMonthlyIncome(), [getMonthlyIncome]);
+  // Memoize chart data so it updates when investments change
+  const pieChartData = React.useMemo(() => getChartData(), [getChartData, investments]);
+  const trendChartData = React.useMemo(() => getTrendData(), [getTrendData, investments, trendType]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -272,7 +407,7 @@ const InvestmentsScreen = () => {
         <Animated.View style={[styles.headerContent, { opacity: animatedValues.headerOpacity }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>💼 Portfolio</Text>
-            <Text style={styles.headerSubtitle}>Pull down to refresh • Corporate Finance Hub</Text>
+            <Text style={styles.headerSubtitle}>• Corporate Finance Hub</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -289,15 +424,13 @@ const InvestmentsScreen = () => {
           <View style={styles.quickStat}>
             <Text style={styles.quickStatLabel}>Total Wealth</Text>
             <Text style={styles.quickStatValue}>
-              ₹{financialSummary.totalWealth.toLocaleString()}
+              ₹{typeof financialSummary.totalWealth === 'number' ? financialSummary.totalWealth.toLocaleString() : '0'}
             </Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.quickStat}>
             <Text style={styles.quickStatLabel}>Monthly Income</Text>
-            <Text style={styles.quickStatValue}>
-              ₹{monthlyIncome.toLocaleString()}
-            </Text>
+              <Text style={[styles.quickStatValue, { color: 'white' }]}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.quickStat}>
@@ -332,7 +465,7 @@ const InvestmentsScreen = () => {
         }
       >
         {/* Enhanced Summary Cards */}
-        <Section title="📊 Financial Overview" subtitle="Your comprehensive financial dashboard">
+        <Section title="📊 Financial Overview" >
           {/* Primary Stats Row */}
           <View style={styles.summaryGrid}>
             <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
@@ -346,8 +479,8 @@ const InvestmentsScreen = () => {
                   <Ionicons name="trending-up" size={24} color="white" />
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{financialSummary.income.toLocaleString()}</Text>
-                <Text style={styles.summaryTrend}>+12% from last month</Text>
+                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
+                <Text style={styles.summaryTrend}>Income</Text>
               </LinearGradient>
             </TouchableOpacity>
             
@@ -362,8 +495,8 @@ const InvestmentsScreen = () => {
                   <Ionicons name="bar-chart" size={24} color="white" />
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Investments</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{financialSummary.investment.toLocaleString()}</Text>
-                <Text style={styles.summaryTrend}>+8% portfolio growth</Text>
+                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
+                 <Text style={styles.summaryTrend}>Total Investments</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -381,8 +514,8 @@ const InvestmentsScreen = () => {
                   <Ionicons name="shield-checkmark" size={24} color="white" />
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Savings</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{financialSummary.savings.toLocaleString()}</Text>
-                <Text style={styles.summaryTrend}>Emergency fund ready</Text>
+                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
+                <Text style={styles.summaryTrend}>Emergency Savings</Text>
               </LinearGradient>
             </TouchableOpacity>
             
@@ -397,7 +530,7 @@ const InvestmentsScreen = () => {
                   <Ionicons name="calendar" size={24} color="white" />
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Monthly Income</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{monthlyIncome.toLocaleString()}</Text>
+                <Text style={styles.enhancedSummaryAmount}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
                 <Text style={styles.summaryTrend}>Recurring income</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -410,7 +543,7 @@ const InvestmentsScreen = () => {
                 <Ionicons name="receipt" size={20} color={colors.error} />
                 <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Taxable Income</Text>
               </View>
-              <Text style={[styles.taxAmount, { color: colors.error }]}>₹{financialSummary.taxableIncome.toLocaleString()}</Text>
+              <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
               <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
             </View>
             
@@ -419,7 +552,7 @@ const InvestmentsScreen = () => {
                 <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                 <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Tax-Free Income</Text>
               </View>
-              <Text style={[styles.taxAmount, { color: colors.success }]}>₹{financialSummary.nonTaxableIncome.toLocaleString()}</Text>
+              <Text style={[styles.taxAmount, { color: colors.success }]}>₹{typeof financialSummary.nonTaxableIncome === 'number' ? financialSummary.nonTaxableIncome.toLocaleString() : '0'}</Text>
               <Text style={[styles.taxNote, { color: colors.placeholder }]}>Tax exempt savings</Text>
             </View>
           </View>
@@ -432,7 +565,7 @@ const InvestmentsScreen = () => {
               <Card>
                 <View style={styles.chartContainer}>
                   <PieChart
-                    data={getChartData()}
+                    data={pieChartData}
                     width={screenWidth - 64}
                     height={200}
                     chartConfig={{
@@ -450,11 +583,37 @@ const InvestmentsScreen = () => {
               </Card>
             </Section>
 
-            <Section title="📊 Monthly Trend" subtitle="Investment growth over time">
+            <Section title={trendType === 'monthly' ? "📊 Monthly Trend" : "📊 Yearly Trend"} subtitle="Investment growth over time">
               <Card>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ marginRight: 8, color: colors.textSecondary }}>Trend Type:</Text>
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      backgroundColor: trendType === 'monthly' ? colors.primary : colors.surface,
+                      borderRadius: 8,
+                      marginRight: 8,
+                    }}
+                    onPress={() => setTrendType('monthly')}
+                  >
+                    <Text style={{ color: trendType === 'monthly' ? 'white' : colors.text }}>Monthly</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      backgroundColor: trendType === 'yearly' ? colors.primary : colors.surface,
+                      borderRadius: 8,
+                    }}
+                    onPress={() => setTrendType('yearly')}
+                  >
+                    <Text style={{ color: trendType === 'yearly' ? 'white' : colors.text }}>Yearly</Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.chartContainer}>
                   <LineChart
-                    data={getMonthlyTrend()}
+                    data={trendChartData}
                     width={screenWidth - 64}
                     height={200}
                     chartConfig={{
@@ -482,10 +641,10 @@ const InvestmentsScreen = () => {
           {investments.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}> 
                 No investments yet
               </Text>
-              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}> 
                 Start tracking your investments by adding your first entry!
               </Text>
               {__DEV__ && (
@@ -508,70 +667,151 @@ const InvestmentsScreen = () => {
             </Card>
           ) : (
             <View style={styles.listContainer}>
-              {investments.slice(0, 10).map((investment) => (
-                <Card key={investment.id} style={[styles.investmentItem, { borderLeftColor: colors.primary }]}>
-                  <View style={styles.investmentInfo}>
-                    <View style={styles.investmentHeader}>
-                      <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
-                      <View style={styles.badgeContainer}>
-                        <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
-                          <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
-                            {getInvestmentCategory(investment).toUpperCase()}
-                          </Text>
-                        </View>
-                        {investment.taxable && (
-                          <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
-                            <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
+              {/* Group recurring investments by title and show only one entry for each recurring investment */}
+              {(() => {
+                // Group recurring investments by title, type, and amount
+                const grouped: { [key: string]: Investment[] } = {};
+                investments.forEach(inv => {
+                  if (inv.isRecurring) {
+                    const key = `${inv.title}|${inv.type}|${inv.amount}`;
+                    if (!grouped[key]) grouped[key] = [];
+                    grouped[key].push(inv);
+                  }
+                });
+                // Non-recurring investments
+                const nonRecurring = investments.filter(inv => !inv.isRecurring);
+                // Render non-recurring investments
+                const rendered = nonRecurring.map((investment, idx) => (
+                  <TouchableOpacity
+                    key={investment.id + '-' + idx}
+                    onPress={() => {
+                      setSelectedInvestment(investment);
+                      setInvestmentDetailModalVisible(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Card
+                      style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
+                    >
+                      <View style={styles.investmentInfo}>
+                        <View style={styles.investmentHeader}>
+                          <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
+                          <View style={styles.badgeContainer}>
+                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
+                              <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
+                                {getInvestmentCategory(investment).toUpperCase()}
+                              </Text>
+                            </View>
+                            {investment.taxable && (
+                              <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
+                                <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
+                              </View>
+                            )}
                           </View>
+                        </View>
+                        <Text style={[styles.investmentType, { color: colors.primary }]}> 
+                          {investmentTypes.find(t => t.value === investment.type)?.label}
+                        </Text>
+                        {investment.source && (
+                          <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
+                            📍 {investment.source}
+                          </Text>
+                        )}
+                        <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
+                          📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
+                        </Text>
+                        {investment.isRecurring && (
+                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
+                            🔄 {investment.recurringFrequency}
+                          </Text>
+                        )}
+                        {investment.description && (
+                          <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
+                            {investment.description}
+                          </Text>
                         )}
                       </View>
-                    </View>
-                    
-                    <Text style={[styles.investmentType, { color: colors.primary }]}>
-                      {investmentTypes.find(t => t.value === investment.type)?.label}
-                    </Text>
-                    
-                    {investment.source && (
-                      <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
-                        📍 {investment.source}
-                      </Text>
-                    )}
-                    
-                    <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
-                      📅 {new Date(investment.date).toLocaleDateString()}
-                    </Text>
-                    
-                    {investment.isRecurring && (
-                      <Text style={[styles.recurringBadge, { color: colors.success }]}>
-                        🔄 {investment.recurringFrequency}
-                      </Text>
-                    )}
-                    
-                    {investment.description && (
-                      <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                        {investment.description}
-                      </Text>
-                    )}
-                  </View>
-                  <View style={styles.amountContainer}>
-                    <Text style={[styles.investmentAmount, { color: colors.primary }]}>
-                      ₹{investment.amount.toLocaleString()}
-                    </Text>
-                    {investment.taxable && (
-                      <Text style={[styles.taxInfo, { color: colors.error }]}>
-                        + Tax
-                      </Text>
-                    )}
-                  </View>
-                </Card>
-              ))}
-              {investments.length > 10 && (
-                <Card style={styles.showMoreCard}>
-                  <Text style={[styles.showMoreText, { color: colors.primary }]}>
-                    and {investments.length - 10} more investments...
-                  </Text>
-                </Card>
-              )}
+                      <View style={styles.amountContainer}>
+                        <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
+                          ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
+                        </Text>
+                        {investment.taxable && (
+                          <Text style={[styles.taxInfo, { color: colors.error }]}> 
+                            + Tax
+                          </Text>
+                        )}
+                      </View>
+                    </Card>
+                  </TouchableOpacity>
+                ));
+                // Render grouped recurring investments
+                Object.entries(grouped).forEach(([key, group], idx) => {
+                  const first = group[0];
+                  rendered.push(
+                    <TouchableOpacity
+                      key={key + '-' + idx}
+                      onPress={() => {
+                        setSelectedInvestment({ ...first, recurringDates: Array.isArray(first.date) ? first.date : [first.date] });
+                        setInvestmentDetailModalVisible(true);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Card
+                        style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
+                      >
+                        <View style={styles.investmentInfo}>
+                          <View style={styles.investmentHeader}>
+                            <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
+                            <View style={styles.badgeContainer}>
+                              <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
+                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
+                                  {getInvestmentCategory(first).toUpperCase()}
+                                </Text>
+                              </View>
+                              {first.taxable && (
+                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
+                                  <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                          <Text style={[styles.investmentType, { color: colors.primary }]}> 
+                            {investmentTypes.find(t => t.value === first.type)?.label}
+                          </Text>
+                          {first.source && (
+                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
+                              📍 {first.source}
+                            </Text>
+                          )}
+                          {/* Show user selected date to present */}
+                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
+                            📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
+                          </Text>
+                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
+                            🔄 {first.recurringFrequency}
+                          </Text>
+                          {first.description && (
+                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
+                              {first.description}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.amountContainer}>
+                          <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
+                          ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                          </Text>
+                          {first.taxable && (
+                            <Text style={[styles.taxInfo, { color: colors.error }]}> 
+                              + Tax
+                            </Text>
+                          )}
+                        </View>
+                      </Card>
+                    </TouchableOpacity>
+                  );
+                });
+                return rendered;
+              })()}
             </View>
           )}
         </Section>
@@ -609,19 +849,21 @@ const InvestmentsScreen = () => {
                     const category = selectedInvestmentType?.category || 'income';
                     setFormData(prev => ({ ...prev, type: value, category: category }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
                   textStyle={{ color: colors.text }}
+                  placeholderStyle={{ color: colors.placeholder }}
+                  selectedItemLabelStyle={{ color: colors.text }}
+                  listItemLabelStyle={{ color: colors.text }}
+                  flatListProps={{
+                    nestedScrollEnabled: true,
+                    style: { backgroundColor: colors.surface },
+                  }}
                   zIndex={3000}
                   zIndexInverse={1000}
                   listMode="MODAL"
                   modalTitle="Select Investment Type"
                   modalAnimationType="slide"
-                  modalContentContainerStyle={{ backgroundColor: colors.background }}
-                  theme={colors.background === '#000' ? 'DARK' : 'LIGHT'}
-                  flatListProps={{
-                    nestedScrollEnabled: true,
-                  }}
                 />
               </View>
 
@@ -690,16 +932,19 @@ const InvestmentsScreen = () => {
                     const value = callback(formData.category);
                     setFormData(prev => ({ ...prev, category: value }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
                   textStyle={{ color: colors.text }}
+                  placeholderStyle={{ color: colors.placeholder }}
+                  selectedItemLabelStyle={{ color: colors.text }}
+                  listItemLabelStyle={{ color: colors.text }}
+                  arrowIconStyle={{}}
+                  tickIconStyle={{}}
                   zIndex={3000}
                   zIndexInverse={1000}
                   listMode="MODAL"
                   modalTitle="Select Category"
                   modalAnimationType="slide"
-                  modalContentContainerStyle={{ backgroundColor: colors.background }}
-                  theme={colors.background === '#000' ? 'DARK' : 'LIGHT'}
                   flatListProps={{
                     nestedScrollEnabled: true,
                   }}
@@ -759,9 +1004,14 @@ const InvestmentsScreen = () => {
                       const value = callback(formData.recurringFrequency);
                       setFormData(prev => ({ ...prev, recurringFrequency: value }));
                     }}
-                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
                     textStyle={{ color: colors.text }}
+                    placeholderStyle={{ color: colors.placeholder }}
+                    selectedItemLabelStyle={{ color: colors.text }}
+                    listItemLabelStyle={{ color: colors.text }}
+                    arrowIconStyle={{}}
+                    tickIconStyle={{}}
                     zIndex={2000}
                     zIndexInverse={2000}
                     listMode="MODAL"
@@ -796,6 +1046,118 @@ const InvestmentsScreen = () => {
             }}
           />
         )}
+      </Modal>
+
+      {/* Investment Detail Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={investmentDetailModalVisible}
+        onRequestClose={() => setInvestmentDetailModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}> 
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}> 
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Investment Details</Text>
+              <TouchableOpacity onPress={() => setInvestmentDetailModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            {selectedInvestment && (
+              <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+                {selectedInvestment && (
+                  <>
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.title}</Text>
+                    </View>
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
+                      <Text style={[styles.input, { color: colors.text }]}>{investmentTypes.find(t => t.value === selectedInvestment.type)?.label}</Text>
+                    </View>
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
+                      <Text style={[styles.input, { color: colors.text }]}>
+                        ₹{typeof selectedInvestment.amount === 'number' ? selectedInvestment.amount.toLocaleString() : '0'}
+                      </Text>
+                    </View>
+                    {/* Show all dates for recurring investments */}
+                    {selectedInvestment.isRecurring && Array.isArray(selectedInvestment.date) ? (
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Dates</Text>
+                        <View>
+                          {selectedInvestment.date.map((d: string, i: number) => (
+                            <Text key={d + '-' + i} style={[styles.input, { color: colors.text }]}>
+                              {new Date(d).toLocaleDateString()}
+                            </Text>
+                          ))}
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>
+                          {Array.isArray(selectedInvestment.date) ? new Date(selectedInvestment.date[0]).toLocaleDateString() : new Date(selectedInvestment.date).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedInvestment.source && (
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Source</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.source}</Text>
+                      </View>
+                    )}
+                    {selectedInvestment.description && (
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.description}</Text>
+                      </View>
+                    )}
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.category}</Text>
+                    </View>
+                    <View style={styles.formGroup}>
+                      <Text style={[styles.label, { color: colors.textSecondary }]}>Taxable</Text>
+                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.taxable ? 'Yes' : 'No'}</Text>
+                    </View>
+                    {selectedInvestment.isRecurring && (
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Recurring</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.recurringFrequency}</Text>
+                      </View>
+                    )}
+                    <Button
+                      title={deleting ? 'Deleting...' : 'Delete Investment'}
+                      onPress={async () => {
+                        if (!selectedInvestment || !selectedInvestment.id) return;
+                        setDeleting(true);
+                        try {
+                          console.log('[DEBUG] Attempting to delete investment:', selectedInvestment);
+                          await investmentService.deleteInvestment(String(selectedInvestment.id));
+                          setInvestmentDetailModalVisible(false);
+                          setSelectedInvestment(null);
+                          await refreshInvestments(true); // Force refresh from DB
+                          console.log('[DEBUG] Investments refreshed after deletion.');
+                          Alert.alert('Deleted', 'Investment deleted successfully');
+                        } catch (error: any) {
+                          console.error('[DEBUG] Failed to delete investment:', error, selectedInvestment);
+                          Alert.alert('Error', `Failed to delete investment: ${error?.message || String(error)}`);
+                        } finally {
+                          setDeleting(false);
+                        }
+                      }}
+                      style={[styles.submitButton, { backgroundColor: colors.error }]
+                      }
+                      disabled={deleting}
+                    />
+                    <Separator height={32} />
+                  </>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
