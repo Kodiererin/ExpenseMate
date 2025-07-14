@@ -3,19 +3,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    Modal,
-    Platform,
-    RefreshControl,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -617,6 +617,8 @@ const InvestmentsScreen = () => {
                   listMode="MODAL"
                   modalTitle="Select Investment Type"
                   modalAnimationType="slide"
+                  modalContentContainerStyle={{ backgroundColor: colors.background }}
+                  theme={colors.background === '#000' ? 'DARK' : 'LIGHT'}
                   flatListProps={{
                     nestedScrollEnabled: true,
                   }}
@@ -696,6 +698,8 @@ const InvestmentsScreen = () => {
                   listMode="MODAL"
                   modalTitle="Select Category"
                   modalAnimationType="slide"
+                  modalContentContainerStyle={{ backgroundColor: colors.background }}
+                  theme={colors.background === '#000' ? 'DARK' : 'LIGHT'}
                   flatListProps={{
                     nestedScrollEnabled: true,
                   }}
