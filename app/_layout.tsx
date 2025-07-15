@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DataProvider } from '../contexts/DataContext';
+import { InvestmentProvider } from '../contexts/InvestmentContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 
 export default function RootLayout() {
@@ -22,13 +23,15 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <DataProvider>
-        <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </NavigationThemeProvider>
+        <InvestmentProvider>
+          <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </NavigationThemeProvider>
+        </InvestmentProvider>
       </DataProvider>
     </ThemeProvider>
   );

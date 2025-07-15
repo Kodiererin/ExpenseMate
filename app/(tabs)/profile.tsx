@@ -5,11 +5,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
+import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
   const { expenses, expensesLoading } = useData();
+  const { 
+    investments, 
+    loading: investmentsLoading,
+    getTotalInvestments,
+    getMonthlyIncome
+  } = useInvestments();
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [stats, setStats] = useState({
@@ -17,6 +24,8 @@ export default function ProfileScreen() {
     totalAmount: 0,
     currentMonthAmount: 0,
     mostSpentCategory: '',
+    totalInvestments: 0,
+    monthlyIncome: 0,
   });
 
   // Helper function to share file (works reliably across all platforms)
@@ -87,17 +96,23 @@ export default function ProfileScreen() {
           )
         : 'None';
 
+      // Investment statistics
+      const totalInvestments = getTotalInvestments();
+      const monthlyIncome = getMonthlyIncome();
+
       setStats({
         totalExpenses: allExpenses.length,
         totalAmount: isNaN(totalAmount) ? 0 : totalAmount,
         currentMonthAmount: isNaN(currentMonthAmount) ? 0 : currentMonthAmount,
         mostSpentCategory,
+        totalInvestments,
+        monthlyIncome,
       });
     } catch (error) {
       console.error('Error calculating stats:', error);
       Alert.alert('Error', 'Failed to calculate statistics. Please try again.');
     }
-  }, [expenses]);
+  }, [expenses, getTotalInvestments, getMonthlyIncome]);
 
   useEffect(() => {
     loadExpensesAndStats();
@@ -383,7 +398,7 @@ export default function ProfileScreen() {
 
       <Separator height={24} />
 
-      {expensesLoading ? (
+      {expensesLoading || investmentsLoading ? (
         <Card style={styles.loadingCard}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
@@ -422,6 +437,41 @@ export default function ProfileScreen() {
                 title="Top Category"
                 value={stats.mostSpentCategory}
                 icon="trophy"
+                color={colors.accent}
+              />
+            </View>
+          </Section>
+
+          {/* Investment Statistics */}
+          <Section title="💼 Investment Overview" subtitle="Your investment portfolio">
+            <View style={styles.statsContainer}>
+              <StatCard
+                title="Total Investments"
+                value={`₹${stats.totalInvestments.toFixed(0)}`}
+                icon="trending-up-outline"
+                color={colors.success}
+              />
+              <StatCard
+                title="Monthly Income"
+                value={`₹${stats.monthlyIncome.toFixed(0)}`}
+                icon="cash-outline"
+                color={colors.primary}
+              />
+            </View>
+            
+            <Separator height={12} />
+            
+            <View style={styles.statsContainer}>
+              <StatCard
+                title="Net Worth"
+                value={`₹${(stats.totalInvestments - stats.totalAmount).toFixed(0)}`}
+                icon="wallet-outline"
+                color={stats.totalInvestments > stats.totalAmount ? colors.success : colors.error}
+              />
+              <StatCard
+                title="Investment Types"
+                value={investments.length > 0 ? new Set(investments.map(inv => inv.type)).size : 0}
+                icon="grid-outline"
                 color={colors.accent}
               />
             </View>
@@ -467,7 +517,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 1.0.0
+                  Version 2.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.

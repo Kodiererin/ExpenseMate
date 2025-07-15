@@ -2,7 +2,7 @@
   "expo": {
     "name": "ExpenseMate",
     "slug": "ExpenseMate",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expensemate",
@@ -25,7 +25,7 @@
         "WAKE_LOCK"
       ],
       "package": "com.whoisujjwal.ExpenseMate",
-      "versionCode": 2
+      "versionCode": 6
     },
     "web": {
       "bundler": "metro",

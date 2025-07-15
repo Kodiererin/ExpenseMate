@@ -2,18 +2,18 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Easing,
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableWithoutFeedback,
-  View,
+    Animated,
+    Easing,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
@@ -316,6 +316,7 @@ export default function AddScreen() {
                     flatListProps={{
                       keyboardShouldPersistTaps: 'handled',
                       keyExtractor: (item: any, index: number) => `${item.value}_${index}`,
+                      nestedScrollEnabled: true,
                     }}
                   />
                 </View>

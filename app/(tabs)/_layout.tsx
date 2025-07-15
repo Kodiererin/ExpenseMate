@@ -16,6 +16,7 @@ export default function Layout() {
 
           if (route.name === 'add') iconName = 'add-circle-outline';
           else if (route.name === 'history') iconName = 'time-outline';
+          else if (route.name === 'investments') iconName = 'trending-up-outline';
           else if (route.name === 'goals') iconName = 'flag-outline';
           else if (route.name === 'profile') iconName = 'person-outline';
 
@@ -64,6 +65,13 @@ export default function Layout() {
         options={{ 
           title: 'History',
           tabBarAccessibilityLabel: 'Expense History',
+        }} 
+      />
+      <Tabs.Screen 
+        name="investments" 
+        options={{ 
+          title: 'Investments',
+          tabBarAccessibilityLabel: 'Investments & Income',
         }} 
       />
       <Tabs.Screen 
