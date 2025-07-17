@@ -17,33 +17,30 @@
 
 ## 📱 Screenshots
 
-Below are previews of ExpenseMate in both Light and Dark modes. Each mode shows multiple screens for a complete experience.
+Below are previews of ExpenseMate in both Light and Dark modes. You can scroll horizontally to see all screens.
 
-<table>
-  <tr>
-    <td align="center"><b>Light Mode</b></td>
-    <td align="center"><b>Dark Mode</b></td>
-  </tr>
-  <tr>
-    <td>
-      <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002445.png" alt="Home Light" width="200"/>
-         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002451.png" alt="Home Light" width="200"/>
-         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002502.png" alt="Home Light" width="200"/>
-         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002510.png" alt="Home Light" width="200"/>
-         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002529.png" alt="Home Light" width="200"/>
-         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002550.png" alt="Home Light" width="200"/>
-      <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002604.png" alt="Home Light" width="200"/>
-    <td>
-      <img src="./assets/ScreenShots/DarkMode/home.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/history.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/history1.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/investments.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/investments1.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/investments2.png" alt="Home Dark" width="200"/>
-      <img src="./assets/ScreenShots/DarkMode/profile.png" alt="Home Dark" width="200"/>
-    </td>
-  </tr>
-</table>
+<div style="overflow-x: auto; white-space: nowrap; padding: 8px 0;">
+  <div style="display: inline-block; vertical-align: top; margin-right: 24px;">
+    <div align="center" style="font-weight: bold; margin-bottom: 8px;">🌞 Light Mode</div>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002445.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002451.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002502.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002510.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002529.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002550.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002604.png" alt="Home Light" width="200" style="margin-right:8px;"/>
+  </div>
+  <div style="display: inline-block; vertical-align: top;">
+    <div align="center" style="font-weight: bold; margin-bottom: 8px;">🌚 Dark Mode</div>
+    <img src="./assets/ScreenShots/DarkMode/home.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/history.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/history1.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/investments.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/investments1.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/investments2.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+    <img src="./assets/ScreenShots/DarkMode/profile.png" alt="Home Dark" width="200" style="margin-right:8px;"/>
+  </div>
+</div>
 
 ## ✨ Features
 
