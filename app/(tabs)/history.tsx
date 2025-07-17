@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,7 @@ import {
   Text,
   View
 } from 'react-native';
-import { PieChart, LineChart } from 'react-native-chart-kit';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -57,6 +57,29 @@ export default function HistoryScreen() {
   const [deleting, setDeleting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  // Filter and sort state (must be top-level)
+  const [filterTag, setFilterTag] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("date");
+
+  // Filter and sort expenses for current month
+  const filteredSortedExpenses = useMemo(() => {
+    let filtered = filterTag ? expenses.filter(e => e.tag === filterTag) : expenses;
+    let sorted = [...filtered];
+    if (sortBy === "price") {
+      sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+    } else {
+      // Sort by date (descending)
+      sorted.sort((a, b) => {
+        const [aM, aD, aY] = a.date.split("/").map(Number);
+        const [bM, bD, bY] = b.date.split("/").map(Number);
+        // Format: mm/dd/yyyy
+        const aDate = new Date(aY, aM - 1, aD);
+        const bDate = new Date(bY, bM - 1, bD);
+        return bDate.getTime() - aDate.getTime();
+      });
+    }
+    return sorted;
+  }, [expenses, filterTag, sortBy]);
 
   const loadExpensesForMonth = useCallback(() => {
     console.log(`Loading expenses for month: ${selectedMonth}, year: ${selectedYear}`);
@@ -400,7 +423,57 @@ export default function HistoryScreen() {
 
           {/* Expense List */}
           <Section title="💳 All Expenses" subtitle="Tap any expense to view details">
-            {expenses.length === 0 ? (
+            {/* Filter & Sort Bar */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
+              {/* Filter by Tag */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Filter:</Text>
+                <View style={{
+                  borderRadius: 8,
+                  backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
+                  borderWidth: 1,
+                  borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
+                  overflow: 'hidden',
+                }}>
+                <Picker
+                  selectedValue={filterTag}
+                  style={{ width: 120, color: colors.text, backgroundColor: 'transparent' }}
+                  onValueChange={(itemValue) => setFilterTag(itemValue)}
+                  mode="dropdown"
+                  dropdownIconColor={colors.textSecondary}
+                >
+                  <Picker.Item label="All" value="" color={isDark ? '#000000ff' : colors.text} />
+                  {[...new Set(expenses.map(e => e.tag))].map((tag, idx) => (
+                    <Picker.Item key={idx} label={tag} value={tag} color={isDark ? '#000000ff' : colors.text} />
+                  ))}
+                </Picker>
+                </View>
+              </View>
+              {/* Sort by Price/Date */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Sort:</Text>
+                <View style={{
+                  borderRadius: 8,
+                  backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
+                  borderWidth: 1,
+                  borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
+                  overflow: 'hidden',
+                }}>
+                <Picker
+                  selectedValue={sortBy}
+                  style={{ width: 120, color: colors.text, backgroundColor: 'transparent' }}
+                  onValueChange={(itemValue) => setSortBy(itemValue)}
+                  mode="dropdown"
+                  dropdownIconColor={colors.textSecondary}
+                >
+                  <Picker.Item label="Date" value="date" color={isDark ? '#000000ff' : colors.text} />
+                  <Picker.Item label="Price" value="price" color={isDark ? '#000000ff' : colors.text} />
+                </Picker>
+                </View>
+              </View>
+            </View>
+
+            {filteredSortedExpenses.length === 0 ? (
               <Card style={styles.emptyCard}>
                 <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -412,7 +485,7 @@ export default function HistoryScreen() {
               </Card>
             ) : (
               <View style={styles.expenseList}>
-                {expenses.map((item) => (
+                {filteredSortedExpenses.map((item) => (
                   <Pressable key={item.id} onPress={() => openModal(item)}>
                     <Card style={[styles.expenseCard, { borderLeftColor: colors.primary }]}>
                       <View style={styles.expenseHeader}>

@@ -20,6 +20,7 @@ import { Button, Card, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
+import { filterText } from '../../utils/validateText';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
@@ -122,7 +123,7 @@ export default function AddScreen() {
     const expenseData = {
       tag: tag.trim(),
       price: numericPrice.toFixed(2), // Store as formatted string
-      description: description.trim(),
+      description: filterText(description.trim()), // Filter text to remove unwanted characters
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
     

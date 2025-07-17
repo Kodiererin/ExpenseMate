@@ -25,9 +25,10 @@ import {
   deleteGoalFromFirestore,
   updateGoalInFirestore
 } from '../../utils/firebaseUtils';
+import { filterText } from '../../utils/validateText';
 
 export default function GoalsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { 
     getGoalsByMonth, 
     refreshGoals, 
@@ -137,8 +138,8 @@ export default function GoalsScreen() {
   }, [getGoalsByMonth, selectedMonthYear]);
 
   const handleAddGoal = async () => {
-    const trimmedGoal = goal.trim();
-    
+    const trimmedGoal = filterText(goal.trim());
+
     if (!trimmedGoal) {
       Alert.alert('Invalid Input', 'Please enter a goal text.');
       return;
@@ -149,6 +150,7 @@ export default function GoalsScreen() {
       return;
     }
 
+    
     setAddingGoal(true);
     try {
       await addGoalToFirestore({
@@ -278,7 +280,7 @@ export default function GoalsScreen() {
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={colors.text}
+                  color={isDark ? '#000000ff' : colors.text}
                 />
               ))}
             </Picker>
@@ -304,7 +306,7 @@ export default function GoalsScreen() {
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={colors.text}
+                  color={isDark ? '#000000ff' : colors.text}
                 />
               ))}
             </Picker>
