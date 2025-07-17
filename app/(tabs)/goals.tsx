@@ -27,7 +27,7 @@ import {
 } from '../../utils/firebaseUtils';
 
 export default function GoalsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { 
     getGoalsByMonth, 
     refreshGoals, 
@@ -278,7 +278,7 @@ export default function GoalsScreen() {
                   key={index} 
                   label={month} 
                   value={index + 1} 
-                  color={colors.text}
+                  color={isDark ? '#000000ff' : colors.text}
                 />
               ))}
             </Picker>
@@ -304,7 +304,7 @@ export default function GoalsScreen() {
                   key={year} 
                   label={year.toString()} 
                   value={year} 
-                  color={colors.text}
+                  color={isDark ? '#000000ff' : colors.text}
                 />
               ))}
             </Picker>
