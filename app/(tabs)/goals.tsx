@@ -25,6 +25,7 @@ import {
   deleteGoalFromFirestore,
   updateGoalInFirestore
 } from '../../utils/firebaseUtils';
+import { filterText } from '../../utils/validateText';
 
 export default function GoalsScreen() {
   const { colors, isDark } = useTheme();
@@ -137,8 +138,8 @@ export default function GoalsScreen() {
   }, [getGoalsByMonth, selectedMonthYear]);
 
   const handleAddGoal = async () => {
-    const trimmedGoal = goal.trim();
-    
+    const trimmedGoal = filterText(goal.trim());
+
     if (!trimmedGoal) {
       Alert.alert('Invalid Input', 'Please enter a goal text.');
       return;
@@ -149,6 +150,7 @@ export default function GoalsScreen() {
       return;
     }
 
+    
     setAddingGoal(true);
     try {
       await addGoalToFirestore({
