@@ -15,27 +15,61 @@
 
 ---
 
+## 📱 Screenshots
+
+Below are previews of ExpenseMate in both Light and Dark modes. Each mode shows multiple screens for a complete experience.
+
+<table>
+  <tr>
+    <td align="center"><b>Light Mode</b></td>
+    <td align="center"><b>Dark Mode</b></td>
+  </tr>
+  <tr>
+    <td>
+      <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002445.png" alt="Home Light" width="200"/>
+         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002451.png" alt="Home Light" width="200"/>
+         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002502.png" alt="Home Light" width="200"/>
+         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002510.png" alt="Home Light" width="200"/>
+         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002529.png" alt="Home Light" width="200"/>
+         <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002550.png" alt="Home Light" width="200"/>
+      <img src="./assets/ScreenShots/LightMode/Screenshot 2025-07-18 002604.png" alt="Home Light" width="200"/>
+    <td>
+      <img src="./assets/ScreenShots/DarkMode/home.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/history.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/history1.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/investments.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/investments1.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/investments2.png" alt="Home Dark" width="200"/>
+      <img src="./assets/ScreenShots/DarkMode/profile.png" alt="Home Dark" width="200"/>
+    </td>
+  </tr>
+</table>
+
 ## ✨ Features
 
 ### 💸 **Expense Management**
+
 - 📊 **Smart Categorization** - Organize expenses with customizable categories (Food, Travel, Shopping, Bills, etc.)
 - 💰 **Real-time Tracking** - Add expenses instantly with amount, description, and date
 - 📅 **Date Flexibility** - Track expenses for any date, not just today
 - 🔍 **Advanced Filtering** - Filter expenses by month, year, and category
 
 ### 📈 **Analytics & Insights**
+
 - 📊 **Beautiful Charts** - Interactive pie charts showing expense distribution
 - 📅 **Monthly Overview** - Track spending patterns month by month
 - 💡 **Smart Insights** - Get insights into your spending habits
 - 📋 **Export Ready** - Share expense summaries easily
 
 ### 🎯 **Budget Goals**
+
 - 🎯 **Goal Setting** - Set monthly budget goals for each category
 - 📊 **Progress Tracking** - Visual progress indicators for your goals
 - ⚡ **Real-time Updates** - Goals update automatically as you add expenses
 - 🏆 **Achievement System** - Track your budget success rate
 
 ### 🎨 **Modern UI/UX**
+
 - 🌙 **Dark/Light Theme** - Automatic theme switching based on system preference
 - 📱 **Native Feel** - Smooth animations and native performance
 - ♿ **Accessibility** - Full accessibility support with screen readers
@@ -71,20 +105,22 @@
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/ExpenseMate.git
    cd ExpenseMate
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
-   
 
 4. **Start the development server**
+
    ```bash
    npm start
    ```
@@ -101,48 +137,55 @@
 For building APK/IPA files:
 
 1. **Install EAS CLI**
+
    ```bash
    npm install -g eas-cli
    ```
 
 2. **Login to Expo**
+
    ```bash
    eas login
    ```
 
 3. **Build for Android**
+
    ```bash
    npm run build:android
    ```
 
 4. **Build for iOS**
+
    ```bash
    npm run build:ios
    ```
 
 ---
 
-
 ## 🎯 **Features Deep Dive**
 
 ### 💰 **Add Expenses**
+
 - **Smart Categories**: Pre-defined categories with emojis
 - **Custom Categories**: Add your own categories
 - **Amount Validation**: Prevents invalid inputs
 - **Date Selection**: Pick any date for your expense
 
 ### 📊 **Analytics Dashboard**
+
 - **Monthly View**: See all expenses for any month/year
 - **Category Breakdown**: Pie chart showing expense distribution
 - **Total Calculations**: Automatic sum calculations
 - **Refresh Support**: Pull-to-refresh for latest data
 
 ### 🎯 **Budget Goals**
+
 - **Monthly Targets**: Set budget goals for each category
 - **Visual Progress**: Progress bars showing goal completion
 - **Real-time Updates**: Goals update as you add expenses
 
 ### ⚙️ **Settings & Profile**
+
 - **Theme Toggle**: Switch between light and dark themes
 - **Data Management**: Clear cache and manage data
 - **App Information**: Version and developer info
@@ -164,7 +207,6 @@ For building APK/IPA files:
 | `npm run build:ios` | Build iOS IPA |
 | `npm run prebuild` | Generate native code |
 
-
 ---
 
 ## 🤝 Contributing
@@ -172,14 +214,18 @@ For building APK/IPA files:
 We love contributions! Here's how you can help:
 
 ### 🐛 **Bug Reports**
+
 Found a bug? [Open an issue](https://github.com/yourusername/ExpenseMate/issues/new?template=bug_report.md) with:
+
 - Steps to reproduce
 - Expected vs actual behavior
 - Screenshots if applicable
 - Device/OS information
 
 ### 💡 **Feature Requests**
+
 Have an idea? [Request a feature](https://github.com/yourusername/ExpenseMate/issues/new?template=feature_request.md) with:
+
 - Detailed description
 - Use case scenarios
 - Mockups or examples (if applicable)
@@ -188,23 +234,31 @@ Have an idea? [Request a feature](https://github.com/yourusername/ExpenseMate/is
 
 1. **Fork the repository**
 2. **Create a feature branch**
+
    ```bash
    git checkout -b feature/amazing-feature
    ```
+
 3. **Make your changes**
 4. **Run quality checks**
+
    ```bash
    npm run lint
    npx tsc --noEmit
    ```
+
 5. **Commit your changes**
+
    ```bash
    git commit -m 'Add amazing feature'
    ```
+
 6. **Push to your branch**
+
    ```bash
    git push origin feature/amazing-feature
    ```
+
 7. **Open a Pull Request**
 
 ### 📋 **Development Guidelines**
@@ -223,7 +277,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 
-##  **Acknowledgments**
+## **Acknowledgments**
 
 - **Expo Team** - For the amazing React Native framework
 - **Firebase** - For the reliable backend services
@@ -234,6 +288,5 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 <div align="center">
   
   **⭐ Star this repo if you find it helpful!**
-  
   
 </div>
