@@ -1,12 +1,15 @@
 /**
- * Investment Calculator Utility Functions
- * Provides various financial calculations for investment returns
+ * Advanced Investment Calculator Utility Functions
+ * Comprehensive financial calculations for various investment types
  */
 
 export interface InvestmentResult {
   futureValue: number;
   totalInterest: number;
   totalInvestment: number;
+  monthlyAmount?: number;
+  maturityAmount?: number;
+  totalEMI?: number;
   monthlyBreakdown?: MonthlyBreakdown[];
 }
 
@@ -15,11 +18,18 @@ export interface MonthlyBreakdown {
   balance: number;
   interestEarned: number;
   totalInterest: number;
+  principalPaid?: number;
+  interestPaid?: number;
+  remainingBalance?: number;
 }
 
-export interface SIPResult {
-  futureValue: number;
-  totalInvestment: number;
+export interface SIPResult extends InvestmentResult {
+  monthlyBreakdown: MonthlyBreakdown[];
+}
+
+export interface EMIResult extends InvestmentResult {
+  monthlyEMI: number;
+  totalAmount: number;
   totalInterest: number;
   monthlyBreakdown: MonthlyBreakdown[];
 }
@@ -60,35 +70,6 @@ export const calculateInvestmentReturns = (
 };
 
 /**
- * Calculate simple interest returns
- * Formula: A = P(1 + rt)
- * 
- * @param principal - Initial investment amount
- * @param annualRate - Annual interest rate (as percentage)
- * @param years - Investment period in years
- * @returns Investment result with future value and interest earned
- */
-export const calculateSimpleInterest = (
-  principal: number,
-  annualRate: number,
-  years: number
-): InvestmentResult => {
-  if (principal <= 0 || annualRate <= 0 || years <= 0) {
-    throw new Error('All values must be positive numbers');
-  }
-
-  const rate = annualRate / 100;
-  const futureValue = principal * (1 + rate * years);
-  const totalInterest = futureValue - principal;
-
-  return {
-    futureValue: Math.round(futureValue * 100) / 100,
-    totalInterest: Math.round(totalInterest * 100) / 100,
-    totalInvestment: principal,
-  };
-};
-
-/**
  * Calculate Systematic Investment Plan (SIP) returns
  * Formula for monthly SIP: FV = PMT × [(1 + r)^n - 1] / r × (1 + r)
  * 
@@ -103,7 +84,7 @@ export const calculateSIPReturns = (
   annualRate: number,
   years: number,
   withBreakdown: boolean = false
-): SIPResult => {
+): InvestmentResult => {
   if (monthlyInvestment <= 0 || annualRate <= 0 || years <= 0) {
     throw new Error('All values must be positive numbers');
   }
@@ -148,18 +129,107 @@ export const calculateSIPReturns = (
 };
 
 /**
- * Calculate the monthly investment needed to reach a target amount
+ * Calculate Fixed Deposit (FD) returns
+ * Similar to compound interest but with specific bank terms
+ * 
+ * @param principal - Initial deposit amount
+ * @param annualRate - Annual interest rate (as percentage)
+ * @param years - FD tenure in years
+ * @param compoundingFrequency - Compounding frequency (quarterly is common for FDs)
+ * @returns FD maturity calculation
+ */
+export const calculateFDReturns = (
+  principal: number,
+  annualRate: number,
+  years: number,
+  compoundingFrequency: number = 4 // Quarterly compounding for FDs
+): InvestmentResult => {
+  if (principal <= 0 || annualRate <= 0 || years <= 0) {
+    throw new Error('All values must be positive numbers');
+  }
+
+  const rate = annualRate / 100;
+  const n = compoundingFrequency;
+  const t = years;
+
+  // FD compound interest formula
+  const maturityAmount = principal * Math.pow(1 + rate / n, n * t);
+  const totalInterest = maturityAmount - principal;
+
+  return {
+    futureValue: Math.round(maturityAmount * 100) / 100,
+    totalInterest: Math.round(totalInterest * 100) / 100,
+    totalInvestment: principal,
+    maturityAmount: Math.round(maturityAmount * 100) / 100,
+  };
+};
+
+/**
+ * Calculate Public Provident Fund (PPF) returns
+ * PPF has specific rules: 15-year lock-in, current rate ~7.1%, tax benefits
+ * 
+ * @param monthlyInvestment - Monthly investment (max ₹1,50,000 per year)
+ * @param years - Investment period (minimum 15 years)
+ * @returns PPF calculation with tax benefits consideration
+ */
+export const calculatePPFReturns = (
+  monthlyInvestment: number,
+  years: number = 15
+): InvestmentResult => {
+  if (monthlyInvestment <= 0) {
+    throw new Error('Monthly investment must be positive');
+  }
+
+  const annualInvestment = monthlyInvestment * 12;
+  const maxAnnualLimit = 150000; // PPF annual limit
+
+  if (annualInvestment > maxAnnualLimit) {
+    throw new Error(`Annual PPF investment cannot exceed ₹${maxAnnualLimit.toLocaleString()}`);
+  }
+
+  const ppfRate = 7.1; // Current PPF rate (government decides annually)
+  const minTenure = 15; // Minimum PPF lock-in period
+  
+  const actualYears = Math.max(years, minTenure);
+  const monthlyRate = ppfRate / 100 / 12;
+  const totalMonths = actualYears * 12;
+  const totalInvestment = monthlyInvestment * totalMonths;
+
+  let futureValue = 0;
+  let runningBalance = 0;
+  let totalInterestEarned = 0;
+
+  // Calculate PPF compound interest (monthly compounding)
+  for (let month = 1; month <= totalMonths; month++) {
+    runningBalance += monthlyInvestment;
+    const monthlyInterest = runningBalance * monthlyRate;
+    runningBalance += monthlyInterest;
+    totalInterestEarned += monthlyInterest;
+  }
+
+  futureValue = runningBalance;
+
+  return {
+    futureValue: Math.round(futureValue * 100) / 100,
+    totalInvestment: totalInvestment,
+    totalInterest: Math.round(totalInterestEarned * 100) / 100,
+  };
+};
+
+/**
+ * Calculate goal-based SIP requirement
+ * Determines how much monthly SIP is needed to reach a target amount
  * 
  * @param targetAmount - Desired future value
- * @param annualRate - Annual interest rate (as percentage)
- * @param years - Investment period in years
- * @returns Required monthly investment amount
+ * @param annualRate - Expected annual return rate (as percentage)
+ * @param years - Time period to achieve the goal
+ * @returns Required monthly SIP and total investment
  */
-export const calculateRequiredMonthlyInvestment = (
+export const calculateGoalBasedSIP = (
   targetAmount: number,
   annualRate: number,
   years: number
-): number => {
+): InvestmentResult => {
   if (targetAmount <= 0 || annualRate <= 0 || years <= 0) {
     throw new Error('All values must be positive numbers');
   }
@@ -167,126 +237,330 @@ export const calculateRequiredMonthlyInvestment = (
   const monthlyRate = annualRate / 100 / 12;
   const totalMonths = years * 12;
 
-  // PMT = FV × r / [(1 + r)^n - 1] / (1 + r)
-  const monthlyInvestment = 
+  // Formula to calculate required monthly SIP
+  // PMT = FV × r / [(1 + r)^n - 1]
+  const requiredMonthlySIP = 
     (targetAmount * monthlyRate) / 
-    (Math.pow(1 + monthlyRate, totalMonths) - 1) /
-    (1 + monthlyRate);
+    (Math.pow(1 + monthlyRate, totalMonths) - 1);
 
-  return Math.round(monthlyInvestment * 100) / 100;
+  const totalInvestment = requiredMonthlySIP * totalMonths;
+  const totalInterest = targetAmount - totalInvestment;
+
+  return {
+    futureValue: targetAmount,
+    totalInvestment: Math.round(totalInvestment * 100) / 100,
+    totalInterest: Math.round(totalInterest * 100) / 100,
+    monthlyAmount: Math.round(requiredMonthlySIP * 100) / 100,
+  };
 };
 
 /**
- * Calculate break-even time for an investment
+ * Calculate EMI for loans (Home, Car, Personal)
+ * Formula: EMI = P × r × (1 + r)^n / [(1 + r)^n - 1]
  * 
- * @param principal - Initial investment
+ * @param loanAmount - Principal loan amount
  * @param annualRate - Annual interest rate (as percentage)
- * @param targetMultiplier - Target multiple (e.g., 2 for doubling)
- * @param compoundingFrequency - Compounding frequency per year
- * @returns Time in years to reach the target
+ * @param years - Loan tenure in years
+ * @param withBreakdown - Whether to include month-wise amortization
+ * @returns EMI calculation with total cost breakdown
  */
-export const calculateBreakEvenTime = (
-  principal: number,
+export const calculateEMI = (
+  loanAmount: number,
   annualRate: number,
-  targetMultiplier: number = 2,
-  compoundingFrequency: number = 12
-): number => {
-  if (principal <= 0 || annualRate <= 0 || targetMultiplier <= 1) {
-    throw new Error('Invalid input values');
+  years: number,
+  withBreakdown: boolean = false
+): InvestmentResult => {
+  if (loanAmount <= 0 || annualRate <= 0 || years <= 0) {
+    throw new Error('All values must be positive numbers');
   }
 
-  const rate = annualRate / 100;
-  const targetAmount = principal * targetMultiplier;
+  const monthlyRate = annualRate / 100 / 12;
+  const totalMonths = years * 12;
 
-  // Using logarithms to solve for time: t = ln(A/P) / (n × ln(1 + r/n))
-  const time = Math.log(targetAmount / principal) / 
-               (compoundingFrequency * Math.log(1 + rate / compoundingFrequency));
+  // EMI formula: EMI = P × r × (1 + r)^n / [(1 + r)^n - 1]
+  const emi = 
+    (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / 
+    (Math.pow(1 + monthlyRate, totalMonths) - 1);
 
-  return Math.round(time * 100) / 100;
+  const totalAmount = emi * totalMonths;
+  const totalInterest = totalAmount - loanAmount;
+
+  const monthlyBreakdown: MonthlyBreakdown[] = [];
+
+  if (withBreakdown) {
+    let remainingBalance = loanAmount;
+
+    for (let month = 1; month <= totalMonths; month++) {
+      const interestPaid = remainingBalance * monthlyRate;
+      const principalPaid = emi - interestPaid;
+      remainingBalance -= principalPaid;
+
+      monthlyBreakdown.push({
+        month,
+        balance: Math.round(remainingBalance * 100) / 100,
+        interestEarned: Math.round(interestPaid * 100) / 100,
+        totalInterest: 0, // Will calculate cumulative if needed
+        principalPaid: Math.round(principalPaid * 100) / 100,
+        interestPaid: Math.round(interestPaid * 100) / 100,
+        remainingBalance: Math.round(remainingBalance * 100) / 100,
+      });
+    }
+  }
+
+  return {
+    futureValue: Math.round(totalAmount * 100) / 100,
+    totalInvestment: loanAmount,
+    totalInterest: Math.round(totalInterest * 100) / 100,
+    monthlyAmount: Math.round(emi * 100) / 100,
+    totalEMI: Math.round(totalAmount * 100) / 100,
+    monthlyBreakdown,
+  };
 };
 
 /**
- * Calculate real returns considering inflation
+ * Calculate Mutual Fund SIP with expense ratio
  * 
- * @param nominalRate - Nominal annual return rate (as percentage)
- * @param inflationRate - Annual inflation rate (as percentage)
- * @returns Real return rate (as percentage)
+ * @param monthlyInvestment - Monthly SIP amount
+ * @param annualRate - Expected annual return (as percentage)
+ * @param years - Investment period
+ * @param expenseRatio - Annual expense ratio (as percentage, e.g., 1.5)
+ * @returns Mutual fund SIP calculation considering fees
  */
-export const calculateRealReturns = (
-  nominalRate: number,
-  inflationRate: number
-): number => {
-  // Real rate = (1 + nominal rate) / (1 + inflation rate) - 1
-  const realRate = ((1 + nominalRate / 100) / (1 + inflationRate / 100) - 1) * 100;
+export const calculateMutualFundSIP = (
+  monthlyInvestment: number,
+  annualRate: number,
+  years: number,
+  expenseRatio: number = 1.5
+): InvestmentResult => {
+  if (monthlyInvestment <= 0 || annualRate <= 0 || years <= 0) {
+    throw new Error('All values must be positive numbers');
+  }
+
+  // Adjust return rate for expense ratio
+  const netAnnualRate = annualRate - expenseRatio;
   
-  return Math.round(realRate * 100) / 100;
+  if (netAnnualRate <= 0) {
+    throw new Error('Expense ratio cannot be higher than expected returns');
+  }
+
+  return calculateSIPReturns(monthlyInvestment, netAnnualRate, years);
 };
 
 /**
- * Calculate portfolio diversification metrics
+ * Calculate retirement corpus requirement using inflation adjustment
  * 
- * @param investments - Array of investment amounts
- * @param returns - Array of expected returns for each investment
- * @returns Portfolio metrics including weighted average return
+ * @param currentAge - Current age
+ * @param retirementAge - Planned retirement age
+ * @param monthlyExpenses - Current monthly expenses
+ * @param inflationRate - Expected inflation rate (as percentage)
+ * @param expectedReturn - Expected portfolio return (as percentage)
+ * @returns Required retirement corpus and monthly SIP
  */
-export const calculatePortfolioMetrics = (
-  investments: number[],
-  returns: number[]
+export const calculateRetirementCorpus = (
+  currentAge: number,
+  retirementAge: number,
+  monthlyExpenses: number,
+  inflationRate: number = 6,
+  expectedReturn: number = 12
+): {
+  requiredCorpus: number;
+  monthlySIP: number;
+  totalInvestment: number;
+  inflationAdjustedExpenses: number;
+} => {
+  if (currentAge >= retirementAge) {
+    throw new Error('Retirement age must be greater than current age');
+  }
+
+  const yearsToRetirement = retirementAge - currentAge;
+  const yearsAfterRetirement = 25; // Assuming 25 years post-retirement
+
+  // Calculate inflation-adjusted monthly expenses at retirement
+  const inflationAdjustedExpenses = 
+    monthlyExpenses * Math.pow(1 + inflationRate / 100, yearsToRetirement);
+
+  // Annual expenses after retirement
+  const annualExpensesAtRetirement = inflationAdjustedExpenses * 12;
+
+  // Required corpus using 4% withdrawal rule (adjusted for India - using 6%)
+  const withdrawalRate = 0.06;
+  const requiredCorpus = annualExpensesAtRetirement / withdrawalRate;
+
+  // Calculate required monthly SIP
+  const goalResult = calculateGoalBasedSIP(requiredCorpus, expectedReturn, yearsToRetirement);
+
+  return {
+    requiredCorpus: Math.round(requiredCorpus),
+    monthlySIP: goalResult.monthlyAmount || 0,
+    totalInvestment: goalResult.totalInvestment,
+    inflationAdjustedExpenses: Math.round(inflationAdjustedExpenses),
+  };
+};
+
+/**
+ * Calculate ELSS (Equity Linked Savings Scheme) returns with tax benefits
+ * 
+ * @param monthlyInvestment - Monthly ELSS investment
+ * @param expectedReturn - Expected annual return (as percentage)
+ * @param years - Investment period (minimum 3 years lock-in)
+ * @param taxBracket - Income tax bracket (as percentage, e.g., 30)
+ * @returns ELSS calculation with tax savings
+ */
+export const calculateELSSReturns = (
+  monthlyInvestment: number,
+  expectedReturn: number,
+  years: number,
+  taxBracket: number = 30
+): InvestmentResult & { taxSavings: number; effectiveInvestment: number } => {
+  if (monthlyInvestment <= 0 || expectedReturn <= 0 || years < 3) {
+    throw new Error('Invalid inputs. ELSS has minimum 3-year lock-in period');
+  }
+
+  const annualInvestment = monthlyInvestment * 12;
+  const maxTaxBenefit = 150000; // Section 80C limit
+  
+  const eligibleForTaxBenefit = Math.min(annualInvestment, maxTaxBenefit);
+  const taxSavings = (eligibleForTaxBenefit * taxBracket) / 100;
+  const effectiveInvestment = annualInvestment - taxSavings;
+
+  const sipResult = calculateSIPReturns(monthlyInvestment, expectedReturn, years);
+
+  return {
+    ...sipResult,
+    taxSavings: Math.round(taxSavings),
+    effectiveInvestment: Math.round(effectiveInvestment),
+  };
+};
+
+/**
+ * Calculate step-up SIP returns (SIP with annual increment)
+ * 
+ * @param initialMonthlySIP - Starting monthly SIP amount
+ * @param annualIncrement - Annual increment percentage
+ * @param expectedReturn - Expected annual return (as percentage)
+ * @param years - Investment period
+ * @returns Step-up SIP calculation
+ */
+export const calculateStepUpSIP = (
+  initialMonthlySIP: number,
+  annualIncrement: number,
+  expectedReturn: number,
+  years: number
+): InvestmentResult => {
+  if (initialMonthlySIP <= 0 || annualIncrement < 0 || expectedReturn <= 0 || years <= 0) {
+    throw new Error('All values must be positive numbers');
+  }
+
+  const monthlyRate = expectedReturn / 100 / 12;
+  let totalInvestment = 0;
+  let futureValue = 0;
+  let currentMonthlySIP = initialMonthlySIP;
+
+  for (let year = 1; year <= years; year++) {
+    // Calculate SIP for current year
+    const yearlyInvestment = currentMonthlySIP * 12;
+    totalInvestment += yearlyInvestment;
+
+    // Calculate future value for this year's investments
+    const monthsRemaining = (years - year + 1) * 12;
+    for (let month = 1; month <= 12; month++) {
+      const monthsToMaturity = monthsRemaining - month + 1;
+      futureValue += currentMonthlySIP * Math.pow(1 + monthlyRate, monthsToMaturity);
+    }
+
+    // Increment SIP for next year
+    currentMonthlySIP = currentMonthlySIP * (1 + annualIncrement / 100);
+  }
+
+  const totalInterest = futureValue - totalInvestment;
+
+  return {
+    futureValue: Math.round(futureValue * 100) / 100,
+    totalInvestment: Math.round(totalInvestment * 100) / 100,
+    totalInterest: Math.round(totalInterest * 100) / 100,
+  };
+};
+
+/**
+ * Calculate portfolio asset allocation and expected returns
+ * 
+ * @param allocations - Array of {amount, expectedReturn, assetClass}
+ * @returns Portfolio metrics and projections
+ */
+export const calculatePortfolioReturns = (
+  allocations: Array<{
+    amount: number;
+    expectedReturn: number;
+    assetClass: string;
+  }>,
+  years: number
 ): {
   totalInvestment: number;
   weightedAverageReturn: number;
-  weights: number[];
+  futureValue: number;
+  totalInterest: number;
+  assetBreakdown: Array<{
+    assetClass: string;
+    allocation: number;
+    futureValue: number;
+  }>;
 } => {
-  if (investments.length !== returns.length) {
-    throw new Error('Investments and returns arrays must have the same length');
-  }
-
-  const totalInvestment = investments.reduce((sum, amount) => sum + amount, 0);
+  const totalInvestment = allocations.reduce((sum, allocation) => sum + allocation.amount, 0);
   
   if (totalInvestment <= 0) {
     throw new Error('Total investment must be positive');
   }
 
-  const weights = investments.map(amount => amount / totalInvestment);
-  const weightedAverageReturn = weights.reduce(
-    (sum, weight, index) => sum + (weight * returns[index]), 
-    0
-  );
+  let weightedReturn = 0;
+  let totalFutureValue = 0;
+  const assetBreakdown = allocations.map(allocation => {
+    const weight = allocation.amount / totalInvestment;
+    weightedReturn += weight * allocation.expectedReturn;
+
+    const assetFutureValue = calculateInvestmentReturns(
+      allocation.amount,
+      allocation.expectedReturn,
+      years
+    ).futureValue;
+
+    totalFutureValue += assetFutureValue;
+
+    return {
+      assetClass: allocation.assetClass,
+      allocation: Math.round(weight * 100 * 100) / 100, // Percentage
+      futureValue: assetFutureValue,
+    };
+  });
+
+  const totalInterest = totalFutureValue - totalInvestment;
 
   return {
-    totalInvestment: Math.round(totalInvestment * 100) / 100,
-    weightedAverageReturn: Math.round(weightedAverageReturn * 100) / 100,
-    weights: weights.map(w => Math.round(w * 10000) / 100), // Convert to percentages
+    totalInvestment,
+    weightedAverageReturn: Math.round(weightedReturn * 100) / 100,
+    futureValue: Math.round(totalFutureValue * 100) / 100,
+    totalInterest: Math.round(totalInterest * 100) / 100,
+    assetBreakdown,
   };
 };
 
 /**
  * Format currency for display
- * 
- * @param amount - Amount to format
- * @param currency - Currency code (default: USD)
- * @param locale - Locale for formatting (default: en-US)
- * @returns Formatted currency string
  */
 export const formatCurrency = (
   amount: number,
-  currency: string = 'USD',
-  locale: string = 'en-US'
+  currency: string = 'INR',
+  locale: string = 'en-IN'
 ): string => {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount);
 };
 
 /**
  * Format percentage for display
- * 
- * @param rate - Rate to format (as decimal or percentage)
- * @param asDecimal - Whether the input is already a decimal
- * @returns Formatted percentage string
  */
 export const formatPercentage = (
   rate: number,
@@ -298,11 +572,6 @@ export const formatPercentage = (
 
 /**
  * Validate investment input parameters
- * 
- * @param principal - Investment amount
- * @param rate - Interest rate
- * @param time - Time period
- * @returns Validation result
  */
 export const validateInvestmentInputs = (
   principal: number,
