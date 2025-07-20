@@ -28,8 +28,7 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
-               <Stack.Screen 
-                name="Calculator" 
+               <Stack.Screen name="Calculator" 
                 options={{ 
                   headerShown: false,  // This hides the "Calculator" system header
                   presentation: 'card',
