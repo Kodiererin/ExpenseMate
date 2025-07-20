@@ -7,6 +7,7 @@ import { Button, Card, Section, Separator, StatCard } from '../../components/com
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { router } from 'expo-router';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
@@ -398,6 +399,85 @@ export default function ProfileScreen() {
 
       <Separator height={24} />
 
+      {/* AI Features Section */}
+      <Card style={styles.aiFeatures}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          🚀Quick Actions
+        </Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
+          Additional features to enhance your financial journey
+        </Text>
+        
+        <View style={styles.aiButtonsGrid}>
+          <Pressable 
+            style={[styles.aiButton, { backgroundColor: colors.surface }]}
+            onPress={() => {
+              // Handle Ask AI navigation
+              console.log('Ask AI pressed');
+            }}
+          >
+            <View style={[styles.aiButtonIcon, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="chatbubble-ellipses" size={24} color={colors.primary} />
+            </View>
+            <Text style={[styles.aiButtonTitle, { color: colors.text }]}>Ask AI</Text>
+            <Text style={[styles.aiButtonSubtitle, { color: colors.textSecondary }]}>
+              Your AI Assistant
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.aiButton, { backgroundColor: colors.surface }]}
+            onPress={() => {
+              // Handle Calculator navigation
+              router.navigate('/Calculator');
+              console.log('Calculator pressed');
+            }}
+          >
+            <View style={[styles.aiButtonIcon, { backgroundColor: colors.success + '20' }]}>
+              <Ionicons name="calculator" size={24} color={colors.success} />
+            </View>
+            <Text style={[styles.aiButtonTitle, { color: colors.text }]}>Calculator</Text>
+            <Text style={[styles.aiButtonSubtitle, { color: colors.textSecondary }]}>
+              Investment & returns calculator
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.aiButton, { backgroundColor: colors.surface }]}
+            onPress={() => {
+              // Handle Analysis navigation
+              console.log('Analysis pressed');
+            }}
+          >
+            <View style={[styles.aiButtonIcon, { backgroundColor: colors.warning + '20' }]}>
+              <Ionicons name="analytics" size={24} color={colors.warning} />
+            </View>
+            <Text style={[styles.aiButtonTitle, { color: colors.text }]}>Analysis</Text>
+            <Text style={[styles.aiButtonSubtitle, { color: colors.textSecondary }]}>
+              Get AI financial insights
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            style={[styles.aiButton, { backgroundColor: colors.surface }]}
+            onPress={() => {
+              // Handle News navigation
+              console.log('News pressed');
+            }}
+          >
+            <View style={[styles.aiButtonIcon, { backgroundColor: colors.accent + '20' }]}>
+              <Ionicons name="newspaper" size={24} color={colors.accent} />
+            </View>
+            <Text style={[styles.aiButtonTitle, { color: colors.text }]}>News</Text>
+            <Text style={[styles.aiButtonSubtitle, { color: colors.textSecondary }]}>
+              Get the latest finance news updates
+            </Text>
+          </Pressable>
+        </View>
+      </Card>
+
+      <Separator height={24} />
+
       {expensesLoading || investmentsLoading ? (
         <Card style={styles.loadingCard}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -517,7 +597,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 2.0.2
+                  Version 3.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.
@@ -591,6 +671,63 @@ const styles = StyleSheet.create({
     marginRight: 8,
     flex: 1,
   },
+  // AI Features Styles
+  aiFeatures: {
+    padding: 20,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  aiButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  aiButton: {
+    width: '48%',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  aiButtonIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  aiButtonTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  aiButtonSubtitle: {
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  // Existing Styles
   loadingCard: {
     padding: 40,
     alignItems: 'center',
