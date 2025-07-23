@@ -222,8 +222,8 @@ const CalculatorInfo: React.FC<CalculatorInfoProps> = ({ onClose }) => {
               <View style={styles.sectionContent}>
                 <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
                   Our comprehensive calculator supports 6 investment types to help you make informed financial 
-                  decisions. Whether you're planning for retirement, buying a home, or building wealth, 
-                  we've got the tools you need.
+                  decisions. Whether you&apos;re planning for retirement, buying a home, or building wealth, 
+                  we&apos;ve got the tools you need.
                 </Text>
                 
                 <Separator height={16} />

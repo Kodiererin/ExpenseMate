@@ -8,6 +8,7 @@ import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { router } from 'expo-router';
+import { red } from 'react-native-reanimated/lib/typescript/Colors';
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
@@ -470,7 +471,7 @@ export default function ProfileScreen() {
             </View>
             <Text style={[styles.aiButtonTitle, { color: colors.text }]}>News</Text>
             <Text style={[styles.aiButtonSubtitle, { color: colors.textSecondary }]}>
-              Get the latest finance news updates
+              Finance news updates
             </Text>
           </Pressable>
         </View>
@@ -597,7 +598,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 3.0.0
+                  Version 2.0.2
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.
@@ -687,27 +688,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  aiButtonsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
+aiButtonsGrid: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  // Remove gap property as it's not fully supported in React Native
+},
+aiButton: {
+  width: '47%', // Slightly smaller to ensure proper spacing
+  padding: 16,
+  borderRadius: 12,
+  alignItems: 'center',
+  marginBottom: 12, // Increased margin for better vertical spacing
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
   },
-  aiButton: {
-    width: '48%',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
+  shadowOpacity: 0.1,
+  shadowRadius: 3.84,
+  elevation: 5,
+},
   aiButtonIcon: {
     width: 48,
     height: 48,
