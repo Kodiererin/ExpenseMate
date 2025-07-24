@@ -7,6 +7,29 @@ import { Button, Card, Section, Separator, StatCard } from '../../components/com
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { router } from 'expo-router';
+
+// Type definitions for better type safety
+interface Expense {
+  date: string;
+  tag: string;
+  description?: string;
+  price: string;
+}
+
+interface Investment {
+  type: string;
+  amount: number;
+}
+
+interface Stats {
+  totalExpenses: number;
+  totalAmount: number;
+  currentMonthAmount: number;
+  mostSpentCategory: string;
+  totalInvestments: number;
+  monthlyIncome: number;
+}
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
@@ -17,9 +40,10 @@ export default function ProfileScreen() {
     getTotalInvestments,
     getMonthlyIncome
   } = useInvestments();
+  
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     totalExpenses: 0,
     totalAmount: 0,
     currentMonthAmount: 0,
@@ -59,17 +83,20 @@ export default function ProfileScreen() {
   // Load all expenses and calculate stats
   const loadExpensesAndStats = useCallback(() => {
     try {
-      const allExpenses = expenses; // Use cached data
+      const allExpenses: Expense[] = expenses || []; // Use cached data with fallback
 
       // Calculate statistics
-      const totalAmount = allExpenses.reduce((sum: number, exp: any) => sum + parseFloat(exp.price), 0);
+      const totalAmount = allExpenses.reduce((sum: number, exp: Expense) => {
+        const price = parseFloat(exp.price);
+        return sum + (isNaN(price) ? 0 : price);
+      }, 0);
       
       // Current month expenses
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
       
-      const currentMonthExpenses = allExpenses.filter((exp: any) => {
+      const currentMonthExpenses = allExpenses.filter((exp: Expense) => {
         const dateParts = exp.date.split('/');
         if (dateParts.length === 3) {
           const expMonth = parseInt(dateParts[0], 10);
@@ -79,11 +106,14 @@ export default function ProfileScreen() {
         return false;
       });
       
-      const currentMonthAmount = currentMonthExpenses.reduce((sum: number, exp: any) => sum + parseFloat(exp.price), 0);
+      const currentMonthAmount = currentMonthExpenses.reduce((sum: number, exp: Expense) => {
+        const price = parseFloat(exp.price);
+        return sum + (isNaN(price) ? 0 : price);
+      }, 0);
 
       // Most spent category
       const categoryTotals: { [key: string]: number } = {};
-      allExpenses.forEach((exp: any) => {
+      allExpenses.forEach((exp: Expense) => {
         const price = parseFloat(exp.price);
         if (!isNaN(price)) {
           categoryTotals[exp.tag] = (categoryTotals[exp.tag] || 0) + price;
@@ -120,7 +150,7 @@ export default function ProfileScreen() {
 
   // Export to CSV (Excel compatible)
   const exportToCSV = async () => {
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
       Alert.alert('No Data', 'No expenses to export.');
       return;
     }
@@ -128,11 +158,13 @@ export default function ProfileScreen() {
     try {
       setExportingCSV(true);
       
-      // Create CSV content
+      // Create CSV content with proper escaping
       const headers = 'Date,Category,Description,Amount\n';
-      const csvContent = expenses.map(exp => 
-        `"${exp.date}","${exp.tag}","${exp.description || 'No description'}","₹${exp.price}"`
-      ).join('\n');
+      const csvContent = expenses.map((exp: Expense) => {
+        const description = (exp.description || 'No description').replace(/"/g, '""');
+        const tag = exp.tag.replace(/"/g, '""');
+        return `"${exp.date}","${tag}","${description}","₹${exp.price}"`;
+      }).join('\n');
       
       const fullCsv = headers + csvContent;
       
@@ -157,7 +189,7 @@ export default function ProfileScreen() {
 
   // Export to PDF (using HTML and converting)
   const exportToPDF = async () => {
-    if (expenses.length === 0) {
+    if (!expenses || expenses.length === 0) {
       Alert.alert('No Data', 'No expenses to export.');
       return;
     }
@@ -165,7 +197,7 @@ export default function ProfileScreen() {
     try {
       setExportingPDF(true);
       
-      // Create HTML content for PDF
+      // Create HTML content for PDF with proper escaping
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -300,7 +332,7 @@ export default function ProfileScreen() {
               </tr>
             </thead>
             <tbody>
-              ${expenses.map(exp => `
+              ${expenses.map((exp: Expense) => `
                 <tr>
                   <td>${exp.date}</td>
                   <td>${exp.tag}</td>
@@ -342,7 +374,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const getThemeIcon = () => {
+  const getThemeIcon = (): keyof typeof Ionicons.glyphMap => {
     switch (theme) {
       case 'light': return 'sunny';
       case 'dark': return 'moon';
@@ -350,11 +382,30 @@ export default function ProfileScreen() {
     }
   };
 
-  const getThemeLabel = () => {
+  const getThemeLabel = (): string => {
     switch (theme) {
       case 'light': return 'Light Mode';
       case 'dark': return 'Dark Mode';
       default: return 'System Default';
+    }
+  };
+
+  const handleAskAI = () => {
+    // TODO: Implement AI Chat functionality
+    Alert.alert('Coming Soon', 'Ask AI feature is under development!');
+  };
+
+  const handleAnalysis = () => {
+    // TODO: Implement Analysis functionality
+    Alert.alert('Coming Soon', 'Analysis feature is under development!');
+  };
+
+  const handleCalculator = () => {
+    try {
+      router.navigate('/Calculator');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Error', 'Unable to navigate to calculator.');
     }
   };
 
@@ -374,25 +425,64 @@ export default function ProfileScreen() {
             ExpenseMate User
           </Text>
           
-          {/* Theme Toggle */}
-          <Pressable 
-            style={[styles.themeToggle, { backgroundColor: colors.surface }]}
-            onPress={toggleTheme}
-          >
-            <Ionicons 
-              name={getThemeIcon()} 
-              size={20} 
-              color={colors.primary} 
-            />
-            <Text style={[styles.themeText, { color: colors.text }]}>
-              {getThemeLabel()}
-            </Text>
-            <Ionicons 
-              name="chevron-forward" 
-              size={16} 
-              color={colors.textSecondary} 
-            />
-          </Pressable>
+          {/* Quick Actions - Circular Buttons */}
+          <View style={styles.quickActionsContainer}>
+            <View style={styles.circularButtonsGrid}>
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={[styles.circularButton, { 
+                    backgroundColor: colors.primary,
+                    shadowColor: colors.primary,
+                  }]}
+                  onPress={handleAskAI}
+                >
+                  <Ionicons name="chatbubble-ellipses" size={25} color={colors.white} />
+                </Pressable>
+                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Ask AI</Text>
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={[styles.circularButton, { 
+                    backgroundColor: colors.success,
+                    shadowColor: colors.success,
+                  }]}
+                  onPress={handleCalculator}
+                >
+                  <Ionicons name="calculator" size={25} color={colors.white} />
+                </Pressable>
+                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Calculator</Text>
+              </View>
+              
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={[styles.circularButton, { 
+                    backgroundColor: colors.warning,
+                    shadowColor: colors.warning,
+                  }]}
+                  onPress={handleAnalysis}
+                >
+                  <Ionicons name="analytics" size={25} color={colors.white} />
+                </Pressable>
+                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Analysis</Text>
+              </View>
+
+              <View style={styles.buttonContainer}>
+                <Pressable 
+                  style={[styles.circularButton, { 
+                    backgroundColor: colors.accent,
+                    shadowColor: colors.accent,
+                  }]}
+                  onPress={toggleTheme}
+                >
+                  <Ionicons name={getThemeIcon()} size={25} color={colors.white} />
+                </Pressable>
+                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>
+                  {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
       </Card>
 
@@ -412,7 +502,7 @@ export default function ProfileScreen() {
             <View style={styles.statsContainer}>
               <StatCard
                 title="Total Expenses"
-                value={stats.totalExpenses}
+                value={stats.totalExpenses.toString()}
                 icon="receipt-outline"
                 color={colors.primary}
               />
@@ -470,7 +560,7 @@ export default function ProfileScreen() {
               />
               <StatCard
                 title="Investment Types"
-                value={investments.length > 0 ? new Set(investments.map(inv => inv.type)).size : 0}
+                value={investments.length > 0 ? new Set(investments.map((inv: Investment) => inv.type)).size.toString() : '0'}
                 icon="grid-outline"
                 color={colors.accent}
               />
@@ -517,7 +607,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 2.0.2
+                  Version 3.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.
@@ -576,21 +666,56 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontWeight: '500',
   },
-  themeToggle: {
-    flexDirection: 'row',
+  // Quick Actions Circular Buttons Styles
+  quickActionsContainer: {
+    width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
     marginTop: 8,
   },
-  themeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
-    marginRight: 8,
+  quickActionsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  circularButtonsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  buttonContainer: {
+    alignItems: 'center',
     flex: 1,
   },
+  circularButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
+    // Add subtle border for better definition
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  circularButtonLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 12,
+    letterSpacing: 0.2,
+  },
+  // Existing Styles
   loadingCard: {
     padding: 40,
     alignItems: 'center',

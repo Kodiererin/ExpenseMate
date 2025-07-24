@@ -211,7 +211,7 @@ export default function AddScreen() {
             <Card>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
               
-              <Separator height={16} />
+              <Separator height={10} />
               
               <View style={styles.inputRow}>
                 <View style={{ flex: 0.58, zIndex: open ? 1000 : 10 }}>
@@ -424,7 +424,8 @@ export default function AddScreen() {
               </View>
             </Card>
 
-            <Separator height={32} />
+            <Separator height={0} />      
+            {/* Initially the seperate height was 32 which was reduced to 0 for better spacing. */}
 
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
               <Button
