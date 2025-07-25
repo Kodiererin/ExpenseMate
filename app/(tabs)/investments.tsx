@@ -407,14 +407,14 @@ const InvestmentsScreen = () => {
         <Animated.View style={[styles.headerContent, { opacity: animatedValues.headerOpacity }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>💼 Portfolio</Text>
-            <Text style={styles.headerSubtitle}>• Corporate Finance Hub</Text>
+            {/* <Text style={styles.headerSubtitle}>• Corporate Finance Hub</Text> */}
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => setModalVisible(true)}
             >
-              <Ionicons name="add" size={22} color="white" />
+              <Ionicons name="add" size={40} color="white" />
             </TouchableOpacity>
           </View>
         </Animated.View>
