@@ -407,7 +407,7 @@ const InvestmentsScreen = () => {
         <Animated.View style={[styles.headerContent, { opacity: animatedValues.headerOpacity }]}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>💼 Portfolio</Text>
-            {/* <Text style={styles.headerSubtitle}>• Corporate Finance Hub</Text> */}
+            <Text style={styles.headerSubtitle}>• Track your Investments</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
