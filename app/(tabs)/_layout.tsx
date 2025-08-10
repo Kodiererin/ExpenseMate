@@ -57,7 +57,7 @@ export default function Layout() {
         name="add" 
         options={{ 
           title: 'Add',
-          tabBarAccessibilityLabel: 'Add Expense',
+          tabBarAccessibilityLabel: 'Add Expense & Pay',
         }} 
       />
       <Tabs.Screen 

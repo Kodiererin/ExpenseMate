@@ -2,30 +2,55 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableWithoutFeedback,
-    View,
+  Alert,
+  Animated,
+  Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
+import {
+  DEFAULT_MERCHANT_DETAILS,
+  generateTransactionRef,
+  initiateUPIPayment,
+  showPaymentConfirmation,
+  UPI_APPS,
+  UPIApp,
+  validateUPIPaymentDetails
+} from '../../utils/upiUtils';
 import { filterText } from '../../utils/validateText';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
   // Data context is used for automatic refresh after adding expenses
   useData();
+
+  // Helper function for UPI app colors
+  const getUPIColor = (appName: string) => {
+    switch (appName) {
+      case 'PhonePe': return '#5F2D83';
+      case 'Google Pay': return '#4285F4';
+      case 'Paytm': return '#00BAF2';
+      case 'BHIM': return '#FF6B35';
+      case 'Amazon Pay': return '#FF9900';
+      case 'WhatsApp Pay': return '#25D366';
+      default: return colors.primary;
+    }
+  };
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
   const [tags, setTags] = useState([
@@ -76,6 +101,10 @@ export default function AddScreen() {
   // User feedback state
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // UPI Payment state
+  const [showUPIModal, setShowUPIModal] = useState(false);
+  const [selectedUPIApp, setSelectedUPIApp] = useState<UPIApp | null>(null);
 
   const handleAdd = async () => {
     // Enhanced validation
@@ -166,6 +195,129 @@ export default function AddScreen() {
     setTimeout(() => setFeedback(null), 3000);
   };
 
+  const handlePayNow = () => {
+    // Validate form before showing UPI modal
+    if (!tag?.trim()) {
+      setFeedback({ type: 'error', message: 'Please select a category.' });
+      return;
+    }
+
+    if (!price?.trim()) {
+      setFeedback({ type: 'error', message: 'Please enter an amount.' });
+      return;
+    }
+
+    const numericPrice = parseFloat(price.trim());
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      setFeedback({ type: 'error', message: 'Please enter a valid positive amount.' });
+      return;
+    }
+
+    if (numericPrice > 10000000) {
+      setFeedback({ type: 'error', message: 'Amount cannot exceed ₹1 crore.' });
+      return;
+    }
+
+    if (description.length > 500) {
+      setFeedback({ type: 'error', message: 'Description cannot exceed 500 characters.' });
+      return;
+    }
+
+    setShowUPIModal(true);
+  };
+
+  const handleUPIPayment = async (app: UPIApp) => {
+    setSelectedUPIApp(app);
+    setShowUPIModal(false);
+    
+    const paymentNote = description || `${tag} - ExpenseMate`;
+    
+    // Create payment details
+    const paymentDetails = {
+      merchantUPIId: DEFAULT_MERCHANT_DETAILS.merchantUPIId,
+      merchantName: DEFAULT_MERCHANT_DETAILS.merchantName,
+      amount: price,
+      transactionNote: paymentNote,
+      transactionRef: generateTransactionRef()
+    };
+
+    // Validate payment details
+    const validation = validateUPIPaymentDetails(paymentDetails);
+    if (!validation.valid) {
+      setFeedback({ type: 'error', message: validation.error || 'Invalid payment details' });
+      setSelectedUPIApp(null);
+      return;
+    }
+
+    try {
+      const result = await initiateUPIPayment(app, paymentDetails);
+      
+      if (result.success) {
+        // Show payment confirmation dialog
+        showPaymentConfirmation(
+          app.name,
+          price,
+          () => handlePaymentSuccess(), // On success
+          () => {
+            // On failure
+            setSelectedUPIApp(null);
+            setFeedback({ type: 'error', message: 'Payment was not completed.' });
+            setTimeout(() => setFeedback(null), 3000);
+          },
+          () => setSelectedUPIApp(null) // On cancel
+        );
+      } else {
+        Alert.alert(
+          'Payment Error',
+          result.message,
+          [{ text: 'OK' }]
+        );
+        setSelectedUPIApp(null);
+      }
+    } catch (error) {
+      console.error('Error initiating UPI payment:', error);
+      setFeedback({ type: 'error', message: `Failed to initiate payment. Please try again.` });
+      setTimeout(() => setFeedback(null), 3000);
+      setSelectedUPIApp(null);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
+    setIsLoading(true);
+    setSelectedUPIApp(null);
+    
+    const expenseData = {
+      tag: tag.trim(),
+      price: parseFloat(price.trim()).toFixed(2),
+      description: filterText(`${description.trim()} [Paid via UPI]`),
+      date: date.toLocaleDateString('en-US'),
+    };
+    
+    try {
+      await addExpenseToFirestore(expenseData);
+      
+      // Clear form
+      setTag('');
+      setPrice('');
+      setDescription('');
+      setDate(new Date());
+      
+      setFeedback({ type: 'success', message: 'Payment completed and expense recorded! 🎉💰' });
+      Keyboard.dismiss();
+      
+      setTimeout(() => {
+        setFeedback(null);
+      }, 4000);
+      
+    } catch (error) {
+      setFeedback({ type: 'error', message: 'Payment successful but failed to record expense. Please add manually.' });
+      console.error('Error adding expense:', error);
+      setTimeout(() => setFeedback(null), 4000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onChangeDate = (_event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) setDate(selectedDate);
@@ -175,6 +327,7 @@ export default function AddScreen() {
   const handleContainerPress = () => {
     Keyboard.dismiss();
     setOpen(false);
+    setShowUPIModal(false);
   };
 
   const shadowStyle = {
@@ -191,7 +344,8 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-        <TouchableWithoutFeedback onPress={handleContainerPress}>
+      <TouchableWithoutFeedback onPress={handleContainerPress}>
+        <View style={{ flex: 1 }}>
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
@@ -427,16 +581,29 @@ export default function AddScreen() {
             <Separator height={0} />      
             {/* Initially the seperate height was 32 which was reduced to 0 for better spacing. */}
 
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-              <Button
-                title={isLoading ? "Adding Expense..." : "Add Expense"}
-                onPress={handleAdd}
-                loading={isLoading}
-                icon="add-circle"
-                size="large"
-                style={[styles.addButton, shadowStyle]}
-              />
-            </Animated.View>
+            <View style={styles.buttonContainer}>
+              <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
+                <Button
+                  title={isLoading ? "Adding..." : "Add Expense"}
+                  onPress={handleAdd}
+                  loading={isLoading}
+                  icon="add-circle"
+                  size="large"
+                  style={[styles.addButton, shadowStyle]}
+                />
+              </Animated.View>
+              
+              <Animated.View style={[styles.buttonWrapper, { transform: [{ scale: scaleAnim }] }]}>
+                <Button
+                  title="Pay Now"
+                  onPress={handlePayNow}
+                  loading={false}
+                  icon="card"
+                  size="large"
+                  style={[styles.payButton, shadowStyle]}
+                />
+              </Animated.View>
+            </View>
 
             {feedback && (
               <Card style={[
@@ -462,6 +629,63 @@ export default function AddScreen() {
             <Separator height={32} />
           </View>
         </ScrollView>
+
+        {/* UPI Payment Modal */}
+        <Modal
+          visible={showUPIModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowUPIModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleContainer}>
+                  <Ionicons name="card-outline" size={24} color={colors.primary} />
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    Pay with UPI
+                  </Text>
+                </View>
+                <TouchableOpacity 
+                  onPress={() => setShowUPIModal(false)}
+                  style={styles.closeButton}
+                >
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.paymentSummary, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.amountText, { color: colors.primary }]}>₹{price}</Text>
+                <Text style={[styles.categoryText, { color: colors.textSecondary }]}>{tag}</Text>
+              </View>
+
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+                Choose your UPI app to complete payment
+              </Text>
+
+              <View style={styles.upiAppsGrid}>
+                {UPI_APPS.map((app, index) => (
+                  <TouchableOpacity
+                    key={`${app.packageName}_${index}`}
+                    style={[styles.upiAppCard, { 
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    }, shadowStyle]}
+                    onPress={() => handleUPIPayment(app)}
+                  >
+                    <View style={[styles.upiAppIconContainer, { backgroundColor: getUPIColor(app.name) }]}>
+                      <Text style={styles.upiAppIcon}>{app.icon}</Text>
+                    </View>
+                    <Text style={[styles.upiAppName, { color: colors.text }]}>
+                      {app.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        </Modal>
+        </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
@@ -568,9 +792,82 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     fontWeight: '500',
   },
-  addButton: {
+  buttonContainer: {
+    flexDirection: 'row',
     marginTop: 16,
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  buttonWrapper: {
+    flex: 1,
+    minHeight: 56,
+  },
+  addButton: {
     alignSelf: 'stretch',
+    height: 56,
+  },
+  payButton: {
+    alignSelf: 'stretch',
+    height: 56,
+    backgroundColor: '#4CAF50',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  upiAppsContainer: {
+    maxHeight: 400,
+  },
+  upiAppsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  upiAppCard: {
+    width: '30%',
+    aspectRatio: 1,
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  upiAppIcon: {
+    fontSize: 20,
+  },
+  upiAppName: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 4,
   },
   feedback: {
     marginTop: 24,
@@ -588,5 +885,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     lineHeight: 22,
+  },
+  modalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  paymentSummary: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  amountText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  categoryText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  upiAppIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
 });

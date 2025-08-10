@@ -22,10 +22,11 @@
         "VIBRATE",
         "SYSTEM_ALERT_WINDOW",
         "ACCESS_NETWORK_STATE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "CAMERA"
       ],
       "package": "com.whoisujjwal.ExpenseMate",
-      "versionCode": 6
+      "versionCode": 7
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +44,15 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera for barcode scanning.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
