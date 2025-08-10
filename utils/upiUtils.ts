@@ -134,33 +134,48 @@ export const initiateUPIPayment = async (
   paymentDetails: UPIPaymentDetails
 ): Promise<{ success: boolean; message: string }> => {
   try {
+    console.log('Initiating UPI payment with details:', paymentDetails);
+    
     const upiUrl = generateAppSpecificUPIURL(app, paymentDetails);
+    console.log('Generated UPI URL:', upiUrl);
     
     // Check if the app can handle UPI URLs
     const canOpenUPI = await Linking.canOpenURL(upiUrl);
+    console.log(`Can open UPI URL for ${app.name}:`, canOpenUPI);
     
     if (canOpenUPI) {
       await Linking.openURL(upiUrl);
       return { success: true, message: `Payment initiated through ${app.name}` };
     } else {
-      // Try app-specific deep link
-      const canOpenApp = await Linking.canOpenURL(app.deepLink);
+      // Try alternative schemes
+      const alternatives = [
+        `${app.scheme}://upi/pay?pa=${encodeURIComponent(paymentDetails.merchantUPIId)}&am=${encodeURIComponent(paymentDetails.amount)}`,
+        app.deepLink,
+        `upi://pay?pa=${encodeURIComponent(paymentDetails.merchantUPIId)}&am=${encodeURIComponent(paymentDetails.amount)}`
+      ];
       
-      if (canOpenApp) {
-        await Linking.openURL(app.deepLink);
-        return { success: true, message: `${app.name} opened. Please complete payment manually.` };
-      } else {
-        return { 
-          success: false, 
-          message: `${app.name} is not installed on your device.` 
-        };
+      for (const altUrl of alternatives) {
+        try {
+          const canOpenAlt = await Linking.canOpenURL(altUrl);
+          if (canOpenAlt) {
+            await Linking.openURL(altUrl);
+            return { success: true, message: `${app.name} opened for payment` };
+          }
+        } catch (error) {
+          console.log(`Failed to open ${altUrl}:`, error);
+        }
       }
+      
+      return { 
+        success: false, 
+        message: `${app.name} is not available or doesn't support UPI payments.` 
+      };
     }
   } catch (error) {
     console.error('UPI Payment Error:', error);
     return { 
       success: false, 
-      message: `Failed to open ${app.name}. Please try again.` 
+      message: `Failed to open ${app.name}. Error: ${error}` 
     };
   }
 };
@@ -205,8 +220,22 @@ export const showPaymentConfirmation = (
 export const validateUPIPaymentDetails = (details: UPIPaymentDetails): { valid: boolean; error?: string } => {
   const { merchantUPIId, merchantName, amount, transactionNote } = details;
   
-  if (!merchantUPIId || !merchantUPIId.includes('@')) {
-    return { valid: false, error: 'Invalid merchant UPI ID' };
+  // Enhanced UPI ID validation
+  if (!merchantUPIId || merchantUPIId.trim().length === 0) {
+    return { valid: false, error: 'Merchant UPI ID is required' };
+  }
+  
+  // UPI ID format validation (must contain @ and valid PSP)
+  const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$/;
+  if (!upiRegex.test(merchantUPIId)) {
+    return { valid: false, error: 'Invalid UPI ID format. Please check the merchant UPI ID.' };
+  }
+  
+  // Check for valid PSP handles
+  const validPSPs = ['paytm', 'phonepe', 'gpay', 'okaxis', 'okicici', 'okhdfcbank', 'oksbi', 'okbizaxis', 'ybl', 'ibl'];
+  const pspHandle = merchantUPIId.split('@')[1].toLowerCase();
+  if (!validPSPs.some(psp => pspHandle.includes(psp))) {
+    return { valid: false, error: 'UPI ID uses an unsupported payment service provider. Please use a valid UPI ID.' };
   }
   
   if (!merchantName || merchantName.trim().length === 0) {
@@ -240,8 +269,9 @@ export const generateTransactionRef = (): string => {
 
 /**
  * Default merchant details - Replace with actual merchant information
+ * For testing: Use a valid UPI ID (you can use your own UPI ID for testing)
  */
 export const DEFAULT_MERCHANT_DETAILS = {
-  merchantUPIId: 'merchant@upi', // Replace with actual merchant UPI ID
+  merchantUPIId: '9876543210@paytm', // Replace with actual merchant UPI ID
   merchantName: 'ExpenseMate Store', // Replace with actual merchant name
 };

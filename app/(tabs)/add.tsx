@@ -18,6 +18,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
@@ -105,6 +106,12 @@ export default function AddScreen() {
   // UPI Payment state
   const [showUPIModal, setShowUPIModal] = useState(false);
   const [selectedUPIApp, setSelectedUPIApp] = useState<UPIApp | null>(null);
+
+  // Camera/Scanner state
+  const [showScanner, setShowScanner] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scannedData, setScannedData] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(true);
 
   const handleAdd = async () => {
     // Enhanced validation
@@ -195,8 +202,8 @@ export default function AddScreen() {
     setTimeout(() => setFeedback(null), 3000);
   };
 
-  const handlePayNow = () => {
-    // Validate form before showing UPI modal
+  const handlePayNow = async () => {
+    // Validate form before showing scanner
     if (!tag?.trim()) {
       setFeedback({ type: 'error', message: 'Please select a category.' });
       return;
@@ -223,12 +230,84 @@ export default function AddScreen() {
       return;
     }
 
+    // Check camera permission
+    if (!permission) {
+      const permissionResult = await requestPermission();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Camera Permission Required',
+          'Please allow camera access to scan barcodes for payments.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => {} }
+          ]
+        );
+        return;
+      }
+    }
+
+    if (!permission?.granted) {
+      const permissionResult = await requestPermission();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          'Permission Denied',
+          'Camera permission is required to scan barcodes. You can still make manual payments.',
+          [
+            { text: 'Manual Payment', onPress: () => setShowUPIModal(true) },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+        return;
+      }
+    }
+
+    // Reset scanner state and show scanner
+    setScannedData(null);
+    setIsScanning(true);
+    setShowScanner(true);
+  };
+
+  const handleBarcodeScanned = ({ data }: { data: string }) => {
+    if (!isScanning) return; // Prevent multiple scans
+    
+    setIsScanning(false);
+    setScannedData(data);
+    
+    console.log('Barcode scanned:', data);
+    
+    // Close scanner and show UPI modal
+    setShowScanner(false);
+    
+    // Parse barcode data (if it's a product barcode, you might want to extract product info)
+    // For now, we'll just use it as additional info in the description
+    if (data && data.length > 0) {
+      const barcodeInfo = `[Barcode: ${data.substring(0, 20)}...]`;
+      setDescription(prev => prev ? `${prev} ${barcodeInfo}` : barcodeInfo);
+    }
+    
+    // Show UPI payment modal after scanning
+    setTimeout(() => {
+      setShowUPIModal(true);
+    }, 300);
+  };
+
+  const handleScannerClose = () => {
+    setShowScanner(false);
+    setIsScanning(true);
+    setScannedData(null);
+  };
+
+  const handleManualPayment = () => {
+    setShowScanner(false);
     setShowUPIModal(true);
   };
 
   const handleUPIPayment = async (app: UPIApp) => {
     setSelectedUPIApp(app);
     setShowUPIModal(false);
+    
+    // Show loading feedback
+    setFeedback({ type: 'success', message: `Opening ${app.name}...` });
     
     const paymentNote = description || `${tag} - ExpenseMate`;
     
@@ -246,6 +325,32 @@ export default function AddScreen() {
     if (!validation.valid) {
       setFeedback({ type: 'error', message: validation.error || 'Invalid payment details' });
       setSelectedUPIApp(null);
+      
+      // Show configuration alert
+      setTimeout(() => {
+        Alert.alert(
+          'Configuration Required',
+          'The merchant UPI ID needs to be configured. Please update the UPI ID in utils/upiUtils.ts with a valid merchant UPI ID.',
+          [
+            { text: 'OK' },
+            { 
+              text: 'Use Test Mode', 
+              onPress: () => {
+                // For testing, we'll simulate a successful payment
+                Alert.alert(
+                  'Test Mode',
+                  'This is a test payment. The expense will be recorded without actual payment.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Continue', onPress: () => handlePaymentSuccess() }
+                  ]
+                );
+              }
+            }
+          ]
+        );
+        setFeedback(null);
+      }, 2000);
       return;
     }
 
@@ -253,6 +358,9 @@ export default function AddScreen() {
       const result = await initiateUPIPayment(app, paymentDetails);
       
       if (result.success) {
+        // Clear the loading message
+        setFeedback(null);
+        
         // Show payment confirmation dialog
         showPaymentConfirmation(
           app.name,
@@ -269,8 +377,21 @@ export default function AddScreen() {
       } else {
         Alert.alert(
           'Payment Error',
-          result.message,
-          [{ text: 'OK' }]
+          result.message + '\n\nThis might be due to:\n• App not installed\n• Invalid UPI ID\n• Network issues',
+          [
+            { text: 'Try Again', onPress: () => setShowUPIModal(true) },
+            { text: 'Test Mode', onPress: () => {
+              Alert.alert(
+                'Test Mode',
+                'Record this expense without payment?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Record', onPress: () => handlePaymentSuccess() }
+                ]
+              );
+            }},
+            { text: 'Cancel', style: 'cancel' }
+          ]
         );
         setSelectedUPIApp(null);
       }
@@ -328,6 +449,7 @@ export default function AddScreen() {
     Keyboard.dismiss();
     setOpen(false);
     setShowUPIModal(false);
+    // Don't close scanner on container press for better UX
   };
 
   const shadowStyle = {
@@ -657,11 +779,24 @@ export default function AddScreen() {
               <View style={[styles.paymentSummary, { backgroundColor: colors.surface }]}>
                 <Text style={[styles.amountText, { color: colors.primary }]}>₹{price}</Text>
                 <Text style={[styles.categoryText, { color: colors.textSecondary }]}>{tag}</Text>
+                {scannedData && (
+                  <Text style={[styles.barcodeText, { color: colors.textSecondary }]}>
+                    Barcode: {scannedData.substring(0, 20)}...
+                  </Text>
+                )}
               </View>
 
               <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
                 Choose your UPI app to complete payment
               </Text>
+
+              {/* Configuration Warning */}
+              <View style={[styles.configWarning, { backgroundColor: colors.warning || '#FFF3CD', borderColor: colors.warningBorder || '#FFE69C' }]}>
+                <Ionicons name="information-circle" size={20} color="#856404" />
+                <Text style={[styles.configWarningText, { color: '#856404' }]}>
+                  For production: Update merchant UPI ID in utils/upiUtils.ts
+                </Text>
+              </View>
 
               <View style={styles.upiAppsGrid}>
                 {UPI_APPS.map((app, index) => (
@@ -683,6 +818,65 @@ export default function AddScreen() {
                 ))}
               </View>
             </View>
+          </View>
+        </Modal>
+
+        {/* Barcode Scanner Modal */}
+        <Modal
+          visible={showScanner}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={handleScannerClose}
+        >
+          <View style={styles.scannerContainer}>
+            <CameraView
+              style={styles.camera}
+              facing="back"
+              onBarcodeScanned={isScanning ? handleBarcodeScanned : undefined}
+              barcodeScannerSettings={{
+                barcodeTypes: ['qr', 'ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'codabar'],
+              }}
+            >
+              <View style={styles.scannerOverlay}>
+                <View style={styles.scannerHeader}>
+                  <TouchableOpacity
+                    style={styles.closeScanner}
+                    onPress={handleScannerClose}
+                  >
+                    <Ionicons name="close" size={30} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <Text style={styles.scannerTitle}>Scan Product Barcode</Text>
+                  <TouchableOpacity
+                    style={styles.manualPaymentButton}
+                    onPress={handleManualPayment}
+                  >
+                    <Text style={styles.manualPaymentText}>Skip</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.scannerCenter}>
+                  <View style={styles.scannerFrame}>
+                    <View style={[styles.corner, styles.topLeft]} />
+                    <View style={[styles.corner, styles.topRight]} />
+                    <View style={[styles.corner, styles.bottomLeft]} />
+                    <View style={[styles.corner, styles.bottomRight]} />
+                  </View>
+                  <Text style={styles.scannerInstructions}>
+                    Position the barcode within the frame
+                  </Text>
+                </View>
+
+                <View style={styles.scannerFooter}>
+                  <TouchableOpacity
+                    style={styles.manualButton}
+                    onPress={handleManualPayment}
+                  >
+                    <Ionicons name="keypad" size={24} color="#FFFFFF" />
+                    <Text style={styles.manualButtonText}>Manual Payment</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </CameraView>
           </View>
         </Modal>
         </View>
@@ -913,5 +1107,132 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+  },
+  // Scanner Styles
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  camera: {
+    flex: 1,
+  },
+  scannerOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'space-between',
+  },
+  scannerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  closeScanner: {
+    padding: 8,
+  },
+  scannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  manualPaymentButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+  },
+  manualPaymentText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scannerCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scannerFrame: {
+    width: 250,
+    height: 250,
+    position: 'relative',
+  },
+  corner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderColor: '#FFFFFF',
+    borderWidth: 3,
+  },
+  topLeft: {
+    top: 0,
+    left: 0,
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
+  },
+  topRight: {
+    top: 0,
+    right: 0,
+    borderLeftWidth: 0,
+    borderBottomWidth: 0,
+  },
+  bottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
+  },
+  bottomRight: {
+    bottom: 0,
+    right: 0,
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+  },
+  scannerInstructions: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+    paddingHorizontal: 40,
+  },
+  scannerFooter: {
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+  },
+  manualButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    gap: 8,
+  },
+  manualButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  barcodeText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  configWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 8,
+  },
+  configWarningText: {
+    fontSize: 12,
+    flex: 1,
+    fontWeight: '500',
   },
 });
