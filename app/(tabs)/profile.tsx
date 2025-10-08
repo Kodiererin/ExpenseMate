@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,7 +8,6 @@ import { Button, Card, Section, Separator, StatCard } from '../../components/com
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { router } from 'expo-router';
 
 // Type definitions for better type safety
 interface Expense {
@@ -392,7 +392,8 @@ export default function ProfileScreen() {
 
   const handleAskAI = () => {
     // TODO: Implement AI Chat functionality
-    Alert.alert('Coming Soon', 'Ask AI feature is under development!');
+    // Alert.alert('Coming Soon', 'Ask AI feature is under development!');
+    router.navigate('/aichatBot');
   };
 
   const handleAnalysis = () => {
@@ -607,7 +608,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 3.0.0
+                  Version 4.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.
