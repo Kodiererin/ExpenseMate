@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { ZoomableChart } from '../../components/ZoomableChart';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../types/Expense';
@@ -162,14 +163,42 @@ export default function HistoryScreen() {
       }
     });
 
+    // Sort categories by amount (descending)
+    const sortedCategories = Object.entries(categoryTotals)
+      .sort(([,a], [,b]) => b - a);
+
+    const MAX_CATEGORIES = 6; // Show top 6 categories, group rest as "Others"
     const chartColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
-    return Object.entries(categoryTotals).map(([category, amount], index) => ({
-      name: category,
-      amount: amount,
-      color: chartColors[index % chartColors.length],
-      legendFontColor: isDark ? '#f1f5f9' : '#1e293b',
-      legendFontSize: 12,
-    }));
+    
+    let chartData = [];
+    let othersTotal = 0;
+
+    sortedCategories.forEach(([category, amount], index) => {
+      if (index < MAX_CATEGORIES) {
+        chartData.push({
+          name: category.length > 12 ? category.substring(0, 12) + '...' : category,
+          amount: amount,
+          color: chartColors[index % chartColors.length],
+          legendFontColor: isDark ? '#f1f5f9' : '#1e293b',
+          legendFontSize: 11,
+        });
+      } else {
+        othersTotal += amount;
+      }
+    });
+
+    // Add "Others" category if there are more categories
+    if (othersTotal > 0) {
+      chartData.push({
+        name: 'Others',
+        amount: othersTotal,
+        color: '#6b7280', // Gray color for others
+        legendFontColor: isDark ? '#f1f5f9' : '#1e293b',
+        legendFontSize: 11,
+      });
+    }
+
+    return chartData;
   };
 
   // Calculate line chart data for daily expenses
@@ -195,20 +224,30 @@ export default function HistoryScreen() {
       }
     });
 
-    // Get data for chart (show only days with data or recent days for better visualization)
+    // Get data for chart - optimize for better readability
     const labels: string[] = [];
     const data: number[] = [];
     
-    // Show maximum 10 data points for better readability
-    const step = Math.max(1, Math.floor(daysInMonth / 10));
+    // Adaptive sampling based on days in month
+    let step = 1;
+    if (daysInMonth > 15) {
+      step = Math.ceil(daysInMonth / 8); // Show ~8 data points for months with many days
+    }
     
-    for (let i = 1; i <= daysInMonth; i += step) {
+    // Always include first day
+    if (daysInMonth > 0) {
+      labels.push('1');
+      data.push(dailyTotals[1]);
+    }
+    
+    // Add intermediate points
+    for (let i = step + 1; i < daysInMonth; i += step) {
       labels.push(i.toString());
       data.push(dailyTotals[i]);
     }
     
-    // If we have expenses, always include the last day
-    if (daysInMonth > labels.length * step) {
+    // Always include last day (if different from first)
+    if (daysInMonth > 1) {
       labels.push(daysInMonth.toString());
       data.push(dailyTotals[daysInMonth]);
     }
@@ -216,9 +255,9 @@ export default function HistoryScreen() {
     return {
       labels,
       datasets: [{
-        data,
+        data: data.length > 0 ? data : [0], // Ensure at least one data point
         color: (opacity = 1) => colors.primary,
-        strokeWidth: 3,
+        strokeWidth: 2,
       }]
     };
   };
@@ -352,22 +391,29 @@ export default function HistoryScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   📈 Category Breakdown
                 </Text>
-                <View style={styles.chartContainer}>
-                  <PieChart
-                    data={getPieChartData()}
-                    width={Dimensions.get('window').width - 80}
-                    height={220}
-                    chartConfig={{
-                      backgroundColor: colors.card,
-                      backgroundGradientFrom: colors.card,
-                      backgroundGradientTo: colors.card,
-                      color: (opacity = 1) => colors.text,
-                    }}
-                    accessor="amount"
-                    backgroundColor="transparent"
-                    paddingLeft="15"
-                    absolute
-                  />
+                <View style={styles.zoomableChartContainer}>
+                  <ZoomableChart
+                    minZoom={0.8}
+                    maxZoom={2.5}
+                    initialZoom={1}
+                    resetButtonPosition="top-right"
+                  >
+                    <PieChart
+                      data={getPieChartData()}
+                      width={Math.max(Dimensions.get('window').width - 20, 340)}
+                      height={240}
+                      chartConfig={{
+                        backgroundColor: colors.card,
+                        backgroundGradientFrom: colors.card,
+                        backgroundGradientTo: colors.card,
+                        color: (opacity = 1) => colors.text,
+                      }}
+                      accessor="amount"
+                      backgroundColor="transparent"
+                      paddingLeft="15"
+                      absolute
+                    />
+                  </ZoomableChart>
                 </View>
               </Card>
 
@@ -378,39 +424,46 @@ export default function HistoryScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   📊 Daily Spending Trend
                 </Text>
-                <View style={styles.chartContainer}>
-                  <LineChart
-                    data={getLineChartData()}
-                    width={Dimensions.get('window').width - 80}
-                    height={220}
-                    chartConfig={{
-                      backgroundColor: colors.card,
-                      backgroundGradientFrom: colors.card,
-                      backgroundGradientTo: colors.card,
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-                      labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-                      style: {
-                        borderRadius: 16
-                      },
-                      propsForDots: {
-                        r: "4",
-                        strokeWidth: "2",
-                        stroke: colors.primary
-                      },
-                      propsForBackgroundLines: {
-                        strokeDasharray: "", // solid background lines
-                        stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
-                      }
-                    }}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16,
-                    }}
-                    fromZero
-                    segments={4}
-                  />
+                <View style={styles.zoomableChartContainer}>
+                  <ZoomableChart
+                    minZoom={0.8}
+                    maxZoom={3}
+                    initialZoom={1}
+                    resetButtonPosition="top-left"
+                  >
+                    <LineChart
+                      data={getLineChartData()}
+                      width={Math.max(Dimensions.get('window').width - 20, 340)}
+                      height={240}
+                      chartConfig={{
+                        backgroundColor: colors.card,
+                        backgroundGradientFrom: colors.card,
+                        backgroundGradientTo: colors.card,
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                        labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                        style: {
+                          borderRadius: 16
+                        },
+                        propsForDots: {
+                          r: "4",
+                          strokeWidth: "2",
+                          stroke: colors.primary
+                        },
+                        propsForBackgroundLines: {
+                          strokeDasharray: "", // solid background lines
+                          stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+                        }
+                      }}
+                      bezier
+                      style={{
+                        marginVertical: 8,
+                        borderRadius: 16,
+                      }}
+                      fromZero
+                      segments={4}
+                    />
+                  </ZoomableChart>
                 </View>
                 <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
                   Daily expenses throughout the month
@@ -426,9 +479,10 @@ export default function HistoryScreen() {
             {/* Filter & Sort Bar */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
               {/* Filter by Tag */}
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
                 <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Filter:</Text>
                 <View style={{
+                  flex: 1,
                   borderRadius: 8,
                   backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
                   borderWidth: 1,
@@ -437,22 +491,28 @@ export default function HistoryScreen() {
                 }}>
                 <Picker
                   selectedValue={filterTag}
-                  style={{ width: 120, color: colors.text, backgroundColor: 'transparent' }}
+                  style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
                   onValueChange={(itemValue) => setFilterTag(itemValue)}
                   mode="dropdown"
                   dropdownIconColor={colors.textSecondary}
                 >
-                  <Picker.Item label="All" value="" color={isDark ? '#000000ff' : colors.text} />
-                  {[...new Set(expenses.map(e => e.tag))].map((tag, idx) => (
-                    <Picker.Item key={idx} label={tag} value={tag} color={isDark ? '#000000ff' : colors.text} />
+                  <Picker.Item label="All Categories" value="" color={isDark ? '#000000ff' : colors.text} />
+                  {[...new Set(expenses.map(e => e.tag))].sort().map((tag, idx) => (
+                    <Picker.Item 
+                      key={idx} 
+                      label={tag.length > 15 ? tag.substring(0, 15) + '...' : tag} 
+                      value={tag} 
+                      color={isDark ? '#000000ff' : colors.text} 
+                    />
                   ))}
                 </Picker>
                 </View>
               </View>
               {/* Sort by Price/Date */}
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Sort:</Text>
                 <View style={{
+                  flex: 1,
                   borderRadius: 8,
                   backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
                   borderWidth: 1,
@@ -461,13 +521,13 @@ export default function HistoryScreen() {
                 }}>
                 <Picker
                   selectedValue={sortBy}
-                  style={{ width: 120, color: colors.text, backgroundColor: 'transparent' }}
+                  style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
                   onValueChange={(itemValue) => setSortBy(itemValue)}
                   mode="dropdown"
                   dropdownIconColor={colors.textSecondary}
                 >
                   <Picker.Item label="Date" value="date" color={isDark ? '#000000ff' : colors.text} />
-                  <Picker.Item label="Price" value="price" color={isDark ? '#000000ff' : colors.text} />
+                  <Picker.Item label="Amount" value="price" color={isDark ? '#000000ff' : colors.text} />
                 </Picker>
                 </View>
               </View>
@@ -686,6 +746,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     marginBottom: 8,
+  },
+  chartScrollContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  zoomableChartContainer: {
+    height: 280,
+    width: '100%',
+    marginTop: 10,
+    marginBottom: 10,
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   chartSubtitle: {
     fontSize: 12,
