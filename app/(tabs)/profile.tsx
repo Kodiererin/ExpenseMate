@@ -397,7 +397,12 @@ export default function ProfileScreen() {
 
   const handleAnalysis = () => {
     // TODO: Implement Analysis functionality
-    Alert.alert('Coming Soon', 'Analysis feature is under development!');
+    try {
+      router.push('/Analysis');
+    } catch (error) {
+      Alert.alert('Error', 'Unable to navigate to Analysis.');
+      console.error('Navigation error:', error);
+    }
   };
 
   const handleCalculator = () => {
@@ -607,7 +612,7 @@ export default function ProfileScreen() {
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 3.0.0
+                  Version 4.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.

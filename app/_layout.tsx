@@ -35,6 +35,13 @@ export default function RootLayout() {
                   animation: 'slide_from_right'
                 }} 
               />
+              <Stack.Screen name="Analysis" 
+                options={{ 
+                  headerShown: false,  // This hides the "Analysis" system header
+                  presentation: 'card',
+                  animation: 'slide_from_right'
+                }}
+              />
             </Stack>
             <StatusBar style="auto" />
           </NavigationThemeProvider>
