@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
-import { ZoomableChart } from '../../components/ZoomableChart';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../types/Expense';
@@ -212,52 +211,85 @@ export default function HistoryScreen() {
       dailyTotals[i] = 0;
     }
     
-    // Calculate daily totals
+    // Calculate daily totals - make sure we're only processing expenses for the selected month/year
+    console.log('Processing expenses for chart:', expenses.length);
     expenses.forEach(expense => {
       const dateParts = expense.date.split('/');
       if (dateParts.length === 3) {
-        const day = parseInt(dateParts[1], 10);
+        const expenseMonth = parseInt(dateParts[0], 10);
+        const expenseDay = parseInt(dateParts[1], 10);
+        const expenseYear = parseInt(dateParts[2], 10);
         const amount = parseFloat(expense.price);
-        if (!isNaN(amount) && day >= 1 && day <= daysInMonth) {
-          dailyTotals[day] += amount;
+        
+        console.log(`Expense: ${expense.date}, Month: ${expenseMonth}, Day: ${expenseDay}, Year: ${expenseYear}, Amount: ${amount}`);
+        
+        // Double-check that this expense belongs to the selected month and year
+        if (!isNaN(amount) && 
+            expenseMonth === selectedMonth && 
+            expenseYear === selectedYear && 
+            expenseDay >= 1 && expenseDay <= daysInMonth) {
+          dailyTotals[expenseDay] += amount;
+          console.log(`Added ${amount} to day ${expenseDay}, new total: ${dailyTotals[expenseDay]}`);
         }
       }
     });
 
-    // Get data for chart - optimize for better readability
+    // Create a more accurate sampling that always includes days with expenses
     const labels: string[] = [];
     const data: number[] = [];
     
-    // Adaptive sampling based on days in month
-    let step = 1;
-    if (daysInMonth > 15) {
-      step = Math.ceil(daysInMonth / 8); // Show ~8 data points for months with many days
+    // Find all days that have expenses
+    const daysWithExpenses = Object.keys(dailyTotals)
+      .map(Number)
+      .filter(day => dailyTotals[day] > 0)
+      .sort((a, b) => a - b);
+    
+    console.log('Days with expenses:', daysWithExpenses);
+    
+    // Create sampling strategy based on month length
+    let selectedDays: number[] = [];
+    
+    if (daysInMonth <= 15) {
+      // Show every day for shorter months
+      selectedDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    } else if (daysInMonth <= 25) {
+      // Show every other day, but include all expense days
+      const regularDays = [];
+      for (let i = 1; i <= daysInMonth; i += 2) {
+        regularDays.push(i);
+      }
+      selectedDays = [...new Set([...regularDays, ...daysWithExpenses, daysInMonth])].sort((a, b) => a - b);
+    } else {
+      // Show key milestone days + all expense days
+      const milestoneDays = [1, 5, 10, 15, 20, 25, daysInMonth].filter(day => day <= daysInMonth);
+      selectedDays = [...new Set([...milestoneDays, ...daysWithExpenses])].sort((a, b) => a - b);
     }
     
-    // Always include first day
-    if (daysInMonth > 0) {
-      labels.push('1');
-      data.push(dailyTotals[1]);
+    // Limit to max 15 points for readability
+    if (selectedDays.length > 15) {
+      const step = Math.ceil(selectedDays.length / 12);
+      const sampledDays = selectedDays.filter((_, index) => index % step === 0);
+      // Always include first, last, and highest expense days
+      const highestExpenseDay = daysWithExpenses.reduce((max, day) => 
+        dailyTotals[day] > dailyTotals[max] ? day : max, daysWithExpenses[0] || 1);
+      selectedDays = [...new Set([1, ...sampledDays, highestExpenseDay, daysInMonth])]
+        .filter(day => day <= daysInMonth)
+        .sort((a, b) => a - b);
     }
     
-    // Add intermediate points
-    for (let i = step + 1; i < daysInMonth; i += step) {
-      labels.push(i.toString());
-      data.push(dailyTotals[i]);
-    }
+    selectedDays.forEach(day => {
+      labels.push(day.toString());
+      data.push(dailyTotals[day]);
+    });
     
-    // Always include last day (if different from first)
-    if (daysInMonth > 1) {
-      labels.push(daysInMonth.toString());
-      data.push(dailyTotals[daysInMonth]);
-    }
+    console.log('Final chart data - Labels:', labels, 'Data:', data);
 
     return {
-      labels,
+      labels: labels.length > 0 ? labels : ['1'],
       datasets: [{
-        data: data.length > 0 ? data : [0], // Ensure at least one data point
+        data: data.length > 0 ? data : [0],
         color: (opacity = 1) => colors.primary,
-        strokeWidth: 2,
+        strokeWidth: 3,
       }]
     };
   };
@@ -391,29 +423,22 @@ export default function HistoryScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   📈 Category Breakdown
                 </Text>
-                <View style={styles.zoomableChartContainer}>
-                  <ZoomableChart
-                    minZoom={0.8}
-                    maxZoom={2.5}
-                    initialZoom={1}
-                    resetButtonPosition="top-right"
-                  >
-                    <PieChart
-                      data={getPieChartData()}
-                      width={Math.max(Dimensions.get('window').width - 20, 340)}
-                      height={240}
-                      chartConfig={{
-                        backgroundColor: colors.card,
-                        backgroundGradientFrom: colors.card,
-                        backgroundGradientTo: colors.card,
-                        color: (opacity = 1) => colors.text,
-                      }}
-                      accessor="amount"
-                      backgroundColor="transparent"
-                      paddingLeft="15"
-                      absolute
-                    />
-                  </ZoomableChart>
+                <View style={styles.chartContainer}>
+                  <PieChart
+                    data={getPieChartData()}
+                    width={Math.max(Dimensions.get('window').width - 40, 320)}
+                    height={220}
+                    chartConfig={{
+                      backgroundColor: colors.card,
+                      backgroundGradientFrom: colors.card,
+                      backgroundGradientTo: colors.card,
+                      color: (opacity = 1) => colors.text,
+                    }}
+                    accessor="amount"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
                 </View>
               </Card>
 
@@ -424,46 +449,48 @@ export default function HistoryScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   📊 Daily Spending Trend
                 </Text>
-                <View style={styles.zoomableChartContainer}>
-                  <ZoomableChart
-                    minZoom={0.8}
-                    maxZoom={3}
-                    initialZoom={1}
-                    resetButtonPosition="top-left"
-                  >
+                <View style={styles.chartContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <LineChart
                       data={getLineChartData()}
-                      width={Math.max(Dimensions.get('window').width - 20, 340)}
-                      height={240}
+                      width={Math.max(Dimensions.get('window').width - 40, 360)}
+                      height={220}
                       chartConfig={{
                         backgroundColor: colors.card,
                         backgroundGradientFrom: colors.card,
                         backgroundGradientTo: colors.card,
                         decimalPlaces: 0,
                         color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-                        labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                        labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity * 0.8})` : `rgba(0, 0, 0, ${opacity * 0.8})`,
                         style: {
-                          borderRadius: 16
+                          borderRadius: 12
                         },
                         propsForDots: {
-                          r: "4",
+                          r: "5",
                           strokeWidth: "2",
-                          stroke: colors.primary
+                          stroke: colors.primary,
+                          fill: colors.background
                         },
                         propsForBackgroundLines: {
-                          strokeDasharray: "", // solid background lines
+                          strokeDasharray: "5,5",
                           stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
                         }
                       }}
                       bezier
                       style={{
                         marginVertical: 8,
-                        borderRadius: 16,
+                        borderRadius: 12,
                       }}
                       fromZero
                       segments={4}
+                      withVerticalLabels
+                      withHorizontalLabels
+                      withDots
+                      withShadow={false}
+                      withVerticalLines
+                      withHorizontalLines
                     />
-                  </ZoomableChart>
+                  </ScrollView>
                 </View>
                 <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
                   Daily expenses throughout the month
@@ -744,20 +771,10 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  chartScrollContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 10,
-  },
-  zoomableChartContainer: {
-    height: 280,
-    width: '100%',
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 16,
+    marginBottom: 12,
     backgroundColor: 'transparent',
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   chartSubtitle: {
