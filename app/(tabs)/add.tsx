@@ -37,6 +37,11 @@ export default function AddScreen() {
     { label: 'Games 🎮', value: 'Games' },
     { label: 'Health 🏥', value: 'Health' },
     { label: 'Education 📚', value: 'Education' },
+    { label: 'PG 🏠', value: 'PG' },
+    { label: 'Papa 🏠', value: 'PAPA' },
+    { label: 'Mummi 🏠', value: 'MUMMI' },
+    { label: 'Nimmi 🏠', value: 'NIMMI' },
+    { label: 'Harsh 🏠', value: 'HARSH' },
   ]);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
