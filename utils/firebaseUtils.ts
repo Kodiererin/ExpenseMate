@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../constants/firebase";
-import { Expense } from "../types/Expense";
-import { Goal } from "../types/Goal";
+import { Expense } from "../domain/Expense";
+import { Goal } from "../domain/Goal";
 
 // Cache invalidation callbacks with debouncing
 let onDataChangeCallbacks: (() => void)[] = [];

@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Investment } from '../../types/Investment';
+import { Investment } from '../../domain/Investment';
 import { investmentService } from '../../utils/investmentService';
 import { seedInvestmentData } from '../../utils/seedData';
 

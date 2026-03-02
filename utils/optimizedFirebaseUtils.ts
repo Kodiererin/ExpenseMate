@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { db } from "../constants/firebase";
-import { Expense } from "../types/Expense";
-import { Goal } from "../types/Goal";
+import { Expense } from "../domain/Expense";
+import { Goal } from "../domain/Goal";
 
 // Optimized query functions to reduce database calls
 
