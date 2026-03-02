@@ -1,4 +1,4 @@
-import { Investment } from '../types/Investment';
+import { Investment } from '../domain/Investment';
 import { investmentService } from './investmentService';
 
 const sampleInvestments: Omit<Investment, 'id' | 'createdAt'>[] = [

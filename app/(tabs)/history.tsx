@@ -18,7 +18,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Expense } from '../../types/Expense';
+import { Expense } from '../../domain/Expense';
 import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
 
 function formatDate(dateString: string) {

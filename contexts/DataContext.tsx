@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { Expense } from '../types/Expense';
-import { Goal } from '../types/Goal';
+import { Expense } from '../domain/Expense';
+import { Goal } from '../domain/Goal';
 import {
-  getAllAvailableGoalMonths,
-  getAllAvailableMonths,
-  getAllExpenses,
-  getGoalsByMonthYear,
-  registerDataChangeCallback,
-  unregisterDataChangeCallback
+    getAllAvailableGoalMonths,
+    getAllAvailableMonths,
+    getAllExpenses,
+    getGoalsByMonthYear,
+    registerDataChangeCallback,
+    unregisterDataChangeCallback
 } from '../utils/firebaseUtils';
 
 interface DataContextType {

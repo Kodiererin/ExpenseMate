@@ -1,6 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../constants/firebase';
-import { Investment } from '../types/Investment';
+import { Investment } from '../domain/Investment';
 
 export const investmentService = {
   async addInvestment(investment: Omit<Investment, 'id' | 'createdAt'>) {

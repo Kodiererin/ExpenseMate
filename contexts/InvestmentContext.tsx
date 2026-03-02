@@ -3,7 +3,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { Investment } from '../types/Investment';
+import { Investment } from '../domain/Investment';
 import { investmentService } from '../utils/investmentService';
 
 interface InvestmentContextType {

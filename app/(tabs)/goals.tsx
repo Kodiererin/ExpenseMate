@@ -19,7 +19,7 @@ import {
 import { Button, Card, Section, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Goal } from '../../types/Goal';
+import { Goal } from '../../domain/Goal';
 import {
   addGoalToFirestore,
   deleteGoalFromFirestore,
