@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as React from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { createSharedStyles, SharedStyles } from '../styles/theme';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -34,6 +35,8 @@ interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
   colors: ThemeColors;
+  /** Memoized shared/themed styles from the central design system. */
+  sharedStyles: SharedStyles;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   resetTheme: () => void; // Reset to system default
@@ -88,9 +91,10 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>('system');
   const systemColorScheme = useColorScheme();
-  
+
   const isDark = theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark');
   const colors = useMemo(() => isDark ? darkColors : lightColors, [isDark]);
+  const sharedStyles = useMemo(() => createSharedStyles(colors), [colors]);
 
   const loadTheme = useCallback(async () => {
     try {
@@ -145,10 +149,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     theme,
     isDark,
     colors,
+    sharedStyles,
     setTheme,
     toggleTheme,
     resetTheme,
-  }), [theme, isDark, colors, setTheme, toggleTheme, resetTheme]);
+  }), [theme, isDark, colors, sharedStyles, setTheme, toggleTheme, resetTheme]);
 
   return (
     <ThemeContext.Provider value={contextValue}>
@@ -163,4 +168,14 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
+};
+
+/**
+ * Build a memoized, screen-specific StyleSheet from the active palette.
+ * Pass a factory that receives the current theme colors, e.g.:
+ *   const styles = useThemedStyles(createStyles);
+ */
+export const useThemedStyles = <T,>(factory: (colors: ThemeColors) => T): T => {
+  const { colors } = useTheme();
+  return useMemo(() => factory(colors), [colors, factory]);
 };

@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as React from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleProp, Text, TextStyle, View, ViewStyle } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
+import {
+  createShadow,
+  fontWeight,
+  opacity,
+  radius,
+  sizing,
+  spacing,
+  typography,
+} from '../../styles/theme';
 
 const { useMemo } = React;
 
@@ -13,7 +22,7 @@ interface ButtonProps {
   icon?: keyof typeof Ionicons.glyphMap;
   loading?: boolean;
   disabled?: boolean;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -30,35 +39,31 @@ export const Button: React.FC<ButtonProps> = ({
 
   const buttonStyle = useMemo(() => {
     const baseStyle = {
-      borderRadius: 12,
+      borderRadius: radius.md,
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.15,
-      shadowRadius: 6,
-      elevation: 4,
+      ...createShadow('md', colors.shadow),
     };
 
     const sizes = {
-      small: { paddingHorizontal: 16, paddingVertical: 10, minHeight: 40 },
-      medium: { paddingHorizontal: 20, paddingVertical: 14, minHeight: 48 },
-      large: { paddingHorizontal: 24, paddingVertical: 16, minHeight: 54 },
+      small: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 2, minHeight: 40 },
+      medium: { paddingHorizontal: spacing.xl, paddingVertical: spacing.md + 2, minHeight: sizing.buttonHeight - 4 },
+      large: { paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, minHeight: sizing.buttonHeight + 2 },
     } as const;
 
     const variants = {
       primary: { backgroundColor: colors.primary },
       secondary: { backgroundColor: colors.secondary },
-      outline: { 
-        backgroundColor: 'transparent', 
-        borderWidth: 1, 
-        borderColor: colors.primary 
-      },
-      ghost: { 
+      outline: {
         backgroundColor: 'transparent',
-        shadowOpacity: 0,
-        elevation: 0,
+        borderWidth: 1.5,
+        borderColor: colors.primary,
+        ...createShadow('none', colors.shadow),
+      },
+      ghost: {
+        backgroundColor: 'transparent',
+        ...createShadow('none', colors.shadow),
       },
     } as const;
 
@@ -80,7 +85,7 @@ export const Button: React.FC<ButtonProps> = ({
     } as const;
 
     return [
-      { fontWeight: '600' as const },
+      { fontWeight: fontWeight.semibold as TextStyle['fontWeight'] },
       sizes[size],
       variants[variant],
     ];
@@ -90,7 +95,7 @@ export const Button: React.FC<ButtonProps> = ({
     <Pressable
       style={[
         buttonStyle,
-        (disabled || loading) && { opacity: 0.6 },
+        (disabled || loading) && { opacity: opacity.disabled },
         style,
       ]}
       onPress={onPress}
@@ -104,9 +109,9 @@ export const Button: React.FC<ButtonProps> = ({
           {icon && (
             <Ionicons
               name={icon}
-              size={size === 'small' ? 16 : size === 'medium' ? 20 : 24}
+              size={size === 'small' ? sizing.iconSm : size === 'medium' ? sizing.iconMd : sizing.iconLg}
               color={variant === 'outline' || variant === 'ghost' ? colors.primary : colors.white}
-              style={{ marginRight: title ? 8 : 0 }}
+              style={{ marginRight: title ? spacing.sm : 0 }}
             />
           )}
           {title && <Text style={textStyle}>{title}</Text>}
@@ -118,24 +123,20 @@ export const Button: React.FC<ButtonProps> = ({
 
 interface CardProps {
   children: React.ReactNode;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   padding?: number;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style, padding = 16 }) => {
+export const Card: React.FC<CardProps> = ({ children, style, padding = spacing.lg }) => {
   const { colors } = useTheme();
 
   const cardStyle = useMemo(() => ({
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     padding,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 1,
+    borderWidth: sizing.hairline,
     borderColor: colors.border,
+    ...createShadow('md', colors.shadow),
   }), [colors, padding]);
 
   return (
@@ -153,44 +154,43 @@ interface StatCardProps {
   subtitle?: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ 
-  title, 
-  value, 
-  icon, 
-  color, 
-  subtitle 
+export const StatCard: React.FC<StatCardProps> = ({
+  title,
+  value,
+  icon,
+  color,
+  subtitle
 }) => {
   const { colors } = useTheme();
   const cardColor = color || colors.primary;
 
   return (
-    <Card style={{ backgroundColor: cardColor, flex: 1, marginHorizontal: 4 }}>
+    <Card style={{ backgroundColor: cardColor, flex: 1, marginHorizontal: spacing.xs }}>
       <View style={{ alignItems: 'center' }}>
-        <Ionicons name={icon} size={24} color={colors.white} />
+        <Ionicons name={icon} size={sizing.iconLg} color={colors.white} />
         <Text style={{
-          fontSize: 18,
-          fontWeight: 'bold',
+          ...typography.subtitle,
           color: colors.white,
-          marginTop: 8,
-          marginBottom: 4,
+          marginTop: spacing.sm,
+          marginBottom: spacing.xs,
         }}>
           {value}
         </Text>
         <Text style={{
-          fontSize: 12,
+          ...typography.caption,
           color: colors.white,
           textAlign: 'center',
-          opacity: 0.9,
+          opacity: opacity.muted,
         }}>
           {title}
         </Text>
         {subtitle && (
           <Text style={{
-            fontSize: 10,
+            ...typography.overline,
             color: colors.white,
             textAlign: 'center',
-            opacity: 0.7,
-            marginTop: 2,
+            opacity: opacity.pressed,
+            marginTop: spacing.xs / 2,
           }}>
             {subtitle}
           </Text>
@@ -200,38 +200,42 @@ export const StatCard: React.FC<StatCardProps> = ({
   );
 };
 
-export const Separator: React.FC<{ height?: number }> = ({ height = 16 }) => (
+export const Separator: React.FC<{ height?: number }> = ({ height = spacing.lg }) => (
   <View style={{ height }} />
 );
 
-export const Section: React.FC<{ 
-  title: string; 
-  subtitle?: string; 
+export const Divider: React.FC<{ style?: StyleProp<ViewStyle> }> = ({ style }) => {
+  const { colors } = useTheme();
+  return <View style={[{ height: sizing.hairline, backgroundColor: colors.border, marginVertical: spacing.md }, style]} />;
+};
+
+export const Section: React.FC<{
+  title: string;
+  subtitle?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
 }> = ({ title, subtitle, children, action }) => {
   const { colors } = useTheme();
 
   return (
-    <View style={{ marginBottom: 24 }}>
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
+    <View style={{ marginBottom: spacing.xxl }}>
+      <View style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12 
+        marginBottom: spacing.md
       }}>
         <View style={{ flex: 1 }}>
           <Text style={{
-            fontSize: 20,
-            fontWeight: 'bold',
+            ...typography.heading,
             color: colors.text,
-            marginBottom: subtitle ? 4 : 0,
+            marginBottom: subtitle ? spacing.xs : 0,
           }}>
             {title}
           </Text>
           {subtitle && (
             <Text style={{
-              fontSize: 14,
+              ...typography.caption,
               color: colors.textSecondary,
             }}>
               {subtitle}
@@ -241,6 +245,59 @@ export const Section: React.FC<{
         {action}
       </View>
       {children}
+    </View>
+  );
+};
+
+interface BadgeProps {
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  color?: string;
+  background?: string;
+  style?: StyleProp<ViewStyle>;
+}
+
+export const Badge: React.FC<BadgeProps> = ({ label, icon, color, background, style }) => {
+  const { colors } = useTheme();
+  const fg = color || colors.textSecondary;
+  return (
+    <View
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.xs,
+          borderRadius: radius.pill,
+          backgroundColor: background || colors.surface,
+        },
+        style,
+      ]}
+    >
+      {icon ? <Ionicons name={icon} size={sizing.iconXs} color={fg} style={{ marginRight: spacing.xs }} /> : null}
+      <Text style={{ ...typography.caption, color: fg }}>{label}</Text>
+    </View>
+  );
+};
+
+interface EmptyStateProps {
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  message?: string;
+  action?: React.ReactNode;
+}
+
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon = 'file-tray-outline', title, message, action }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.huge, paddingHorizontal: spacing.xl }}>
+      <Ionicons name={icon} size={sizing.iconXl + 8} color={colors.placeholder} />
+      <Text style={{ ...typography.subtitle, color: colors.text, textAlign: 'center', marginTop: spacing.md }}>{title}</Text>
+      {message ? (
+        <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm }}>{message}</Text>
+      ) : null}
+      {action ? <View style={{ marginTop: spacing.lg }}>{action}</View> : null}
     </View>
   );
 };

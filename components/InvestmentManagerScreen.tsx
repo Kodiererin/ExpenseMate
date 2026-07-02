@@ -20,12 +20,12 @@ import {
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Card, Section, Separator } from '../../components/common';
-import { useInvestments } from '../../contexts/InvestmentContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { Investment } from '../../domain/Investment';
-import { investmentService } from '../../utils/investmentService';
-import { seedInvestmentData } from '../../utils/seedData';
+import { useInvestments } from '../contexts/InvestmentContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { Investment } from '../domain/Investment';
+import { investmentService } from '../utils/investmentService';
+import { seedInvestmentData } from '../utils/seedData';
+import { Button, Card, Section, Separator } from './common';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -38,14 +38,14 @@ const investmentTypes = [
   { label: '💳 Dividend', value: 'dividend', category: 'income' },
   { label: '🏦 Interest', value: 'interest', category: 'income' },
   { label: '🏠 Rental Income', value: 'rental', category: 'income' },
-  
+
   // Investment Types
   { label: '📈 Mutual Fund', value: 'mutual_fund', category: 'investment' },
   { label: '📊 Stocks', value: 'stocks', category: 'investment' },
   { label: '🏛️ Bonds', value: 'bonds', category: 'investment' },
   { label: '�️ Real Estate', value: 'real_estate', category: 'investment' },
   { label: '₿ Cryptocurrency', value: 'crypto', category: 'investment' },
-  
+
   // Savings Types
   { label: '🏦 Fixed Deposit', value: 'fixed_deposit', category: 'savings' },
   { label: '🛡️ PPF', value: 'ppf', category: 'savings' },
@@ -73,12 +73,12 @@ const getCategoryColor = (category: string) => {
 // Helper function to get category from investment (handles legacy data)
 const getInvestmentCategory = (investment: Investment) => {
   if (investment.category) return investment.category;
-  
+
   // Fallback for legacy data
   const incomeTypes = ['salary', 'bonus', 'commission', 'freelance', 'dividend', 'interest', 'rental', 'other'];
   const investmentTypes = ['mutual_fund', 'stocks', 'bonds', 'real_estate', 'crypto'];
   const savingsTypes = ['fixed_deposit', 'ppf', 'nps', 'insurance'];
-  
+
   if (incomeTypes.includes(investment.type)) return 'income';
   if (investmentTypes.includes(investment.type)) return 'investment';
   if (savingsTypes.includes(investment.type)) return 'savings';
@@ -89,8 +89,8 @@ const InvestmentsScreen = () => {
   // Trend type state: 'monthly' or 'yearly'
   const [trendType, setTrendType] = useState<'monthly' | 'yearly'>('monthly');
   const { colors } = useTheme();
-  const { 
-    investments, 
+  const {
+    investments,
     lastRefresh,
     refreshInvestments,
     addInvestment,
@@ -102,14 +102,14 @@ const InvestmentsScreen = () => {
     getNonTaxableIncome,
     getRecurringIncome
   } = useInvestments();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [animatedValues] = useState({
     cardScale: new Animated.Value(1),
     headerOpacity: new Animated.Value(0),
   });
-  
+
   // Form states
   const [formData, setFormData] = useState({
     type: 'salary',
@@ -396,7 +396,7 @@ const InvestmentsScreen = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Enhanced Header with Gradient */}
       <LinearGradient
         colors={[colors.primary, colors.accent]}
@@ -418,7 +418,7 @@ const InvestmentsScreen = () => {
             </TouchableOpacity>
           </View>
         </Animated.View>
-        
+
         {/* Quick Stats Bar */}
         <View style={styles.quickStatsContainer}>
           <View style={styles.quickStat}>
@@ -430,7 +430,7 @@ const InvestmentsScreen = () => {
           <View style={styles.statDivider} />
           <View style={styles.quickStat}>
             <Text style={styles.quickStatLabel}>Monthly Income</Text>
-              <Text style={[styles.quickStatValue, { color: 'white' }]}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
+            <Text style={[styles.quickStatValue, { color: 'white' }]}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.quickStat}>
@@ -449,8 +449,8 @@ const InvestmentsScreen = () => {
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -483,7 +483,7 @@ const InvestmentsScreen = () => {
                 <Text style={styles.summaryTrend}>Income</Text>
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
               <LinearGradient
                 colors={['#3B82F6', '#2563EB']}
@@ -496,11 +496,11 @@ const InvestmentsScreen = () => {
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Investments</Text>
                 <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
-                 <Text style={styles.summaryTrend}>Total Investments</Text>
+                <Text style={styles.summaryTrend}>Total Investments</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
-          
+
           {/* Secondary Stats Row */}
           <View style={styles.summaryGrid}>
             <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
@@ -518,7 +518,7 @@ const InvestmentsScreen = () => {
                 <Text style={styles.summaryTrend}>Emergency Savings</Text>
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
               <LinearGradient
                 colors={['#8B5CF6', '#7C3AED']}
@@ -535,7 +535,7 @@ const InvestmentsScreen = () => {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-          
+
           {/* Tax Information Cards */}
           <View style={styles.summaryGrid}>
             <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
@@ -546,7 +546,7 @@ const InvestmentsScreen = () => {
               <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
               <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
             </View>
-            
+
             <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
               <View style={styles.taxHeader}>
                 <Ionicons name="checkmark-circle" size={20} color={colors.success} />
@@ -641,10 +641,10 @@ const InvestmentsScreen = () => {
           {investments.length === 0 ? (
             <Card style={styles.emptyCard}>
               <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}> 
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 No investments yet
               </Text>
-              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}> 
+              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
                 Start tracking your investments by adding your first entry!
               </Text>
               {__DEV__ && (
@@ -698,45 +698,45 @@ const InvestmentsScreen = () => {
                           <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
                           <View style={styles.badgeContainer}>
                             <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
-                              <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
+                              <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
                                 {getInvestmentCategory(investment).toUpperCase()}
                               </Text>
                             </View>
                             {investment.taxable && (
-                              <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
+                              <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
                                 <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
                               </View>
                             )}
                           </View>
                         </View>
-                        <Text style={[styles.investmentType, { color: colors.primary }]}> 
+                        <Text style={[styles.investmentType, { color: colors.primary }]}>
                           {investmentTypes.find(t => t.value === investment.type)?.label}
                         </Text>
                         {investment.source && (
-                          <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
+                          <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
                             📍 {investment.source}
                           </Text>
                         )}
-                        <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
+                        <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
                           📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
                         </Text>
                         {investment.isRecurring && (
-                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
+                          <Text style={[styles.recurringBadge, { color: colors.success }]}>
                             🔄 {investment.recurringFrequency}
                           </Text>
                         )}
                         {investment.description && (
-                          <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
+                          <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
                             {investment.description}
                           </Text>
                         )}
                       </View>
                       <View style={styles.amountContainer}>
-                        <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
+                        <Text style={[styles.investmentAmount, { color: colors.primary }]}>
                           ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
                         </Text>
                         {investment.taxable && (
-                          <Text style={[styles.taxInfo, { color: colors.error }]}> 
+                          <Text style={[styles.taxInfo, { color: colors.error }]}>
                             + Tax
                           </Text>
                         )}
@@ -764,44 +764,44 @@ const InvestmentsScreen = () => {
                             <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
                             <View style={styles.badgeContainer}>
                               <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
-                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
+                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
                                   {getInvestmentCategory(first).toUpperCase()}
                                 </Text>
                               </View>
                               {first.taxable && (
-                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
+                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
                                   <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
                                 </View>
                               )}
                             </View>
                           </View>
-                          <Text style={[styles.investmentType, { color: colors.primary }]}> 
+                          <Text style={[styles.investmentType, { color: colors.primary }]}>
                             {investmentTypes.find(t => t.value === first.type)?.label}
                           </Text>
                           {first.source && (
-                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
+                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
                               📍 {first.source}
                             </Text>
                           )}
                           {/* Show user selected date to present */}
-                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
+                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
                             📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
                           </Text>
-                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
+                          <Text style={[styles.recurringBadge, { color: colors.success }]}>
                             🔄 {first.recurringFrequency}
                           </Text>
                           {first.description && (
-                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
+                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
                               {first.description}
                             </Text>
                           )}
                         </View>
                         <View style={styles.amountContainer}>
-                          <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
-                          ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                          <Text style={[styles.investmentAmount, { color: colors.primary }]}>
+                            ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
                           </Text>
                           {first.taxable && (
-                            <Text style={[styles.taxInfo, { color: colors.error }]}> 
+                            <Text style={[styles.taxInfo, { color: colors.error }]}>
                               + Tax
                             </Text>
                           )}
@@ -849,8 +849,8 @@ const InvestmentsScreen = () => {
                     const category = selectedInvestmentType?.category || 'income';
                     setFormData(prev => ({ ...prev, type: value, category: category }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   textStyle={{ color: colors.text }}
                   placeholderStyle={{ color: colors.placeholder }}
                   selectedItemLabelStyle={{ color: colors.text }}
@@ -932,8 +932,8 @@ const InvestmentsScreen = () => {
                     const value = callback(formData.category);
                     setFormData(prev => ({ ...prev, category: value }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   textStyle={{ color: colors.text }}
                   placeholderStyle={{ color: colors.placeholder }}
                   selectedItemLabelStyle={{ color: colors.text }}
@@ -1004,8 +1004,8 @@ const InvestmentsScreen = () => {
                       const value = callback(formData.recurringFrequency);
                       setFormData(prev => ({ ...prev, recurringFrequency: value }));
                     }}
-                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     textStyle={{ color: colors.text }}
                     placeholderStyle={{ color: colors.placeholder }}
                     selectedItemLabelStyle={{ color: colors.text }}
@@ -1056,8 +1056,8 @@ const InvestmentsScreen = () => {
         onRequestClose={() => setInvestmentDetailModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}> 
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}> 
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Investment Details</Text>
               <TouchableOpacity onPress={() => setInvestmentDetailModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -1395,7 +1395,7 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: 20,
   },
-  
+
   // Enhanced UI Styles
   headerGradient: {
     paddingTop: Platform.OS === 'ios' ? 0 : 20,
@@ -1452,7 +1452,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     marginHorizontal: 16,
   },
-  
+
   // Enhanced Summary Cards
   enhancedSummaryCard: {
     flex: 1,
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },
-  
+
   // Tax Cards
   taxCard: {
     flex: 1,
@@ -1523,7 +1523,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
-  
+
   // Show More Card
   showMoreCard: {
     padding: 16,

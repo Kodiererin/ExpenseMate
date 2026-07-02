@@ -14,11 +14,12 @@ export default function Layout() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-          if (route.name === 'add') iconName = 'add-circle-outline';
-          else if (route.name === 'history') iconName = 'time-outline';
-          else if (route.name === 'investments') iconName = 'trending-up-outline';
-          else if (route.name === 'goals') iconName = 'flag-outline';
-          else if (route.name === 'profile') iconName = 'person-outline';
+          if (route.name === 'add') iconName = 'add-circle';
+          else if (route.name === 'history') iconName = 'bar-chart';
+          else if (route.name === 'my-day') iconName = 'today';
+          else if (route.name === 'ai-chat') iconName = 'sparkles';
+          else if (route.name === 'goals') iconName = 'trophy';
+          else if (route.name === 'profile') iconName = 'person';
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -27,66 +28,83 @@ export default function Layout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          borderTopWidth: 0.5,
-          paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 8),
+          borderTopWidth: 1,
+          paddingBottom: Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8),
           paddingTop: 8,
-          height: Platform.OS === 'android' ? 80 + insets.bottom : 70 + insets.bottom,
+          height: Platform.OS === 'android' ? 70 + insets.bottom : 65 + insets.bottom,
           shadowColor: colors.shadow,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 8,
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 8,
+          elevation: 12,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
           paddingBottom: 2,
-          marginTop: -2,
+          marginTop: -4,
         },
         tabBarIconStyle: {
-          marginBottom: -2,
+          marginBottom: -4,
         },
         headerShown: false,
         tabBarShowLabel: true,
         tabBarItemStyle: {
-          paddingVertical: 4,
+          paddingVertical: 6,
         },
       })}
     >
-      <Tabs.Screen 
-        name="add" 
-        options={{ 
+      <Tabs.Screen
+        name="add"
+        options={{
           title: 'Add',
-          tabBarAccessibilityLabel: 'Add Expense',
-        }} 
+          tabBarAccessibilityLabel: 'Add Expense or Income',
+        }}
       />
-      <Tabs.Screen 
-        name="history" 
-        options={{ 
-          title: 'History',
-          tabBarAccessibilityLabel: 'Expense History',
-        }} 
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Analytics',
+          tabBarAccessibilityLabel: 'Expense Analytics and History',
+        }}
       />
-      <Tabs.Screen 
-        name="investments" 
-        options={{ 
-          title: 'Investments',
-          tabBarAccessibilityLabel: 'Investments & Income',
-        }} 
+      <Tabs.Screen
+        name="my-day"
+        options={{
+          title: 'My Day',
+          tabBarAccessibilityLabel: 'Daily Overview and Summary',
+        }}
       />
-      <Tabs.Screen 
-        name="goals" 
-        options={{ 
+      {/* AI Chat - Hidden for now, will be enabled later */}
+      {/* <Tabs.Screen
+        name="ai-chat"
+        options={{
+          title: 'AI Chat',
+          tabBarAccessibilityLabel: 'AI Finance Assistant',
+          tabBarBadge: 'NEW',
+          tabBarBadgeStyle: {
+            backgroundColor: '#10B981',
+            color: '#FFF',
+            fontSize: 9,
+            minWidth: 32,
+            height: 16,
+            borderRadius: 8,
+          },
+        }}
+      /> */}
+      <Tabs.Screen
+        name="goals"
+        options={{
           title: 'Goals',
-          tabBarAccessibilityLabel: 'Budget Goals',
-        }} 
+          tabBarAccessibilityLabel: 'Budget Goals and Savings',
+        }}
       />
-      <Tabs.Screen 
-        name="profile" 
-        options={{ 
+      <Tabs.Screen
+        name="profile"
+        options={{
           title: 'Profile',
-          tabBarAccessibilityLabel: 'User Profile',
-        }} 
+          tabBarAccessibilityLabel: 'User Profile and Settings',
+        }}
       />
     </Tabs>
   );

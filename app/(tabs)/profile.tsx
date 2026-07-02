@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
-import { useTheme } from '../../contexts/ThemeContext';
-import { router } from 'expo-router';
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import { createShadow, radius, sizing, spacing, ThemePalette, typography } from '../../styles/theme';
 
 // Type definitions for better type safety
 interface Expense {
@@ -33,14 +35,15 @@ interface Stats {
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
+  const styles = useThemedStyles(createStyles);
   const { expenses, expensesLoading } = useData();
-  const { 
-    investments, 
+  const {
+    investments,
     loading: investmentsLoading,
     getTotalInvestments,
     getMonthlyIncome
   } = useInvestments();
-  
+
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [stats, setStats] = useState<Stats>({
@@ -61,16 +64,16 @@ export default function ProfileScreen() {
           dialogTitle: 'Save to Downloads',
           UTI: mimeType === 'text/csv' ? 'public.comma-separated-values-text' : 'public.html',
         });
-        
+
         // Show helpful instruction
         Alert.alert(
-          'File Ready', 
+          'File Ready',
           `${fileName} is ready to save.\n\nTip: In the share dialog, choose "Save to Files" or "Downloads" to save it to your Downloads folder.`,
           [{ text: 'OK' }]
         );
       } else {
         Alert.alert(
-          'File Created', 
+          'File Created',
           `${fileName} has been created.\n\nLocation: ${fileUri}\n\nYou can find this file in your file manager.`
         );
       }
@@ -90,12 +93,12 @@ export default function ProfileScreen() {
         const price = parseFloat(exp.price);
         return sum + (isNaN(price) ? 0 : price);
       }, 0);
-      
+
       // Current month expenses
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
-      
+
       const currentMonthExpenses = allExpenses.filter((exp: Expense) => {
         const dateParts = exp.date.split('/');
         if (dateParts.length === 3) {
@@ -105,7 +108,7 @@ export default function ProfileScreen() {
         }
         return false;
       });
-      
+
       const currentMonthAmount = currentMonthExpenses.reduce((sum: number, exp: Expense) => {
         const price = parseFloat(exp.price);
         return sum + (isNaN(price) ? 0 : price);
@@ -119,11 +122,11 @@ export default function ProfileScreen() {
           categoryTotals[exp.tag] = (categoryTotals[exp.tag] || 0) + price;
         }
       });
-      
-      const mostSpentCategory = Object.keys(categoryTotals).length > 0 
-        ? Object.keys(categoryTotals).reduce((a, b) => 
-            categoryTotals[a] > categoryTotals[b] ? a : b
-          )
+
+      const mostSpentCategory = Object.keys(categoryTotals).length > 0
+        ? Object.keys(categoryTotals).reduce((a, b) =>
+          categoryTotals[a] > categoryTotals[b] ? a : b
+        )
         : 'None';
 
       // Investment statistics
@@ -157,7 +160,7 @@ export default function ProfileScreen() {
 
     try {
       setExportingCSV(true);
-      
+
       // Create CSV content with proper escaping
       const headers = 'Date,Category,Description,Amount\n';
       const csvContent = expenses.map((exp: Expense) => {
@@ -165,20 +168,20 @@ export default function ProfileScreen() {
         const tag = exp.tag.replace(/"/g, '""');
         return `"${exp.date}","${tag}","${description}","₹${exp.price}"`;
       }).join('\n');
-      
+
       const fullCsv = headers + csvContent;
-      
+
       // Save to app directory first
       const fileName = `ExpenseMate_Export_${new Date().toISOString().split('T')[0]}.csv`;
       const fileUri = FileSystem.documentDirectory + fileName;
-      
+
       await FileSystem.writeAsStringAsync(fileUri, fullCsv, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      
+
       // Save to Downloads or share
       await shareFile(fileUri, fileName, 'text/csv');
-      
+
     } catch (error) {
       console.error('Error exporting to CSV:', error);
       Alert.alert('Error', 'Failed to export data. Please try again.');
@@ -196,7 +199,7 @@ export default function ProfileScreen() {
 
     try {
       setExportingPDF(true);
-      
+
       // Create HTML content for PDF with proper escaping
       const htmlContent = `
         <!DOCTYPE html>
@@ -291,12 +294,12 @@ export default function ProfileScreen() {
         <body>
           <div class="header">
             <h1>💰 ExpenseMate Report</h1>
-            <p>Generated on ${new Date().toLocaleDateString('en-US', { 
-              weekday: 'long',
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}</p>
+            <p>Generated on ${new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}</p>
           </div>
           
           <div class="stats">
@@ -354,18 +357,18 @@ export default function ProfileScreen() {
         </body>
         </html>
       `;
-      
+
       // Save HTML file
       const fileName = `ExpenseMate_Report_${new Date().toISOString().split('T')[0]}.html`;
       const fileUri = FileSystem.documentDirectory + fileName;
-      
+
       await FileSystem.writeAsStringAsync(fileUri, htmlContent, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      
+
       // Save to Downloads or share
       await shareFile(fileUri, fileName, 'text/html');
-      
+
     } catch (error) {
       console.error('Error exporting to PDF:', error);
       Alert.alert('Error', 'Failed to export report. Please try again.');
@@ -390,23 +393,29 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleAskAI = () => {
-    // TODO: Implement AI Chat functionality
-    Alert.alert('Coming Soon', 'Ask AI feature is under development!');
+  const handleAIChat = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      router.push('/Chat');
+    } catch (error) {
+      Alert.alert('Error', 'Unable to navigate to AI Chat.');
+      console.error('Navigation error:', error);
+    }
   };
 
   const handleAnalysis = () => {
-    // TODO: Implement Analysis functionality
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.push('/Analysis');
     } catch (error) {
-      Alert.alert('Error', 'Unable to navigate to Analysis.');
       console.error('Navigation error:', error);
+      Alert.alert('Error', 'Unable to navigate to Analysis.');
     }
   };
 
   const handleCalculator = () => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       router.navigate('/Calculator');
     } catch (error) {
       console.error('Navigation error:', error);
@@ -414,41 +423,51 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleInvestments = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      router.push('/Investments');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Error', 'Unable to open investments.');
+    }
+  };
+
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
+    <ScrollView
+      style={styles.container}
       contentContainerStyle={styles.contentContainer}
     >
       {/* Header */}
       <Card style={styles.header}>
         <View style={styles.profileSection}>
-          <View style={[styles.profileIcon, { backgroundColor: colors.primary }]}>
+          <View style={styles.profileIcon}>
             <Ionicons name="person" size={32} color={colors.white} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Ujjwal</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={styles.title}>Ujjwal</Text>
+          <Text style={styles.subtitle}>
             ExpenseMate User
           </Text>
-          
+
           {/* Quick Actions - Circular Buttons */}
           <View style={styles.quickActionsContainer}>
             <View style={styles.circularButtonsGrid}>
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.primary,
                     shadowColor: colors.primary,
                   }]}
-                  onPress={handleAskAI}
+                  onPress={handleInvestments}
                 >
-                  <Ionicons name="chatbubble-ellipses" size={25} color={colors.white} />
+                  <Ionicons name="trending-up-outline" size={25} color={colors.white} />
                 </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Ask AI</Text>
+                <Text style={styles.circularButtonLabel}>Invest</Text>
               </View>
 
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.success,
                     shadowColor: colors.success,
                   }]}
@@ -456,25 +475,39 @@ export default function ProfileScreen() {
                 >
                   <Ionicons name="calculator" size={25} color={colors.white} />
                 </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Calculator</Text>
+                <Text style={styles.circularButtonLabel}>Calculator</Text>
               </View>
-              
+
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
+                    backgroundColor: '#8B5CF6',
+                    shadowColor: '#8B5CF6',
+                  }]}
+                  onPress={handleAIChat}
+                  android_ripple={{ color: 'rgba(255, 255, 255, 0.3)' }}
+                >
+                  <Ionicons name="chatbubbles" size={25} color={colors.white} />
+                </Pressable>
+                <Text style={styles.circularButtonLabel}>AI Chat</Text>
+              </View>
+              <View style={styles.buttonContainer}>
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.warning,
                     shadowColor: colors.warning,
                   }]}
                   onPress={handleAnalysis}
+                  android_ripple={{ color: 'rgba(255, 255, 255, 0.3)' }}
                 >
                   <Ionicons name="analytics" size={25} color={colors.white} />
                 </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Analysis</Text>
+                <Text style={styles.circularButtonLabel}>Analysis</Text>
               </View>
 
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.accent,
                     shadowColor: colors.accent,
                   }]}
@@ -482,7 +515,7 @@ export default function ProfileScreen() {
                 >
                   <Ionicons name={getThemeIcon()} size={25} color={colors.white} />
                 </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>
+                <Text style={styles.circularButtonLabel}>
                   {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
                 </Text>
               </View>
@@ -496,7 +529,7 @@ export default function ProfileScreen() {
       {expensesLoading || investmentsLoading ? (
         <Card style={styles.loadingCard}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          <Text style={styles.loadingText}>
             Loading your data...
           </Text>
         </Card>
@@ -518,9 +551,9 @@ export default function ProfileScreen() {
                 color={colors.success}
               />
             </View>
-            
+
             <Separator height={12} />
-            
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="This Month"
@@ -538,7 +571,18 @@ export default function ProfileScreen() {
           </Section>
 
           {/* Investment Statistics */}
-          <Section title="💼 Investment Overview" subtitle="Your investment portfolio">
+          <Section
+            title="💼 Investment Overview"
+            subtitle="Your investment portfolio"
+            action={
+              <Button
+                title="Open"
+                onPress={handleInvestments}
+                icon="arrow-forward"
+                size="small"
+              />
+            }
+          >
             <View style={styles.statsContainer}>
               <StatCard
                 title="Total Investments"
@@ -553,9 +597,9 @@ export default function ProfileScreen() {
                 color={colors.primary}
               />
             </View>
-            
+
             <Separator height={12} />
-            
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="Net Worth"
@@ -570,11 +614,33 @@ export default function ProfileScreen() {
                 color={colors.accent}
               />
             </View>
+
+            <Separator height={12} />
+
+            <Card style={styles.investmentManagerCard}>
+              <View style={styles.investmentManagerHeader}>
+                <View style={styles.investmentManagerIcon}>
+                  <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.investmentManagerCopy}>
+                  <Text style={styles.investmentManagerTitle}>Manage your portfolio from Profile</Text>
+                  <Text style={styles.investmentManagerDescription}>Add investments, track recurring income, and review detailed performance without using a separate tab.</Text>
+                </View>
+              </View>
+
+              <Separator height={12} />
+
+              <Button
+                title="Manage Investments"
+                onPress={handleInvestments}
+                icon="trending-up-outline"
+              />
+            </Card>
           </Section>
 
           {/* Export Section */}
-          <Section 
-            title="📤 Export Data" 
+          <Section
+            title="📤 Export Data"
             subtitle="Download your expense data"
           >
             <Card>
@@ -588,9 +654,9 @@ export default function ProfileScreen() {
                   variant="primary"
                   style={[styles.exportButton, { backgroundColor: colors.success }]}
                 />
-                
+
                 <Separator height={12} />
-                
+
                 <Button
                   title="Export Report"
                   onPress={exportToPDF}
@@ -608,22 +674,22 @@ export default function ProfileScreen() {
           <Section title="ℹ️ About">
             <Card>
               <View style={styles.appInfo}>
-                <Text style={[styles.appTitle, { color: colors.primary }]}>
+                <Text style={styles.appTitle}>
                   💰 ExpenseMate
                 </Text>
-                <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
+                <Text style={styles.appVersion}>
                   Version 4.1.0
                 </Text>
-                <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
+                <Text style={styles.appDescription}>
                   Your open-source personal expense tracking companion.
                   Track, analyze, and save with ease! 🌟
                 </Text>
-                
+
                 <Separator height={16} />
-                
+
                 <View style={styles.openSourceBadge}>
                   <Ionicons name="code-slash" size={20} color={colors.primary} />
-                  <Text style={[styles.openSourceText, { color: colors.primary }]}>
+                  <Text style={styles.openSourceText}>
                     Open Source Project
                   </Text>
                 </View>
@@ -638,16 +704,17 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { 
+const createStyles = (colors: ThemePalette) => StyleSheet.create({
+  container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   contentContainer: {
-    padding: 20, 
-    paddingTop: 60,
+    padding: spacing.xl,
+    paddingTop: spacing.huge + spacing.xl,
   },
   header: {
-    padding: 24,
+    padding: spacing.xxl,
   },
   profileSection: {
     alignItems: 'center',
@@ -655,40 +722,41 @@ const styles = StyleSheet.create({
   profileIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    marginBottom: 4,
+  title: {
+    ...typography.title,
+    color: colors.text,
+    marginBottom: spacing.xs,
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
-    marginBottom: 20,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.xl,
     fontWeight: '500',
   },
   // Quick Actions Circular Buttons Styles
   quickActionsContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   quickActionsTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 16,
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
     textAlign: 'center',
-    opacity: 0.8,
   },
   circularButtonsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
   },
   buttonContainer: {
     alignItems: 'center',
@@ -699,77 +767,99 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 56,
     height: 56,
-    borderRadius: 28,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
-    // Add subtle border for better definition
+    borderRadius: radius.pill,
+    marginBottom: spacing.sm,
+    ...createShadow('lg', colors.shadow),
     borderWidth: 0.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   circularButtonLabel: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...typography.overline,
+    color: colors.text,
+    textTransform: 'none',
     textAlign: 'center',
-    lineHeight: 12,
-    letterSpacing: 0.2,
   },
   // Existing Styles
   loadingCard: {
-    padding: 40,
+    padding: spacing.huge,
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.lg,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   exportButtons: {
-    padding: 8,
+    padding: spacing.sm,
   },
   exportButton: {
     width: '100%',
   },
+  investmentManagerCard: {
+    padding: spacing.lg,
+  },
+  investmentManagerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  investmentManagerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  investmentManagerCopy: {
+    flex: 1,
+  },
+  investmentManagerTitle: {
+    ...typography.bodyStrong,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  investmentManagerDescription: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
   appInfo: {
     alignItems: 'center',
-    padding: 8,
+    padding: spacing.sm,
   },
   appTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    ...typography.title,
+    color: colors.primary,
+    marginBottom: spacing.xs,
     letterSpacing: 1,
   },
   appVersion: {
-    fontSize: 14,
-    marginBottom: 12,
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
   },
   appDescription: {
-    fontSize: 14,
+    ...typography.caption,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
   },
   openSourceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'currentColor',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xl,
+    borderWidth: sizing.hairline,
+    borderColor: colors.primary,
   },
   openSourceText: {
-    marginLeft: 8,
+    ...typography.caption,
+    color: colors.primary,
     fontWeight: '600',
-    fontSize: 14,
+    marginLeft: spacing.sm,
   },
 });

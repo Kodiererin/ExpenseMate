@@ -3,15 +3,33 @@
 <div align="center">
   <img src="./assets/images/icon.png" alt="ExpenseMate Logo" width="120" height="120" />
   
-  **A beautiful, modern expense tracking app built with React Native and Expo**
+  **A comprehensive AI-powered personal finance management application**
   
-  [![Expo](https://img.shields.io/badge/Expo-53.0.17-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
-  [![React Native](https://img.shields.io/badge/React_Native-0.79.5-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![Firebase](https://img.shields.io/badge/Firebase-11.10.0-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+  Track Expenses • Monitor Income • AI Insights • Smart Analytics • Budget Goals
   
-  [🚀 Quick Start](#-quick-start) | [📖 Features](#-features) | [🤝 Contributing](#-contributing)
+  [![Expo](https://img.shields.io/badge/Expo-54.0.31-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+  [![React Native](https://img.shields.io/badge/React_Native-0.81.5-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Firebase](https://img.shields.io/badge/Firebase-12.7.0-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+  
+  [🚀 Features](#-features) | [📱 Screenshots](#-screenshots) | [🤖 AI Assistant](#-ai-finance-assistant) | [📖 Docs](#-documentation)
 </div>
+
+---
+
+## 🌟 **What's New in v3.1.0**
+
+### 🤖 **AI Finance Assistant** (NEW!)
+Get personalized financial insights and advice through natural conversation. Ask questions about your spending, get budget recommendations, and receive smart financial planning advice.
+
+### 💰 **Income Tracking** (NEW!)
+Track all income sources including salary, freelance, investments, and more. Get a complete picture of your financial health with income vs expense analysis.
+
+### 🔄 **Recurring Transactions** (NEW!)
+Automatically track recurring expenses and income with flexible frequency options (daily, weekly, monthly, quarterly, yearly).
+
+### 📊 **Enhanced Analytics**
+Beautiful charts, detailed breakdowns, and exportable reports. Export your financial data to CSV for accounting or tax purposes.
 
 ---
 
@@ -44,33 +62,100 @@ Below are previews of ExpenseMate in both Light and Dark modes. You can scroll h
 
 ## ✨ Features
 
-### 💸 **Expense Management**
+### 🤖 **AI Finance Assistant** ⭐ NEW
 
-- 📊 **Smart Categorization** - Organize expenses with customizable categories (Food, Travel, Shopping, Bills, etc.)
-- 💰 **Real-time Tracking** - Add expenses instantly with amount, description, and date
-- 📅 **Date Flexibility** - Track expenses for any date, not just today
-- 🔍 **Advanced Filtering** - Filter expenses by month, year, and category
+- 💬 **Natural Language Chat** - Ask questions in plain English about your finances
+- 🎯 **Quick Actions** - One-tap access to common queries
+- 📊 **Smart Analysis** - AI analyzes your spending patterns
+- 💡 **Personalized Tips** - Get custom budget recommendations
+- 📈 **Financial Planning** - Long-term savings and investment advice
+- 🔮 **Predictive Insights** - Understand future spending trends
 
-### 📈 **Analytics & Insights**
+**Ready for Integration:** Connect your preferred AI API (OpenAI, Claude, Gemini)
 
-- 📊 **Beautiful Charts** - Interactive pie charts showing expense distribution
-- 📅 **Monthly Overview** - Track spending patterns month by month
-- 💡 **Smart Insights** - Get insights into your spending habits
-- 📋 **Export Ready** - Share expense summaries easily
+---
 
-### 🎯 **Budget Goals**
+### 💰 **Comprehensive Transaction Management**
 
-- 🎯 **Goal Setting** - Set monthly budget goals for each category
-- 📊 **Progress Tracking** - Visual progress indicators for your goals
-- ⚡ **Real-time Updates** - Goals update automatically as you add expenses
-- 🏆 **Achievement System** - Track your budget success rate
+#### **Dual Tracking**
+- 📉 **Expense Tracking** - Track all spending with 14 professional categories
+- 📈 **Income Tracking** - Monitor all income sources (Salary, Freelance, Business, etc.)
+- 🔄 **Easy Toggle** - Switch between expense and income entry with one tap
+- ⚡ **Quick Entry** - Add transactions in seconds
 
-### 🎨 **Modern UI/UX**
+#### **Professional Categories**
+**Expenses:** Food & Dining, Transportation, Shopping, Healthcare, Education, Housing, Utilities & Bills, Entertainment, Insurance, Personal Care, Subscriptions, Business, Gifts & Donations, Miscellaneous
 
-- 🌙 **Dark/Light Theme** - Automatic theme switching based on system preference
-- 📱 **Native Feel** - Smooth animations and native performance
-- ♿ **Accessibility** - Full accessibility support with screen readers
-- 🎯 **Intuitive Navigation** - Clean tab-based navigation with visual feedback
+**Income:** Salary, Freelance, Business, Investment, Rental, Gift, Refund, Other
+
+#### **Recurring Transactions** ⭐ NEW
+- 🔄 **Auto-Track** - Set up recurring bills and income
+- 📅 **Flexible Frequency** - Daily, Weekly, Bi-Weekly, Monthly, Quarterly, Yearly
+- 💳 **Subscriptions** - Never forget a recurring payment
+- 🏠 **Fixed Income** - Track regular salary or rental income
+- 📊 **Future Planning** - See upcoming transactions
+
+---
+
+### 📊 **Advanced Analytics & Insights**
+
+- 📈 **Interactive Charts** - Beautiful pie and line charts with touch interactions
+- 📅 **Time Period Analysis** - Monthly, yearly, and custom date ranges
+- 💡 **Smart Summaries** - Category breakdown and spending distribution
+- 📉 **Trend Analysis** - Track spending patterns over time
+- 💰 **Income vs Expenses** - Complete financial health overview
+- 🎯 **Budget vs Actual** - Compare spending against goals
+
+---
+
+### 📤 **Data Export & Sharing** ⭐ NEW
+
+- 📄 **CSV Export** - Full transaction data in Excel-compatible format
+- 📊 **Summary Reports** - Comprehensive text-based reports
+- ✉️ **Easy Sharing** - Share via email, cloud storage, or messaging
+- 💼 **Tax Ready** - Export data for tax documentation
+- 🔒 **Secure** - Your data, your control
+
+**Perfect For:**
+- Accounting & bookkeeping
+- Tax preparation
+- Financial advisors
+- Budget reviews
+- Audit trails
+
+---
+
+### 🎯 **Budget Goals & Planning**
+
+- 🎯 **Category Budgets** - Set monthly budget limits for each category
+- 📊 **Progress Tracking** - Visual progress bars showing budget usage
+- ⚡ **Real-time Updates** - Budgets update instantly as you spend
+- 🏆 **Achievement Tracking** - Monitor your budget success rate
+- ⚠️ **Smart Alerts** - Visual warnings when approaching limits
+- 📈 **Goal History** - Track budget performance over time
+
+---
+
+### 🎨 **Enterprise-Grade UI/UX**
+
+- 🌙 **Adaptive Theming** - Seamless dark and light mode support
+- 📱 **Native Performance** - Smooth animations and optimized rendering
+- ♿ **Accessibility First** - Full screen reader and accessibility support
+- 🎯 **Intuitive Navigation** - Clean, modern interface with 5-tab layout
+- 🔒 **Secure & Private** - Firebase authentication and secure data storage
+- 🎨 **Beautiful Design** - Professional color schemes and iconography
+
+---
+
+### 🔔 **Future-Ready Features**
+
+**Framework Ready (Easy to Add):**
+- 📷 **Receipt Scanning** - OCR integration ready
+- 🌍 **Multi-Currency** - Currency conversion ready
+- 🔔 **Bill Reminders** - Notification system ready
+- 👥 **Family Sharing** - Multi-user architecture ready
+- 🏦 **Bank Integration** - API integration ready
+- 🔐 **Biometric Lock** - Security framework ready
 
 ---
 
@@ -78,14 +163,14 @@ Below are previews of ExpenseMate in both Light and Dark modes. You can scroll h
 
 | Technology | Purpose | Version |
 |------------|---------|---------|
-| **Expo** | React Native framework | 53.0.17 |
-| **React Native** | Mobile app development | 0.79.5 |
-| **TypeScript** | Type safety | 5.8.3 |
-| **Expo Router** | File-based routing | 5.1.3 |
-| **Firebase** | Backend & database | 11.10.0 |
+| **Expo** | React Native framework | 54.0.31 |
+| **React Native** | Mobile app development | 0.81.5 |
+| **TypeScript** | Type safety & code quality | 5.9.2 |
+| **Expo Router** | File-based routing | 6.0.21 |
+| **Firebase** | Backend, auth & database | 12.7.0 |
 | **React Native Chart Kit** | Data visualization | 6.12.0 |
-| **React Native Gesture Handler** | Touch interactions | 2.24.0 |
-| **React Native Reanimated** | Smooth animations | 3.17.5 |
+| **React Native Gesture Handler** | Touch interactions | 2.28.0 |
+| **React Native Reanimated** | Smooth animations | 4.1.1 |
 
 ---
 

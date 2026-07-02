@@ -25,7 +25,8 @@
         "WAKE_LOCK"
       ],
       "package": "com.whoisujjwal.ExpenseMate",
-      "versionCode": 6
+      "versionCode": 6,
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -43,6 +44,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "expo-notifications",
       "expo-sqlite"
     ],
     "experiments": {

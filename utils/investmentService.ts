@@ -36,14 +36,15 @@ export const investmentService = {
         );
         querySnapshot = await getDocs(q);
       }
-      
+
       const investments = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Investment[];
-      
-      // Sort manually if we used fallback query
-      return investments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Sort manually if we used fallback query (date[0] is the representative date)
+      const repDate = (d: string | string[]) => (Array.isArray(d) ? d[0] : d);
+      return investments.sort((a, b) => new Date(repDate(b.date)).getTime() - new Date(repDate(a.date)).getTime());
     } catch (error) {
       console.error('Error fetching investments:', error);
       throw error;
@@ -73,24 +74,24 @@ export const investmentService = {
     // Helper function to get category from type if category is missing (legacy data)
     const getCategory = (investment: Investment) => {
       if (investment.category) return investment.category;
-      
+
       // Fallback for legacy data
       const incomeTypes = ['salary', 'bonus', 'commission', 'freelance', 'dividend', 'interest', 'rental', 'other'];
       const investmentTypes = ['mutual_fund', 'stocks', 'bonds', 'real_estate', 'crypto'];
       const savingsTypes = ['fixed_deposit', 'ppf', 'nps', 'insurance'];
-      
+
       if (incomeTypes.includes(investment.type)) return 'income';
       if (investmentTypes.includes(investment.type)) return 'investment';
       if (savingsTypes.includes(investment.type)) return 'savings';
       return 'income'; // default fallback
     };
-    
+
     const categories = {
       income: investments.filter(inv => getCategory(inv) === 'income'),
       investment: investments.filter(inv => getCategory(inv) === 'investment'),
       savings: investments.filter(inv => getCategory(inv) === 'savings'),
     };
-    
+
     return {
       income: categories.income.reduce((sum, inv) => sum + inv.amount, 0),
       investment: categories.investment.reduce((sum, inv) => sum + inv.amount, 0),
@@ -136,7 +137,8 @@ export const investmentService = {
 
   getMonthlyTrend(investments: Investment[]) {
     const monthlyData = investments.reduce((acc, investment) => {
-      const month = new Date(investment.date).toLocaleDateString('en-US', { month: 'short' });
+      const repDate = Array.isArray(investment.date) ? investment.date[0] : investment.date;
+      const month = new Date(repDate).toLocaleDateString('en-US', { month: 'short' });
       acc[month] = (acc[month] || 0) + investment.amount;
       return acc;
     }, {} as Record<string, number>);

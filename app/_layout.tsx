@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import DailyMemoryReminderAgent from '../components/DailyMemoryReminderAgent';
+import DailyMemorySyncAgent from '../components/DailyMemorySyncAgent';
 import { DataProvider } from '../contexts/DataContext';
 import { InvestmentProvider } from '../contexts/InvestmentContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
@@ -28,21 +30,31 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
-               <Stack.Screen name="Calculator" 
-                options={{ 
+              <Stack.Screen name="Calculator"
+                options={{
                   headerShown: false,  // This hides the "Calculator" system header
                   presentation: 'card',
                   animation: 'slide_from_right'
-                }} 
+                }}
               />
-              <Stack.Screen name="Analysis" 
-                options={{ 
+              <Stack.Screen name="Analysis"
+                options={{
                   headerShown: false,  // This hides the "Analysis" system header
                   presentation: 'card',
                   animation: 'slide_from_right'
                 }}
               />
+              <Stack.Screen
+                name="Investments"
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                  animation: 'slide_from_right',
+                }}
+              />
             </Stack>
+            <DailyMemoryReminderAgent />
+            <DailyMemorySyncAgent />
             <StatusBar style="auto" />
           </NavigationThemeProvider>
         </InvestmentProvider>

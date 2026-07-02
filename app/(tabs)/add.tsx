@@ -1,48 +1,41 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
+import Reanimated from 'react-native-reanimated';
+import { AnimatedCard, AnimationPresets } from '../../components/AnimatedComponents';
 import { Button, Card, Separator } from '../../components/common';
+import { getDropdownCategories } from '../../constants/categories';
 import { useData } from '../../contexts/DataContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme, useThemedStyles } from '../../contexts/ThemeContext';
+import { createShadow, radius, sizing, spacing, ThemePalette, typography } from '../../styles/theme';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 import { filterText } from '../../utils/validateText';
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createStyles);
   // Data context is used for automatic refresh after adding expenses
   useData();
+
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
-  const [tags, setTags] = useState([
-    { label: 'Food 🍔', value: 'Food' },
-    { label: 'Travel 🚗', value: 'Travel' },
-    { label: 'Shopping 🛍️', value: 'Shopping' },
-    { label: 'Bills 💡', value: 'Bills' },
-    { label: 'Entertainment 🎬', value: 'Entertainment' },
-    { label: 'Games 🎮', value: 'Games' },
-    { label: 'Health 🏥', value: 'Health' },
-    { label: 'Education 📚', value: 'Education' },
-    { label: 'PG 🏠', value: 'PG' },
-    { label: 'Papa 🏠', value: 'PAPA' },
-    { label: 'Mummi 🏠', value: 'MUMMI' },
-    { label: 'Nimmi 🏠', value: 'NIMMI' },
-    { label: 'Harsh 🏠', value: 'HARSH' },
-  ]);
+  const [tags, setTags] = useState(getDropdownCategories());
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
@@ -51,7 +44,7 @@ export default function AddScreen() {
   // Animation for Add button
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  
+
   useEffect(() => {
     animationRef.current = Animated.loop(
       Animated.sequence([
@@ -123,7 +116,7 @@ export default function AddScreen() {
         year: date.getFullYear()
       });
     }
-    
+
     setIsLoading(true);
     const expenseData = {
       tag: tag.trim(),
@@ -131,11 +124,11 @@ export default function AddScreen() {
       description: filterText(description.trim()), // Filter text to remove unwanted characters
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
-    
+
     if (__DEV__) {
       console.log('Final expense data:', expenseData);
     }
-    
+
     try {
       if (__DEV__) {
         console.log('About to add expense to Firestore...');
@@ -144,30 +137,43 @@ export default function AddScreen() {
       if (__DEV__) {
         console.log('Expense added to Firestore successfully');
       }
-      
+
       // Clear form immediately to show success
       setTag('');
       setPrice('');
       setDescription('');
       setDate(new Date());
-      setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
+
+      // Haptic feedback for success
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      setFeedback({
+        type: 'success',
+        message: 'Expense added successfully! 🎉'
+      });
       Keyboard.dismiss();
-      
+
       // No need to manually refresh - the data context will handle it automatically
       if (__DEV__) {
         console.log('Expense added, context will refresh automatically');
       }
-      
+
       if (__DEV__) {
         console.log('Expense Added:', expenseData);
       }
     } catch (error) {
-      setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });
+      // Haptic feedback for error
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+      setFeedback({
+        type: 'error',
+        message: 'Failed to add expense. Please try again.'
+      });
       console.error('Error adding expense:', error);
     } finally {
       setIsLoading(false);
     }
-    
+
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -182,13 +188,7 @@ export default function AddScreen() {
     setOpen(false);
   };
 
-  const shadowStyle = {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: isDark ? 0.3 : 0.12,
-    shadowRadius: 10,
-    elevation: 5,
-  };
+  const shadowStyle = createShadow('md', colors.shadow);
 
   return (
     <KeyboardAvoidingView
@@ -196,31 +196,33 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-        <TouchableWithoutFeedback onPress={handleContainerPress}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-              <Card style={styles.header}>
-                <View style={styles.headerContent}>
-                  <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
-                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Track your expenses with ease
-                  </Text>
-                </View>
-              </Card>
+      <TouchableWithoutFeedback onPress={handleContainerPress}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <AnimatedCard delay={0} animationType="fade" style={styles.header}>
+              <View style={styles.headerContent}>
+                <Text style={styles.title}>💰 Expense Tracker</Text>
+                <Text style={styles.subtitle}>
+                  Track your daily expenses
+                </Text>
+              </View>
+            </AnimatedCard>
 
-            <Separator height={24} />
+            <Separator height={20} />
 
-            <Card>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
-              
+            <AnimatedCard delay={100} animationType="slide">
+              <Text style={styles.sectionTitle}>
+                Expense Details
+              </Text>
+
               <Separator height={10} />
-              
+
               <View style={styles.inputRow}>
                 <View style={{ flex: 0.58, zIndex: open ? 1000 : 10 }}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Category</Text>
+                  <Text style={styles.inputLabel}>Category</Text>
                   <DropDownPicker
                     open={open}
                     value={tag}
@@ -262,14 +264,14 @@ export default function AddScreen() {
                       fontSize: 18,
                       color: colors.text,
                     }}
-                    listItemLabelStyle={{ 
-                      fontWeight: '500', 
-                      color: colors.text, 
-                      fontSize: 16 
+                    listItemLabelStyle={{
+                      fontWeight: '500',
+                      color: colors.text,
+                      fontSize: 16
                     }}
-                    placeholderStyle={{ 
-                      color: colors.placeholder, 
-                      fontSize: 16 
+                    placeholderStyle={{
+                      color: colors.placeholder,
+                      fontSize: 16
                     }}
                     theme={isDark ? "DARK" : "LIGHT"}
                     ArrowDownIconComponent={() => (
@@ -281,27 +283,27 @@ export default function AddScreen() {
                     TickIconComponent={() => (
                       <Ionicons name="checkmark" size={20} color={colors.primary} />
                     )}
-                    searchContainerStyle={{ 
-                      borderBottomColor: colors.border, 
+                    searchContainerStyle={{
+                      borderBottomColor: colors.border,
                       backgroundColor: colors.surface,
                       borderRadius: 8,
                       marginHorizontal: 10,
                       marginTop: 10,
                     }}
-                    searchTextInputStyle={{ 
-                      color: colors.text, 
-                      fontSize: 15, 
+                    searchTextInputStyle={{
+                      color: colors.text,
+                      fontSize: 15,
                       backgroundColor: colors.surface,
                       borderRadius: 8,
                     }}
-                    listItemContainerStyle={{ 
-                      borderRadius: 8, 
+                    listItemContainerStyle={{
+                      borderRadius: 8,
                       marginVertical: 2,
                       marginHorizontal: 10,
                     }}
-                    selectedItemLabelStyle={{ 
-                      color: colors.primary, 
-                      fontWeight: 'bold' 
+                    selectedItemLabelStyle={{
+                      color: colors.primary,
+                      fontWeight: 'bold'
                     }}
                     labelStyle={{
                       color: colors.text,
@@ -328,19 +330,16 @@ export default function AddScreen() {
                 </View>
 
                 <View style={{ flex: 0.42 }}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Amount</Text>
-                  <View style={[styles.priceInputWrapper, { 
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                  }, shadowStyle]}>
-                    <MaterialCommunityIcons 
-                      name="currency-inr" 
-                      size={20} 
-                      color={colors.primary} 
-                      style={styles.rupeeIcon} 
+                  <Text style={styles.inputLabel}>Amount</Text>
+                  <View style={[styles.priceInputWrapper, shadowStyle]}>
+                    <MaterialCommunityIcons
+                      name="currency-inr"
+                      size={20}
+                      color={colors.primary}
+                      style={styles.rupeeIcon}
                     />
                     <TextInput
-                      style={[styles.priceInput, { color: colors.text }]}
+                      style={styles.priceInput}
                       placeholder="0.00"
                       keyboardType="numeric"
                       value={price}
@@ -368,19 +367,16 @@ export default function AddScreen() {
 
               <Separator height={16} />
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date</Text>
+              <Text style={styles.inputLabel}>Date</Text>
               <Pressable onPress={() => setShowDatePicker(true)}>
-                <View style={[styles.dateCard, { 
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                }, shadowStyle]}>
+                <View style={[styles.dateCard, shadowStyle]}>
                   <Ionicons name="calendar" size={20} color={colors.primary} />
-                  <Text style={[styles.dateText, { color: colors.text }]}>
-                    {date.toLocaleDateString('en-US', { 
+                  <Text style={styles.dateText}>
+                    {date.toLocaleDateString('en-US', {
                       weekday: 'short',
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
                     })}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
@@ -397,17 +393,14 @@ export default function AddScreen() {
                 />
               )}
 
-              <Separator height={16} />
+              <Separator height={20} />
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+              <Text style={styles.inputLabel}>
                 Description (Optional)
               </Text>
-              <View style={[styles.descInputWrapper, { 
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              }, shadowStyle]}>
+              <View style={[styles.descInputWrapper, shadowStyle]}>
                 <TextInput
-                  style={[styles.descInput, { color: colors.text }]}
+                  style={styles.descInput}
                   placeholder="Add a note about this expense..."
                   value={description}
                   onChangeText={(text) => {
@@ -422,46 +415,52 @@ export default function AddScreen() {
                   returnKeyType="done"
                 />
                 {description.length > 450 && (
-                  <Text style={[styles.characterCount, { color: colors.textSecondary }]}>
+                  <Text style={styles.characterCount}>
                     {description.length}/500
                   </Text>
                 )}
               </View>
-            </Card>
+            </AnimatedCard>
 
-            <Separator height={0} />      
+            <Separator height={0} />
             {/* Initially the seperate height was 32 which was reduced to 0 for better spacing. */}
 
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <Reanimated.View
+              entering={AnimationPresets.ZoomIn.delay(200).springify()}
+            >
               <Button
-                title={isLoading ? "Adding Expense..." : "Add Expense"}
+                title={isLoading ? 'Adding Expense...' : 'Add Expense'}
                 onPress={handleAdd}
                 loading={isLoading}
                 icon="add-circle"
                 size="large"
                 style={[styles.addButton, shadowStyle]}
               />
-            </Animated.View>
+            </Reanimated.View>
 
             {feedback && (
-              <Card style={[
-                styles.feedback,
-                { 
-                  backgroundColor: feedback.type === 'success' ? colors.success : colors.error,
-                  borderColor: feedback.type === 'success' ? colors.success : colors.error,
-                }
-              ]}>
-                <View style={styles.feedbackContent}>
-                  <Ionicons
-                    name={feedback.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
-                    size={24}
-                    color={colors.white}
-                  />
-                  <Text style={[styles.feedbackText, { color: colors.white }]}>
-                    {feedback.message}
-                  </Text>
-                </View>
-              </Card>
+              <Reanimated.View
+                entering={AnimationPresets.BounceIn}
+              >
+                <Card style={[
+                  styles.feedback,
+                  {
+                    backgroundColor: feedback.type === 'success' ? colors.success : colors.error,
+                    borderColor: feedback.type === 'success' ? colors.success : colors.error,
+                  }
+                ]}>
+                  <View style={styles.feedbackContent}>
+                    <Ionicons
+                      name={feedback.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                      size={24}
+                      color={colors.white}
+                    />
+                    <Text style={styles.feedbackText}>
+                      {feedback.message}
+                    </Text>
+                  </View>
+                </Card>
+              </Reanimated.View>
             )}
 
             <Separator height={32} />
@@ -472,18 +471,18 @@ export default function AddScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemePalette) => StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 40, // Extra bottom padding
+    padding: spacing.xl,
+    paddingTop: spacing.huge + spacing.xl,
+    paddingBottom: spacing.huge,
   },
   container: {
     flex: 1,
   },
   header: {
-    padding: 24,
+    padding: spacing.xxl,
     alignItems: 'center',
   },
   headerContent: {
@@ -491,107 +490,113 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    ...typography.display,
+    color: colors.text,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    opacity: 0.8,
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    ...typography.heading,
+    color: colors.text,
+    marginBottom: spacing.lg,
     letterSpacing: 0.3,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 12,
+    gap: spacing.md,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    ...typography.label,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
     letterSpacing: 0.2,
   },
   priceInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    minHeight: 52,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    minHeight: sizing.inputHeight,
     borderWidth: 1,
   },
   rupeeIcon: {
-    marginRight: 10,
+    marginRight: spacing.sm + 2,
   },
   priceInput: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
+    ...typography.bodyStrong,
+    color: colors.text,
     textAlign: 'right',
   },
   dateCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
-    minHeight: 52,
+    minHeight: sizing.inputHeight,
   },
   dateText: {
     flex: 1,
-    fontSize: 16,
+    ...typography.body,
     fontWeight: '500',
-    marginLeft: 12,
+    color: colors.text,
+    marginLeft: spacing.md,
   },
   descInputWrapper: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
     minHeight: 100,
   },
   descInput: {
-    fontSize: 16,
+    ...typography.body,
+    color: colors.text,
     minHeight: 80,
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     textAlignVertical: 'top',
-    lineHeight: 22,
   },
   characterCount: {
-    fontSize: 12,
+    ...typography.caption,
+    color: colors.textSecondary,
     textAlign: 'right',
-    paddingVertical: 4,
-    fontWeight: '500',
+    paddingVertical: spacing.xs,
   },
   addButton: {
-    marginTop: 16,
+    marginTop: spacing.lg,
     alignSelf: 'stretch',
   },
   feedback: {
-    marginTop: 24,
+    marginTop: spacing.xxl,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
   feedbackContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: spacing.lg,
   },
   feedbackText: {
-    marginLeft: 12,
-    fontSize: 16,
-    fontWeight: '600',
+    marginLeft: spacing.md,
+    ...typography.bodyStrong,
+    color: colors.white,
     flex: 1,
-    lineHeight: 22,
   },
 });
