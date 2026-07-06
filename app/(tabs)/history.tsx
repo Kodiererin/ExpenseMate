@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { CategoryBudgetModal } from '../../components/CategoryBudgetModal';
 import { commonStyles } from '../../styles/commonStyles';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -61,6 +62,8 @@ export default function HistoryScreen() {
   // Filter and sort state (must be top-level)
   const [filterTag, setFilterTag] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("date");
+  // Category budgets modal
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
 
   // Filter and sort expenses for current month
   const filteredSortedExpenses = useMemo(() => {
@@ -407,9 +410,25 @@ export default function HistoryScreen() {
           {expenses.length > 0 && (
             <>
               <Card>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  📈 Category Breakdown
-                </Text>
+                <View style={styles.breakdownHeader}>
+                  <Text style={[styles.sectionTitle, styles.breakdownTitle, { color: colors.text }]}>
+                    📈 Category Breakdown
+                  </Text>
+                  <Pressable
+                    onPress={() => setBudgetModalVisible(true)}
+                    style={({ pressed }) => [
+                      styles.budgetButton,
+                      {
+                        backgroundColor: colors.primary + '15',
+                        borderColor: colors.primary + '40',
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="wallet-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.budgetButtonText, { color: colors.primary }]}>Budgets</Text>
+                  </Pressable>
+                </View>
                 <View style={styles.chartContainer}>
                   <PieChart
                     data={getPieChartData()}
@@ -670,6 +689,14 @@ export default function HistoryScreen() {
           )}
         </View>
       </Modal>
+
+      <CategoryBudgetModal
+        visible={budgetModalVisible}
+        onClose={() => setBudgetModalVisible(false)}
+        expenses={expenses}
+        monthLabel={months[selectedMonth - 1]}
+        year={selectedYear}
+      />
     </>
   );
 }
@@ -700,6 +727,31 @@ const styles = {
     backgroundColor: 'transparent',
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  breakdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  breakdownTitle: {
+    marginBottom: 0,
+    flex: 1,
+    marginRight: 12,
+  },
+  budgetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  budgetButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   chartSubtitle: {
     fontSize: 12,

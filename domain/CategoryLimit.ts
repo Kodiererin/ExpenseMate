@@ -1,5 +1,5 @@
 export interface CategoryLimit {
-  id?: string;
-  category: string;
-  monthlyLimit: number;
+    id?: string;
+    category: string;
+    monthlyLimit: number;
 }
