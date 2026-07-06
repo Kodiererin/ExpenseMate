@@ -75,28 +75,16 @@ export default function Layout() {
           tabBarAccessibilityLabel: 'Daily Overview and Summary',
         }}
       />
-      {/* AI Chat - Hidden for now, will be enabled later */}
-      {/* <Tabs.Screen
+      <Tabs.Screen
         name="ai-chat"
         options={{
-          title: 'AI Chat',
-          tabBarAccessibilityLabel: 'AI Finance Assistant',
-          tabBarBadge: 'NEW',
-          tabBarBadgeStyle: {
-            backgroundColor: '#10B981',
-            color: '#FFF',
-            fontSize: 9,
-            minWidth: 32,
-            height: 16,
-            borderRadius: 8,
-          },
+          href: null,
         }}
-      /> */}
+      />
       <Tabs.Screen
         name="goals"
         options={{
-          title: 'Goals',
-          tabBarAccessibilityLabel: 'Budget Goals and Savings',
+          href: null,
         }}
       />
       <Tabs.Screen

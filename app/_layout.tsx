@@ -2,17 +2,70 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } fro
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useMemo } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
 import DailyMemoryReminderAgent from '../components/DailyMemoryReminderAgent';
 import DailyMemorySyncAgent from '../components/DailyMemorySyncAgent';
 import { DataProvider } from '../contexts/DataContext';
 import { InvestmentProvider } from '../contexts/InvestmentContext';
-import { ThemeProvider } from '../contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+
+function AppNavigator() {
+  const { isDark, colors } = useTheme();
+
+  const navigationTheme = useMemo(() => {
+    const baseTheme = isDark ? DarkTheme : DefaultTheme;
+    return {
+      ...baseTheme,
+      colors: {
+        ...baseTheme.colors,
+        primary: colors.primary,
+        background: colors.background,
+        card: colors.card,
+        text: colors.text,
+        border: colors.border,
+        notification: colors.accent,
+      },
+    };
+  }, [isDark, colors]);
+
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+        <Stack.Screen name="Calculator"
+          options={{
+            headerShown: false,  // This hides the "Calculator" system header
+            presentation: 'card',
+            animation: 'slide_from_right'
+          }}
+        />
+        <Stack.Screen name="Analysis"
+          options={{
+            headerShown: false,  // This hides the "Analysis" system header
+            presentation: 'card',
+            animation: 'slide_from_right'
+          }}
+        />
+        <Stack.Screen
+          name="Investments"
+          options={{
+            headerShown: false,
+            presentation: 'card',
+            animation: 'slide_from_right',
+          }}
+        />
+      </Stack>
+      <DailyMemoryReminderAgent />
+      <DailyMemorySyncAgent />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </NavigationThemeProvider>
+  );
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -26,37 +79,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <DataProvider>
         <InvestmentProvider>
-          <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-              <Stack.Screen name="Calculator"
-                options={{
-                  headerShown: false,  // This hides the "Calculator" system header
-                  presentation: 'card',
-                  animation: 'slide_from_right'
-                }}
-              />
-              <Stack.Screen name="Analysis"
-                options={{
-                  headerShown: false,  // This hides the "Analysis" system header
-                  presentation: 'card',
-                  animation: 'slide_from_right'
-                }}
-              />
-              <Stack.Screen
-                name="Investments"
-                options={{
-                  headerShown: false,
-                  presentation: 'card',
-                  animation: 'slide_from_right',
-                }}
-              />
-            </Stack>
-            <DailyMemoryReminderAgent />
-            <DailyMemorySyncAgent />
-            <StatusBar style="auto" />
-          </NavigationThemeProvider>
+          <AppNavigator />
         </InvestmentProvider>
       </DataProvider>
     </ThemeProvider>

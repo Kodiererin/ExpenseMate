@@ -13,6 +13,7 @@ import Animated, {
     Extrapolate,
     FadeIn,
     FadeInDown,
+    FadeInRight,
     FadeInUp,
     FlipInEasyX,
     interpolate,
