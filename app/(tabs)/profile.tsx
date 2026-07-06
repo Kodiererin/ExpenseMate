@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import { router } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -7,7 +8,6 @@ import { Button, Card, Section, Separator, StatCard } from '../../components/com
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { router } from 'expo-router';
 
 // Type definitions for better type safety
 interface Expense {
@@ -34,13 +34,13 @@ interface Stats {
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
   const { expenses, expensesLoading } = useData();
-  const { 
-    investments, 
+  const {
+    investments,
     loading: investmentsLoading,
     getTotalInvestments,
     getMonthlyIncome
   } = useInvestments();
-  
+
   const [exportingCSV, setExportingCSV] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
   const [stats, setStats] = useState<Stats>({
@@ -61,16 +61,16 @@ export default function ProfileScreen() {
           dialogTitle: 'Save to Downloads',
           UTI: mimeType === 'text/csv' ? 'public.comma-separated-values-text' : 'public.html',
         });
-        
+
         // Show helpful instruction
         Alert.alert(
-          'File Ready', 
+          'File Ready',
           `${fileName} is ready to save.\n\nTip: In the share dialog, choose "Save to Files" or "Downloads" to save it to your Downloads folder.`,
           [{ text: 'OK' }]
         );
       } else {
         Alert.alert(
-          'File Created', 
+          'File Created',
           `${fileName} has been created.\n\nLocation: ${fileUri}\n\nYou can find this file in your file manager.`
         );
       }
@@ -90,12 +90,12 @@ export default function ProfileScreen() {
         const price = parseFloat(exp.price);
         return sum + (isNaN(price) ? 0 : price);
       }, 0);
-      
+
       // Current month expenses
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1;
       const currentYear = currentDate.getFullYear();
-      
+
       const currentMonthExpenses = allExpenses.filter((exp: Expense) => {
         const dateParts = exp.date.split('/');
         if (dateParts.length === 3) {
@@ -105,7 +105,7 @@ export default function ProfileScreen() {
         }
         return false;
       });
-      
+
       const currentMonthAmount = currentMonthExpenses.reduce((sum: number, exp: Expense) => {
         const price = parseFloat(exp.price);
         return sum + (isNaN(price) ? 0 : price);
@@ -119,11 +119,11 @@ export default function ProfileScreen() {
           categoryTotals[exp.tag] = (categoryTotals[exp.tag] || 0) + price;
         }
       });
-      
-      const mostSpentCategory = Object.keys(categoryTotals).length > 0 
-        ? Object.keys(categoryTotals).reduce((a, b) => 
-            categoryTotals[a] > categoryTotals[b] ? a : b
-          )
+
+      const mostSpentCategory = Object.keys(categoryTotals).length > 0
+        ? Object.keys(categoryTotals).reduce((a, b) =>
+          categoryTotals[a] > categoryTotals[b] ? a : b
+        )
         : 'None';
 
       // Investment statistics
@@ -157,7 +157,7 @@ export default function ProfileScreen() {
 
     try {
       setExportingCSV(true);
-      
+
       // Create CSV content with proper escaping
       const headers = 'Date,Category,Description,Amount\n';
       const csvContent = expenses.map((exp: Expense) => {
@@ -165,20 +165,20 @@ export default function ProfileScreen() {
         const tag = exp.tag.replace(/"/g, '""');
         return `"${exp.date}","${tag}","${description}","₹${exp.price}"`;
       }).join('\n');
-      
+
       const fullCsv = headers + csvContent;
-      
+
       // Save to app directory first
       const fileName = `ExpenseMate_Export_${new Date().toISOString().split('T')[0]}.csv`;
       const fileUri = FileSystem.documentDirectory + fileName;
-      
+
       await FileSystem.writeAsStringAsync(fileUri, fullCsv, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      
+
       // Save to Downloads or share
       await shareFile(fileUri, fileName, 'text/csv');
-      
+
     } catch (error) {
       console.error('Error exporting to CSV:', error);
       Alert.alert('Error', 'Failed to export data. Please try again.');
@@ -196,7 +196,7 @@ export default function ProfileScreen() {
 
     try {
       setExportingPDF(true);
-      
+
       // Create HTML content for PDF with proper escaping
       const htmlContent = `
         <!DOCTYPE html>
@@ -291,12 +291,12 @@ export default function ProfileScreen() {
         <body>
           <div class="header">
             <h1>💰 ExpenseMate Report</h1>
-            <p>Generated on ${new Date().toLocaleDateString('en-US', { 
-              weekday: 'long',
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}</p>
+            <p>Generated on ${new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}</p>
           </div>
           
           <div class="stats">
@@ -354,18 +354,18 @@ export default function ProfileScreen() {
         </body>
         </html>
       `;
-      
+
       // Save HTML file
       const fileName = `ExpenseMate_Report_${new Date().toISOString().split('T')[0]}.html`;
       const fileUri = FileSystem.documentDirectory + fileName;
-      
+
       await FileSystem.writeAsStringAsync(fileUri, htmlContent, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      
+
       // Save to Downloads or share
       await shareFile(fileUri, fileName, 'text/html');
-      
+
     } catch (error) {
       console.error('Error exporting to PDF:', error);
       Alert.alert('Error', 'Failed to export report. Please try again.');
@@ -382,21 +382,12 @@ export default function ProfileScreen() {
     }
   };
 
-  const getThemeLabel = (): string => {
-    switch (theme) {
-      case 'light': return 'Light Mode';
-      case 'dark': return 'Dark Mode';
-      default: return 'System Default';
-    }
-  };
-
   const handleAskAI = () => {
     // TODO: Implement AI Chat functionality
     Alert.alert('Coming Soon', 'Ask AI feature is under development!');
   };
 
   const handleAnalysis = () => {
-    // TODO: Implement Analysis functionality
     try {
       router.push('/Analysis');
     } catch (error) {
@@ -415,8 +406,8 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]} 
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
     >
       {/* Header */}
@@ -429,13 +420,13 @@ export default function ProfileScreen() {
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             ExpenseMate User
           </Text>
-          
+
           {/* Quick Actions - Circular Buttons */}
           <View style={styles.quickActionsContainer}>
             <View style={styles.circularButtonsGrid}>
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.primary,
                     shadowColor: colors.primary,
                   }]}
@@ -447,8 +438,8 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.success,
                     shadowColor: colors.success,
                   }]}
@@ -458,10 +449,10 @@ export default function ProfileScreen() {
                 </Pressable>
                 <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Calculator</Text>
               </View>
-              
+
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.warning,
                     shadowColor: colors.warning,
                   }]}
@@ -473,8 +464,8 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.buttonContainer}>
-                <Pressable 
-                  style={[styles.circularButton, { 
+                <Pressable
+                  style={[styles.circularButton, {
                     backgroundColor: colors.accent,
                     shadowColor: colors.accent,
                   }]}
@@ -518,9 +509,9 @@ export default function ProfileScreen() {
                 color={colors.success}
               />
             </View>
-            
+
             <Separator height={12} />
-            
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="This Month"
@@ -553,9 +544,9 @@ export default function ProfileScreen() {
                 color={colors.primary}
               />
             </View>
-            
+
             <Separator height={12} />
-            
+
             <View style={styles.statsContainer}>
               <StatCard
                 title="Net Worth"
@@ -573,8 +564,8 @@ export default function ProfileScreen() {
           </Section>
 
           {/* Export Section */}
-          <Section 
-            title="📤 Export Data" 
+          <Section
+            title="📤 Export Data"
             subtitle="Download your expense data"
           >
             <Card>
@@ -588,9 +579,9 @@ export default function ProfileScreen() {
                   variant="primary"
                   style={[styles.exportButton, { backgroundColor: colors.success }]}
                 />
-                
+
                 <Separator height={12} />
-                
+
                 <Button
                   title="Export Report"
                   onPress={exportToPDF}
@@ -618,9 +609,9 @@ export default function ProfileScreen() {
                   Your open-source personal expense tracking companion.
                   Track, analyze, and save with ease! 🌟
                 </Text>
-                
+
                 <Separator height={16} />
-                
+
                 <View style={styles.openSourceBadge}>
                   <Ionicons name="code-slash" size={20} color={colors.primary} />
                   <Text style={[styles.openSourceText, { color: colors.primary }]}>
@@ -639,11 +630,11 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20, 
+    padding: 20,
     paddingTop: 60,
   },
   header: {
@@ -660,9 +651,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
     marginBottom: 4,
     letterSpacing: 0.5,
   },
@@ -676,13 +667,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 8,
-  },
-  quickActionsTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-    opacity: 0.8,
   },
   circularButtonsGrid: {
     flexDirection: 'row',
