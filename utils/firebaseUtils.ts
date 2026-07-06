@@ -1,5 +1,6 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "../constants/firebase";
+import { CategoryLimit } from "../domain/CategoryLimit";
 import { Expense } from "../domain/Expense";
 import { Goal } from "../domain/Goal";
 
@@ -20,7 +21,7 @@ const notifyDataChange = () => {
   if (notifyTimeout) {
     clearTimeout(notifyTimeout);
   }
-  
+
   notifyTimeout = setTimeout(() => {
     console.log(`Notifying ${onDataChangeCallbacks.length} data change callbacks`);
     onDataChangeCallbacks.forEach((callback, index) => {
@@ -58,21 +59,21 @@ export const deleteExpenseFromFirestore = async (expenseId: string): Promise<voi
 export const getExpensesByMonth = async (month: number, year: number): Promise<Expense[]> => {
   try {
     console.log(`Filtering expenses for month: ${month}, year: ${year}`);
-    
+
     // Get all expenses and filter by month on the client side
     // This is needed because Firestore date field is stored as string in "M/D/YYYY" format
     const q = query(
       collection(db, "expenses"),
       orderBy("date", "desc")
     );
-    
+
     const querySnapshot = await getDocs(q);
     const expenses: Expense[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       console.log(`Processing expense with date: ${data.date}`);
-      
+
       // Parse "M/D/YYYY" format manually with validation
       if (data.date && typeof data.date === 'string') {
         const dateParts = data.date.split('/');
@@ -80,15 +81,15 @@ export const getExpensesByMonth = async (month: number, year: number): Promise<E
           const expenseMonth = parseInt(dateParts[0], 10);
           const expenseDay = parseInt(dateParts[1], 10);
           const expenseYear = parseInt(dateParts[2], 10);
-          
+
           // Validate parsed values
           if (!isNaN(expenseMonth) && !isNaN(expenseDay) && !isNaN(expenseYear) &&
-              expenseMonth >= 1 && expenseMonth <= 12 &&
-              expenseDay >= 1 && expenseDay <= 31 &&
-              expenseYear >= 1900 && expenseYear <= 2100) {
-            
+            expenseMonth >= 1 && expenseMonth <= 12 &&
+            expenseDay >= 1 && expenseDay <= 31 &&
+            expenseYear >= 1900 && expenseYear <= 2100) {
+
             console.log(`Parsed: month=${expenseMonth}, day=${expenseDay}, year=${expenseYear}`);
-            
+
             // Check if the expense belongs to the requested month and year
             if (expenseYear === year && expenseMonth === month) {
               expenses.push({
@@ -103,7 +104,7 @@ export const getExpensesByMonth = async (month: number, year: number): Promise<E
         }
       }
     });
-    
+
     // Sort by date descending (newest first)
     expenses.sort((a, b) => {
       const parseDate = (dateStr: string) => {
@@ -120,7 +121,7 @@ export const getExpensesByMonth = async (month: number, year: number): Promise<E
       };
       return parseDate(b.date).getTime() - parseDate(a.date).getTime();
     });
-    
+
     console.log(`Fetched ${expenses.length} expenses for ${year}-${month.toString().padStart(2, '0')}`);
     return expenses;
   } catch (error) {
@@ -139,26 +140,26 @@ export const getAllAvailableMonths = async (): Promise<string[]> => {
       collection(db, "expenses"),
       orderBy("date", "desc")
     );
-    
+
     const querySnapshot = await getDocs(q);
     const months = new Set<string>();
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      
+
       // Parse "M/D/YYYY" format manually
       const dateParts = data.date.split('/');
       if (dateParts.length === 3) {
         const expenseMonth = parseInt(dateParts[0], 10);
         const expenseYear = parseInt(dateParts[2], 10);
-        
+
         if (!isNaN(expenseMonth) && !isNaN(expenseYear)) {
           const monthKey = `${expenseYear}-${expenseMonth.toString().padStart(2, '0')}`;
           months.add(monthKey);
         }
       }
     });
-    
+
     const sortedMonths = Array.from(months).sort().reverse();
     console.log('Available months:', sortedMonths);
     return sortedMonths;
@@ -175,10 +176,10 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
       collection(db, "expenses"),
       orderBy("date", "desc")
     );
-    
+
     const querySnapshot = await getDocs(q);
     const expenses: Expense[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       expenses.push({
@@ -189,7 +190,7 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
         tag: data.tag
       } as Expense);
     });
-    
+
     console.log(`Fetched ${expenses.length} total expenses:`, expenses.map(e => `${e.tag}: ₹${e.price} (${e.date})`));
     return expenses;
   } catch (error) {
@@ -235,16 +236,16 @@ export const updateGoalInFirestore = async (goalId: string, updates: Partial<Omi
 export const getGoalsByMonthYear = async (monthYear: string): Promise<Goal[]> => {
   try {
     console.log(`Fetching goals for month-year: ${monthYear}`);
-    
+
     // Remove orderBy to avoid composite index requirement
     const q = query(
       collection(db, "goals"),
       where("monthYear", "==", monthYear)
     );
-    
+
     const querySnapshot = await getDocs(q);
     const goals: Goal[] = [];
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       goals.push({
@@ -255,14 +256,14 @@ export const getGoalsByMonthYear = async (monthYear: string): Promise<Goal[]> =>
         createdAt: data.createdAt
       } as Goal);
     });
-    
+
     // Sort on client side by createdAt descending (newest first)
     goals.sort((a, b) => {
       const aTime = new Date(a.createdAt).getTime();
       const bTime = new Date(b.createdAt).getTime();
       return bTime - aTime;
     });
-    
+
     console.log(`Fetched ${goals.length} goals for ${monthYear}`);
     return goals;
   } catch (error) {
@@ -275,36 +276,88 @@ export const getAllAvailableGoalMonths = async (): Promise<string[]> => {
   try {
     // Remove orderBy to avoid index requirements
     const q = query(collection(db, "goals"));
-    
+
     const querySnapshot = await getDocs(q);
     const months = new Set<string>();
-    
+
     querySnapshot.forEach((doc) => {
       const data = doc.data();
       if (data.monthYear) {
         months.add(data.monthYear);
       }
     });
-    
+
     const sortedMonths = Array.from(months).sort((a, b) => {
       // Sort by year then month
       const [aMonth, aYear] = a.split(' ');
       const [bMonth, bYear] = b.split(' ');
-      
+
       if (aYear !== bYear) {
         return parseInt(bYear) - parseInt(aYear); // Descending year
       }
-      
+
       const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June',
-                         'July', 'August', 'September', 'October', 'November', 'December'];
+        'July', 'August', 'September', 'October', 'November', 'December'];
       return monthOrder.indexOf(bMonth) - monthOrder.indexOf(aMonth); // Descending month
     });
-    
+
     console.log('Available goal months:', sortedMonths);
     return sortedMonths;
   } catch (error) {
     console.error("Error fetching available goal months: ", error);
     return [];
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Category budget limits
+// ---------------------------------------------------------------------------
+
+// Firestore document IDs cannot contain '/'; encode the category to be safe.
+const categoryDocId = (category: string) => encodeURIComponent(category.trim());
+
+export const getCategoryLimits = async (): Promise<CategoryLimit[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "categoryLimits"));
+    const limits: CategoryLimit[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.category != null && typeof data.monthlyLimit === 'number') {
+        limits.push({
+          id: docSnap.id,
+          category: data.category,
+          monthlyLimit: data.monthlyLimit,
+        });
+      }
+    });
+    return limits;
+  } catch (error) {
+    console.error("Error fetching category limits: ", error);
+    return [];
+  }
+};
+
+export const setCategoryLimit = async (category: string, monthlyLimit: number): Promise<void> => {
+  try {
+    const trimmed = category.trim();
+    await setDoc(doc(db, "categoryLimits", categoryDocId(trimmed)), {
+      category: trimmed,
+      monthlyLimit,
+    });
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error setting category limit: ", error);
+    throw error;
+  }
+};
+
+export const deleteCategoryLimit = async (category: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, "categoryLimits", categoryDocId(category)));
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error deleting category limit: ", error);
+    throw error;
   }
 };
 
