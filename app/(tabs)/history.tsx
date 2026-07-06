@@ -15,12 +15,12 @@ import {
   View
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
-import { Button, Card, Section, Separator } from '../../components/common';
 import { CategoryBudgetModal } from '../../components/CategoryBudgetModal';
-import { commonStyles } from '../../styles/commonStyles';
+import { Button, Card, Section, Separator } from '../../components/common';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../domain/Expense';
+import { commonStyles } from '../../styles/commonStyles';
 import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
 
 function formatDate(dateString: string) {
@@ -30,12 +30,12 @@ function formatDate(dateString: string) {
     const month = parseInt(dateParts[0], 10);
     const day = parseInt(dateParts[1], 10);
     const year = parseInt(dateParts[2], 10);
-    
+
     // Create a proper Date object
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
-      month: 'short', 
+      month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
@@ -45,13 +45,13 @@ function formatDate(dateString: string) {
 
 export default function HistoryScreen() {
   const { colors, isDark } = useTheme();
-  const { 
-    getExpensesByMonth, 
-    refreshExpenses, 
+  const {
+    getExpensesByMonth,
+    refreshExpenses,
     expensesLoading: loading,
     expenses: allExpenses
   } = useData();
-  
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -126,7 +126,7 @@ export default function HistoryScreen() {
               await deleteExpenseFromFirestore(expense.id);
               setModalVisible(false);
               Alert.alert('Success', 'Expense deleted successfully!');
-              
+
               // No need to manually refresh - the data context will handle it automatically
             } catch (error) {
               console.error('Error deleting expense:', error);
@@ -162,11 +162,11 @@ export default function HistoryScreen() {
 
     // Sort categories by amount (descending)
     const sortedCategories = Object.entries(categoryTotals)
-      .sort(([,a], [,b]) => b - a);
+      .sort(([, a], [, b]) => b - a);
 
     const MAX_CATEGORIES = 6; // Show top 6 categories, group rest as "Others"
     const chartColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
-    
+
     let chartData = [];
     let othersTotal = 0;
 
@@ -203,12 +203,12 @@ export default function HistoryScreen() {
     // Get all days in the selected month
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
     const dailyTotals: { [key: number]: number } = {};
-    
+
     // Initialize all days with 0
     for (let i = 1; i <= daysInMonth; i++) {
       dailyTotals[i] = 0;
     }
-    
+
     // Calculate daily totals - make sure we're only processing expenses for the selected month/year
     expenses.forEach(expense => {
       const dateParts = expense.date.split('/');
@@ -219,10 +219,10 @@ export default function HistoryScreen() {
         const amount = parseFloat(expense.price);
 
         // Double-check that this expense belongs to the selected month and year
-        if (!isNaN(amount) && 
-            expenseMonth === selectedMonth && 
-            expenseYear === selectedYear && 
-            expenseDay >= 1 && expenseDay <= daysInMonth) {
+        if (!isNaN(amount) &&
+          expenseMonth === selectedMonth &&
+          expenseYear === selectedYear &&
+          expenseDay >= 1 && expenseDay <= daysInMonth) {
           dailyTotals[expenseDay] += amount;
         }
       }
@@ -231,7 +231,7 @@ export default function HistoryScreen() {
     // Create a more accurate sampling that always includes days with expenses
     const labels: string[] = [];
     const data: number[] = [];
-    
+
     // Find all days that have expenses
     const daysWithExpenses = Object.keys(dailyTotals)
       .map(Number)
@@ -240,7 +240,7 @@ export default function HistoryScreen() {
 
     // Create sampling strategy based on month length
     let selectedDays: number[] = [];
-    
+
     if (daysInMonth <= 15) {
       // Show every day for shorter months
       selectedDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -256,24 +256,24 @@ export default function HistoryScreen() {
       const milestoneDays = [1, 5, 10, 15, 20, 25, daysInMonth].filter(day => day <= daysInMonth);
       selectedDays = [...new Set([...milestoneDays, ...daysWithExpenses])].sort((a, b) => a - b);
     }
-    
+
     // Limit to max 15 points for readability
     if (selectedDays.length > 15) {
       const step = Math.ceil(selectedDays.length / 12);
       const sampledDays = selectedDays.filter((_, index) => index % step === 0);
       // Always include first, last, and highest expense days
-      const highestExpenseDay = daysWithExpenses.reduce((max, day) => 
+      const highestExpenseDay = daysWithExpenses.reduce((max, day) =>
         dailyTotals[day] > dailyTotals[max] ? day : max, daysWithExpenses[0] || 1);
       selectedDays = [...new Set([1, ...sampledDays, highestExpenseDay, daysInMonth])]
         .filter(day => day <= daysInMonth)
         .sort((a, b) => a - b);
     }
-    
+
     selectedDays.forEach(day => {
       labels.push(day.toString());
       data.push(dailyTotals[day]);
     });
-    
+
     return {
       labels: labels.length > 0 ? labels : ['1'],
       datasets: [{
@@ -295,12 +295,12 @@ export default function HistoryScreen() {
 
   return (
     <>
-      <ScrollView 
+      <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={onRefresh}
             colors={[colors.primary]}
             tintColor={colors.primary}
@@ -308,307 +308,307 @@ export default function HistoryScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-      {/* Header */}
-      <Card style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={[styles.title, { color: colors.text }]}>📊 Expense History</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Track your spending patterns
-          </Text>
-        </View>
-      </Card>
-
-      <Separator height={20} />
-
-      {/* Month/Year Selector */}
-      <Card>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
-        <View style={styles.pickerContainer}>
-          <View style={[styles.pickerWrapper, { 
-            backgroundColor: colors.surface, 
-            borderColor: colors.border, 
-            borderWidth: 1 
-          }]}>
-            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
-            <Picker
-              selectedValue={selectedMonth}
-              style={[styles.picker, { 
-                color: Platform.OS === 'android' ? colors.text : colors.text 
-              }]}
-              onValueChange={(itemValue) => setSelectedMonth(itemValue)}
-              mode="dropdown"
-              dropdownIconColor={colors.textSecondary}
-            >
-              {months.map((month, index) => (
-                <Picker.Item 
-                  key={index} 
-                  label={month} 
-                  value={index + 1} 
-                  color={colors.text}
-                />
-              ))}
-            </Picker>
+        {/* Header */}
+        <Card style={styles.header}>
+          <View style={styles.headerContent}>
+            <Text style={[styles.title, { color: colors.text }]}>📊 Expense History</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Track your spending patterns
+            </Text>
           </View>
-
-          <View style={[styles.pickerWrapper, { 
-            backgroundColor: colors.surface, 
-            borderColor: colors.border, 
-            borderWidth: 1 
-          }]}>
-            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
-            <Picker
-              selectedValue={selectedYear}
-              style={[styles.picker, { 
-                color: Platform.OS === 'android' ? colors.text : colors.text 
-              }]}
-              onValueChange={(itemValue) => setSelectedYear(itemValue)}
-              mode="dropdown"
-              dropdownIconColor={colors.textSecondary}
-            >
-              {years.map((year) => (
-                <Picker.Item 
-                  key={year} 
-                  label={year.toString()} 
-                  value={year} 
-                  color={colors.text}
-                />
-              ))}
-            </Picker>
-          </View>
-        </View>
-      </Card>
-
-      <Separator height={20} />
-
-      {loading ? (
-        <Card style={styles.loadingCard}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading expenses...
-          </Text>
         </Card>
-      ) : (
-        <>
-          {/* Summary */}
-          <Card>
-            <View style={styles.summaryHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                {months[selectedMonth - 1]} {selectedYear}
-              </Text>
-              <Text style={[styles.totalAmount, { color: colors.primary }]}>
-                ₹{totalAmount.toFixed(2)}
-              </Text>
+
+        <Separator height={20} />
+
+        {/* Month/Year Selector */}
+        <Card>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Select Period</Text>
+          <View style={styles.pickerContainer}>
+            <View style={[styles.pickerWrapper, {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1
+            }]}>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Month</Text>
+              <Picker
+                selectedValue={selectedMonth}
+                style={[styles.picker, {
+                  color: Platform.OS === 'android' ? colors.text : colors.text
+                }]}
+                onValueChange={(itemValue) => setSelectedMonth(itemValue)}
+                mode="dropdown"
+                dropdownIconColor={colors.textSecondary}
+              >
+                {months.map((month, index) => (
+                  <Picker.Item
+                    key={index}
+                    label={month}
+                    value={index + 1}
+                    color={colors.text}
+                  />
+                ))}
+              </Picker>
             </View>
-            <Text style={[styles.expenseCount, { color: colors.textSecondary }]}>
-              {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
+
+            <View style={[styles.pickerWrapper, {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1
+            }]}>
+              <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Year</Text>
+              <Picker
+                selectedValue={selectedYear}
+                style={[styles.picker, {
+                  color: Platform.OS === 'android' ? colors.text : colors.text
+                }]}
+                onValueChange={(itemValue) => setSelectedYear(itemValue)}
+                mode="dropdown"
+                dropdownIconColor={colors.textSecondary}
+              >
+                {years.map((year) => (
+                  <Picker.Item
+                    key={year}
+                    label={year.toString()}
+                    value={year}
+                    color={colors.text}
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </Card>
+
+        <Separator height={20} />
+
+        {loading ? (
+          <Card style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Loading expenses...
             </Text>
           </Card>
-
-          <Separator height={20} />
-
-          {/* Pie Chart */}
-          {expenses.length > 0 && (
-            <>
-              <Card>
-                <View style={styles.breakdownHeader}>
-                  <Text style={[styles.sectionTitle, styles.breakdownTitle, { color: colors.text }]}>
-                    📈 Category Breakdown
-                  </Text>
-                  <Pressable
-                    onPress={() => setBudgetModalVisible(true)}
-                    style={({ pressed }) => [
-                      styles.budgetButton,
-                      {
-                        backgroundColor: colors.primary + '15',
-                        borderColor: colors.primary + '40',
-                        opacity: pressed ? 0.7 : 1,
-                      },
-                    ]}
-                  >
-                    <Ionicons name="wallet-outline" size={16} color={colors.primary} />
-                    <Text style={[styles.budgetButtonText, { color: colors.primary }]}>Budgets</Text>
-                  </Pressable>
-                </View>
-                <View style={styles.chartContainer}>
-                  <PieChart
-                    data={getPieChartData()}
-                    width={Math.max(Dimensions.get('window').width - 40, 320)}
-                    height={220}
-                    chartConfig={{
-                      backgroundColor: colors.card,
-                      backgroundGradientFrom: colors.card,
-                      backgroundGradientTo: colors.card,
-                      color: (opacity = 1) => colors.text,
-                    }}
-                    accessor="amount"
-                    backgroundColor="transparent"
-                    paddingLeft="15"
-                    absolute
-                  />
-                </View>
-              </Card>
-
-              <Separator height={20} />
-
-              {/* Line Chart for Daily Expenses */}
-              <Card>
+        ) : (
+          <>
+            {/* Summary */}
+            <Card>
+              <View style={styles.summaryHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  📊 Daily Spending Trend
+                  {months[selectedMonth - 1]} {selectedYear}
                 </Text>
-                <View style={styles.chartContainer}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <LineChart
-                      data={getLineChartData()}
-                      width={Math.max(Dimensions.get('window').width - 40, 360)}
+                <Text style={[styles.totalAmount, { color: colors.primary }]}>
+                  ₹{totalAmount.toFixed(2)}
+                </Text>
+              </View>
+              <Text style={[styles.expenseCount, { color: colors.textSecondary }]}>
+                {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
+              </Text>
+            </Card>
+
+            <Separator height={20} />
+
+            {/* Pie Chart */}
+            {expenses.length > 0 && (
+              <>
+                <Card>
+                  <View style={styles.breakdownHeader}>
+                    <Text style={[styles.sectionTitle, styles.breakdownTitle, { color: colors.text }]}>
+                      📈 Category Breakdown
+                    </Text>
+                    <Pressable
+                      onPress={() => setBudgetModalVisible(true)}
+                      style={({ pressed }) => [
+                        styles.budgetButton,
+                        {
+                          backgroundColor: colors.primary + '15',
+                          borderColor: colors.primary + '40',
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <Ionicons name="wallet-outline" size={16} color={colors.primary} />
+                      <Text style={[styles.budgetButtonText, { color: colors.primary }]}>Budgets</Text>
+                    </Pressable>
+                  </View>
+                  <View style={styles.chartContainer}>
+                    <PieChart
+                      data={getPieChartData()}
+                      width={Math.max(Dimensions.get('window').width - 40, 320)}
                       height={220}
                       chartConfig={{
                         backgroundColor: colors.card,
                         backgroundGradientFrom: colors.card,
                         backgroundGradientTo: colors.card,
-                        decimalPlaces: 0,
-                        color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
-                        labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity * 0.8})` : `rgba(0, 0, 0, ${opacity * 0.8})`,
-                        style: {
-                          borderRadius: 12
-                        },
-                        propsForDots: {
-                          r: "5",
-                          strokeWidth: "2",
-                          stroke: colors.primary,
-                          fill: colors.background
-                        },
-                        propsForBackgroundLines: {
-                          strokeDasharray: "5,5",
-                          stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
-                        }
+                        color: (opacity = 1) => colors.text,
                       }}
-                      bezier
-                      style={{
-                        marginVertical: 8,
-                        borderRadius: 12,
-                      }}
-                      fromZero
-                      segments={4}
-                      withVerticalLabels
-                      withHorizontalLabels
-                      withDots
-                      withShadow={false}
-                      withVerticalLines
-                      withHorizontalLines
+                      accessor="amount"
+                      backgroundColor="transparent"
+                      paddingLeft="15"
+                      absolute
                     />
-                  </ScrollView>
+                  </View>
+                </Card>
+
+                <Separator height={20} />
+
+                {/* Line Chart for Daily Expenses */}
+                <Card>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    📊 Daily Spending Trend
+                  </Text>
+                  <View style={styles.chartContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <LineChart
+                        data={getLineChartData()}
+                        width={Math.max(Dimensions.get('window').width - 40, 360)}
+                        height={220}
+                        chartConfig={{
+                          backgroundColor: colors.card,
+                          backgroundGradientFrom: colors.card,
+                          backgroundGradientTo: colors.card,
+                          decimalPlaces: 0,
+                          color: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+                          labelColor: (opacity = 1) => isDark ? `rgba(255, 255, 255, ${opacity * 0.8})` : `rgba(0, 0, 0, ${opacity * 0.8})`,
+                          style: {
+                            borderRadius: 12
+                          },
+                          propsForDots: {
+                            r: "5",
+                            strokeWidth: "2",
+                            stroke: colors.primary,
+                            fill: colors.background
+                          },
+                          propsForBackgroundLines: {
+                            strokeDasharray: "5,5",
+                            stroke: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+                          }
+                        }}
+                        bezier
+                        style={{
+                          marginVertical: 8,
+                          borderRadius: 12,
+                        }}
+                        fromZero
+                        segments={4}
+                        withVerticalLabels
+                        withHorizontalLabels
+                        withDots
+                        withShadow={false}
+                        withVerticalLines
+                        withHorizontalLines
+                      />
+                    </ScrollView>
+                  </View>
+                  <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
+                    Daily expenses throughout the month
+                  </Text>
+                </Card>
+
+                <Separator height={20} />
+              </>
+            )}
+
+            {/* Expense List */}
+            <Section title="💳 All Expenses" subtitle="Tap any expense to view details">
+              {/* Filter & Sort Bar */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
+                {/* Filter by Tag */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                  <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Filter:</Text>
+                  <View style={{
+                    flex: 1,
+                    borderRadius: 8,
+                    backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
+                    borderWidth: 1,
+                    borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
+                    overflow: 'hidden',
+                  }}>
+                    <Picker
+                      selectedValue={filterTag}
+                      style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
+                      onValueChange={(itemValue) => setFilterTag(itemValue)}
+                      mode="dropdown"
+                      dropdownIconColor={colors.textSecondary}
+                    >
+                      <Picker.Item label="All Categories" value="" color={isDark ? '#000000ff' : colors.text} />
+                      {[...new Set(expenses.map(e => e.tag))].sort().map((tag, idx) => (
+                        <Picker.Item
+                          key={idx}
+                          label={tag.length > 15 ? tag.substring(0, 15) + '...' : tag}
+                          value={tag}
+                          color={isDark ? '#000000ff' : colors.text}
+                        />
+                      ))}
+                    </Picker>
+                  </View>
                 </View>
-                <Text style={[styles.chartSubtitle, { color: colors.textSecondary }]}>
-                  Daily expenses throughout the month
-                </Text>
-              </Card>
-
-              <Separator height={20} />
-            </>
-          )}
-
-          {/* Expense List */}
-          <Section title="💳 All Expenses" subtitle="Tap any expense to view details">
-            {/* Filter & Sort Bar */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 4 }}>
-              {/* Filter by Tag */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Filter:</Text>
-                <View style={{
-                  flex: 1,
-                  borderRadius: 8,
-                  backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
-                  borderWidth: 1,
-                  borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
-                  overflow: 'hidden',
-                }}>
-                <Picker
-                  selectedValue={filterTag}
-                  style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
-                  onValueChange={(itemValue) => setFilterTag(itemValue)}
-                  mode="dropdown"
-                  dropdownIconColor={colors.textSecondary}
-                >
-                  <Picker.Item label="All Categories" value="" color={isDark ? '#000000ff' : colors.text} />
-                  {[...new Set(expenses.map(e => e.tag))].sort().map((tag, idx) => (
-                    <Picker.Item 
-                      key={idx} 
-                      label={tag.length > 15 ? tag.substring(0, 15) + '...' : tag} 
-                      value={tag} 
-                      color={isDark ? '#000000ff' : colors.text} 
-                    />
-                  ))}
-                </Picker>
+                {/* Sort by Price/Date */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                  <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Sort:</Text>
+                  <View style={{
+                    flex: 1,
+                    borderRadius: 8,
+                    backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
+                    borderWidth: 1,
+                    borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
+                    overflow: 'hidden',
+                  }}>
+                    <Picker
+                      selectedValue={sortBy}
+                      style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
+                      onValueChange={(itemValue) => setSortBy(itemValue)}
+                      mode="dropdown"
+                      dropdownIconColor={colors.textSecondary}
+                    >
+                      <Picker.Item label="Date" value="date" color={isDark ? '#000000ff' : colors.text} />
+                      <Picker.Item label="Amount" value="price" color={isDark ? '#000000ff' : colors.text} />
+                    </Picker>
+                  </View>
                 </View>
               </View>
-              {/* Sort by Price/Date */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Text style={{ color: colors.textSecondary, marginRight: 8, fontSize: 14 }}>Sort:</Text>
-                <View style={{
-                  flex: 1,
-                  borderRadius: 8,
-                  backgroundColor: colors.surface || (isDark ? '#222' : '#f3f4f6'),
-                  borderWidth: 1,
-                  borderColor: colors.border || (isDark ? '#333' : '#e5e7eb'),
-                  overflow: 'hidden',
-                }}>
-                <Picker
-                  selectedValue={sortBy}
-                  style={{ flex: 1, color: colors.text, backgroundColor: 'transparent' }}
-                  onValueChange={(itemValue) => setSortBy(itemValue)}
-                  mode="dropdown"
-                  dropdownIconColor={colors.textSecondary}
-                >
-                  <Picker.Item label="Date" value="date" color={isDark ? '#000000ff' : colors.text} />
-                  <Picker.Item label="Amount" value="price" color={isDark ? '#000000ff' : colors.text} />
-                </Picker>
-                </View>
-              </View>
-            </View>
 
-            {filteredSortedExpenses.length === 0 ? (
-              <Card style={styles.emptyCard}>
-                <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                  No expenses found for {months[selectedMonth - 1]} {selectedYear}
-                </Text>
-                <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
-                  Start tracking by adding your first expense!
-                </Text>
-              </Card>
-            ) : (
-              <View style={styles.expenseList}>
-                {filteredSortedExpenses.map((item) => (
-                  <Pressable key={item.id} onPress={() => openModal(item)}>
-                    <Card style={[styles.expenseCard, { borderLeftColor: colors.primary }]}>
-                      <View style={styles.expenseHeader}>
-                        <View style={styles.expenseInfo}>
-                          <Text style={[styles.expenseCategory, { color: colors.primary }]}>
-                            {item.tag}
-                          </Text>
-                          <Text style={[styles.expenseDate, { color: colors.textSecondary }]}>
-                            {formatDate(item.date)}
+              {filteredSortedExpenses.length === 0 ? (
+                <Card style={styles.emptyCard}>
+                  <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    No expenses found for {months[selectedMonth - 1]} {selectedYear}
+                  </Text>
+                  <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+                    Start tracking by adding your first expense!
+                  </Text>
+                </Card>
+              ) : (
+                <View style={styles.expenseList}>
+                  {filteredSortedExpenses.map((item) => (
+                    <Pressable key={item.id} onPress={() => openModal(item)}>
+                      <Card style={[styles.expenseCard, { borderLeftColor: colors.primary }]}>
+                        <View style={styles.expenseHeader}>
+                          <View style={styles.expenseInfo}>
+                            <Text style={[styles.expenseCategory, { color: colors.primary }]}>
+                              {item.tag}
+                            </Text>
+                            <Text style={[styles.expenseDate, { color: colors.textSecondary }]}>
+                              {formatDate(item.date)}
+                            </Text>
+                          </View>
+                          <Text style={[styles.expenseAmount, { color: colors.text }]}>
+                            ₹{parseFloat(item.price).toFixed(2)}
                           </Text>
                         </View>
-                        <Text style={[styles.expenseAmount, { color: colors.text }]}>
-                          ₹{parseFloat(item.price).toFixed(2)}
-                        </Text>
-                      </View>
-                      {item.description && (
-                        <Text style={[styles.expenseDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                          {item.description}
-                        </Text>
-                      )}
-                    </Card>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </Section>
-        </>
-      )}
+                        {item.description && (
+                          <Text style={[styles.expenseDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                            {item.description}
+                          </Text>
+                        )}
+                      </Card>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </Section>
+          </>
+        )}
 
-      <Separator height={100} />
+        <Separator height={100} />
       </ScrollView>
 
       {/* Expense Detail Modal */}
@@ -641,7 +641,7 @@ export default function HistoryScreen() {
                     {selectedExpense.tag}
                   </Text>
                 </View>
-                
+
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
                     Amount
@@ -650,7 +650,7 @@ export default function HistoryScreen() {
                     ₹{parseFloat(selectedExpense.price).toFixed(2)}
                   </Text>
                 </View>
-                
+
                 <View style={styles.detailRow}>
                   <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
                     Date
@@ -659,7 +659,7 @@ export default function HistoryScreen() {
                     {formatDate(selectedExpense.date)}
                   </Text>
                 </View>
-                
+
                 {selectedExpense.description && (
                   <View style={styles.detailRow}>
                     <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
@@ -679,8 +679,8 @@ export default function HistoryScreen() {
                 variant="outline"
                 disabled={deleting}
                 loading={deleting}
-                style={{ 
-                  borderColor: '#ef4444', 
+                style={{
+                  borderColor: '#ef4444',
                   backgroundColor: 'transparent',
                   marginBottom: 20
                 }}
@@ -704,134 +704,134 @@ export default function HistoryScreen() {
 const styles = {
   ...commonStyles,
   ...StyleSheet.create({
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  totalAmount: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    letterSpacing: 0.3,
-  },
-  expenseCount: {
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  chartContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 12,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  breakdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  breakdownTitle: {
-    marginBottom: 0,
-    flex: 1,
-    marginRight: 12,
-  },
-  budgetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  budgetButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  chartSubtitle: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 8,
-    fontWeight: '500',
-  },
-  expenseList: {
-    width: '100%',
-  },
-  expenseCard: {
-    marginBottom: 12,
-    borderLeftWidth: 4,
-  },
-  expenseHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  expenseInfo: {
-    flex: 1,
-  },
-  expenseCategory: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    letterSpacing: 0.2,
-  },
-  expenseDate: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  expenseAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 0.3,
-  },
-  expenseDescription: {
-    fontSize: 14,
-    marginTop: 8,
-    lineHeight: 20,
-    paddingRight: 8,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 0.3,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  detailRow: {
-    marginBottom: 20,
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 6,
-    letterSpacing: 0.2,
-  },
-  detailValue: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
+    summaryHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    totalAmount: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      letterSpacing: 0.3,
+    },
+    expenseCount: {
+      fontSize: 14,
+      marginTop: 4,
+      fontWeight: '500',
+    },
+    chartContainer: {
+      alignItems: 'center',
+      marginTop: 16,
+      marginBottom: 12,
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    breakdownHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    breakdownTitle: {
+      marginBottom: 0,
+      flex: 1,
+      marginRight: 12,
+    },
+    budgetButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    budgetButtonText: {
+      fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
+    chartSubtitle: {
+      fontSize: 12,
+      textAlign: 'center',
+      marginTop: 8,
+      fontWeight: '500',
+    },
+    expenseList: {
+      width: '100%',
+    },
+    expenseCard: {
+      marginBottom: 12,
+      borderLeftWidth: 4,
+    },
+    expenseHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 4,
+    },
+    expenseInfo: {
+      flex: 1,
+    },
+    expenseCategory: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 6,
+      letterSpacing: 0.2,
+    },
+    expenseDate: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    expenseAmount: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      letterSpacing: 0.3,
+    },
+    expenseDescription: {
+      fontSize: 14,
+      marginTop: 8,
+      lineHeight: 20,
+      paddingRight: 8,
+    },
+    modalContainer: {
+      flex: 1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      paddingTop: 60,
+      borderBottomWidth: 1,
+    },
+    modalTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      letterSpacing: 0.3,
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 20,
+    },
+    modalContent: {
+      flex: 1,
+      padding: 20,
+    },
+    detailRow: {
+      marginBottom: 20,
+    },
+    detailLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 6,
+      letterSpacing: 0.2,
+    },
+    detailValue: {
+      fontSize: 16,
+      lineHeight: 22,
+    },
   }),
 };
