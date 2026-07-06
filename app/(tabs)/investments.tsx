@@ -21,6 +21,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { commonStyles } from '../../styles/commonStyles';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Investment } from '../../domain/Investment';
@@ -43,7 +44,7 @@ const investmentTypes = [
   { label: '📈 Mutual Fund', value: 'mutual_fund', category: 'investment' },
   { label: '📊 Stocks', value: 'stocks', category: 'investment' },
   { label: '🏛️ Bonds', value: 'bonds', category: 'investment' },
-  { label: '�️ Real Estate', value: 'real_estate', category: 'investment' },
+  { label: '🏠 Real Estate', value: 'real_estate', category: 'investment' },
   { label: '₿ Cryptocurrency', value: 'crypto', category: 'investment' },
   
   // Savings Types
@@ -94,7 +95,6 @@ const InvestmentsScreen = () => {
     lastRefresh,
     refreshInvestments,
     addInvestment,
-    getTotalInvestments,
     getMonthlyIncome,
     getInvestmentsByType,
     getInvestmentsByCategory,
@@ -106,7 +106,6 @@ const InvestmentsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [animatedValues] = useState({
-    cardScale: new Animated.Value(1),
     headerOpacity: new Animated.Value(0),
   });
   
@@ -1133,15 +1132,13 @@ const InvestmentsScreen = () => {
                         if (!selectedInvestment || !selectedInvestment.id) return;
                         setDeleting(true);
                         try {
-                          console.log('[DEBUG] Attempting to delete investment:', selectedInvestment);
                           await investmentService.deleteInvestment(String(selectedInvestment.id));
                           setInvestmentDetailModalVisible(false);
                           setSelectedInvestment(null);
                           await refreshInvestments(true); // Force refresh from DB
-                          console.log('[DEBUG] Investments refreshed after deletion.');
                           Alert.alert('Deleted', 'Investment deleted successfully');
                         } catch (error: any) {
-                          console.error('[DEBUG] Failed to delete investment:', error, selectedInvestment);
+                          console.error('Failed to delete investment:', error, selectedInvestment);
                           Alert.alert('Error', `Failed to delete investment: ${error?.message || String(error)}`);
                         } finally {
                           setDeleting(false);
@@ -1163,20 +1160,11 @@ const InvestmentsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const styles = {
+  ...commonStyles,
+  ...StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   addButton: {
     width: 44,
@@ -1189,35 +1177,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  summaryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
   summaryGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
     marginBottom: 12,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  summaryAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   chartContainer: {
     alignItems: 'center',
@@ -1304,21 +1268,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
-  emptyCard: {
-    padding: 48,
-    alignItems: 'center',
-  },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
     textAlign: 'center',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,
@@ -1523,19 +1477,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
   },
-  
-  // Show More Card
-  showMoreCard: {
-    padding: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-    marginTop: 8,
-  },
-  showMoreText: {
-    fontSize: 14,
-    fontWeight: '500',
-    fontStyle: 'italic',
-  },
-});
+  }),
+};
 
 export default InvestmentsScreen;

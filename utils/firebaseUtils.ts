@@ -308,29 +308,3 @@ export const getAllAvailableGoalMonths = async (): Promise<string[]> => {
   }
 };
 
-// Debug function to test basic Firebase connectivity
-export const testFirebaseConnection = async (): Promise<boolean> => {
-  try {
-    console.log('Testing Firebase connection...');
-    const q = query(collection(db, "expenses"));
-    const querySnapshot = await getDocs(q);
-    console.log(`Firebase connection successful. Found ${querySnapshot.size} total documents in expenses collection`);
-    
-    // Log first few documents for debugging
-    let count = 0;
-    querySnapshot.forEach((doc) => {
-      if (count < 3) {
-        console.log(`Sample expense ${count + 1}:`, {
-          id: doc.id,
-          data: doc.data()
-        });
-        count++;
-      }
-    });
-    
-    return true;
-  } catch (error) {
-    console.error('Firebase connection test failed:', error);
-    return false;
-  }
-};

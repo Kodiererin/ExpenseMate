@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
+import { commonStyles } from '../../styles/commonStyles';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
@@ -113,17 +114,6 @@ export default function AddScreen() {
       return;
     }
 
-    if (__DEV__) {
-      console.log('About to add expense to Firestore...');
-      console.log('Date object:', date);
-      console.log('Date string (en-US):', date.toLocaleDateString('en-US'));
-      console.log('Date components:', {
-        month: date.getMonth() + 1,
-        day: date.getDate(),
-        year: date.getFullYear()
-      });
-    }
-    
     setIsLoading(true);
     const expenseData = {
       tag: tag.trim(),
@@ -131,20 +121,10 @@ export default function AddScreen() {
       description: filterText(description.trim()), // Filter text to remove unwanted characters
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
     };
-    
-    if (__DEV__) {
-      console.log('Final expense data:', expenseData);
-    }
-    
+
     try {
-      if (__DEV__) {
-        console.log('About to add expense to Firestore...');
-      }
       await addExpenseToFirestore(expenseData);
-      if (__DEV__) {
-        console.log('Expense added to Firestore successfully');
-      }
-      
+
       // Clear form immediately to show success
       setTag('');
       setPrice('');
@@ -152,15 +132,7 @@ export default function AddScreen() {
       setDate(new Date());
       setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
       Keyboard.dismiss();
-      
       // No need to manually refresh - the data context will handle it automatically
-      if (__DEV__) {
-        console.log('Expense added, context will refresh automatically');
-      }
-      
-      if (__DEV__) {
-        console.log('Expense Added:', expenseData);
-      }
     } catch (error) {
       setFeedback({ type: 'error', message: 'Failed to add expense. Please try again.' });
       console.error('Error adding expense:', error);
@@ -429,9 +401,6 @@ export default function AddScreen() {
               </View>
             </Card>
 
-            <Separator height={0} />      
-            {/* Initially the seperate height was 32 which was reduced to 0 for better spacing. */}
-
             <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
               <Button
                 title={isLoading ? "Adding Expense..." : "Add Expense"}
@@ -472,7 +441,9 @@ export default function AddScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
+  ...commonStyles,
+  ...StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 20,
@@ -481,14 +452,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-  },
-  header: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  headerContent: {
-    alignItems: 'center',
-    width: '100%',
   },
   title: {
     fontSize: 32,
@@ -594,4 +557,5 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 22,
   },
-});
+  }),
+};

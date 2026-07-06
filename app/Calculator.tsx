@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Card, Section, Separator } from '../components/common';
+import { Card, Separator } from '../components/common';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   calculateInvestmentReturns, 
@@ -32,9 +32,6 @@ interface CalculationResults {
   totalInterest: number;
   totalInvestment: number;
   monthlyAmount?: number;
-  maturityAmount?: number;
-  totalEMI?: number;
-  monthlyBreakdown?: any[];
 }
 
 const Calculator: React.FC = () => {

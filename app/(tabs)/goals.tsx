@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { commonStyles } from '../../styles/commonStyles';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Goal } from '../../domain/Goal';
@@ -481,62 +482,12 @@ export default function GoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 60,
-  },
+const styles = {
+  ...commonStyles,
+  ...StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 120,
-  },
-  header: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  headerContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    letterSpacing: 0.3,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    letterSpacing: 0.2,
-  },
-  pickerContainer: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  pickerWrapper: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    minHeight: 80,
-  },
-  pickerLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-    letterSpacing: 0.2,
-  },
-  picker: {
-    height: Platform.OS === 'ios' ? 120 : 50,
-    marginHorizontal: Platform.OS === 'android' ? 8 : 0,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -596,32 +547,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginTop: 8,
   },
-  loadingCard: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  emptyCard: {
-    padding: 48,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
   goalsList: {
     width: '100%',
   },
@@ -661,4 +586,5 @@ const styles = StyleSheet.create({
     marginLeft: 36,
     fontWeight: '500',
   },
-});
+  }),
+};

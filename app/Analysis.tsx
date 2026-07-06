@@ -314,12 +314,6 @@ export default function Analysis() {
       };
     });
 
-    // Debug logging for troubleshooting
-    console.log(`📊 Analytics processed: ${allExpenses.length} valid expenses`);
-    console.log(`💰 Total amount: ₹${totalAmount.toLocaleString()}`);
-    console.log(`📅 Date range: ${allExpenses[allExpenses.length - 1]?.date.toDateString()} - ${allExpenses[0]?.date.toDateString()}`);
-    console.log(`📈 Categories: ${Object.keys(categoryTotals).join(', ')}`);
-
     return {
       totalAmount,
       totalExpenses,
@@ -1008,18 +1002,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 2,
   },
-  statCard: {
-    width: '48%',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 0.5,
-  },
   modernStatCard: {
     width: '47%',
     minWidth: 150,
@@ -1039,13 +1021,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 18,
   },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   modernStatIcon: {
     width: 52,
     height: 52,
@@ -1053,13 +1028,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-  },
-  trendBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
   modernTrendBadge: {
     flexDirection: 'row',
@@ -1072,11 +1040,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 4,
   },
   statValueContainer: {
     position: 'relative',
@@ -1095,20 +1058,11 @@ const styles = StyleSheet.create({
     width: 30,
     borderRadius: 2,
   },
-  statTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
   modernStatTitle: {
     fontSize: 15,
     fontWeight: '700',
     marginBottom: 4,
     letterSpacing: 0.2,
-  },
-  statSubtitle: {
-    fontSize: 12,
-    opacity: 0.7,
   },
   modernStatSubtitle: {
     fontSize: 12,
@@ -1118,17 +1072,6 @@ const styles = StyleSheet.create({
   },
 
   // Charts
-  chartContainer: {
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 0.5,
-  },
   modernChartContainer: {
     padding: 16,
     borderRadius: 24,

@@ -64,20 +64,3 @@ export const seedInvestmentData = async () => {
     console.error('Error seeding investment data:', error);
   }
 };
-
-export const clearInvestmentData = async () => {
-  try {
-    console.log('Clearing investment data...');
-    const investments = await investmentService.getUserInvestments('mock_user_id');
-    
-    for (const investment of investments) {
-      if (investment.id) {
-        await investmentService.deleteInvestment(investment.id);
-      }
-    }
-    
-    console.log('Investment data cleared successfully!');
-  } catch (error) {
-    console.error('Error clearing investment data:', error);
-  }
-};

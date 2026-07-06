@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../constants/firebase';
 import { Investment } from '../domain/Investment';
 
@@ -46,16 +46,6 @@ export const investmentService = {
       return investments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } catch (error) {
       console.error('Error fetching investments:', error);
-      throw error;
-    }
-  },
-
-  async updateInvestment(investmentId: string, updates: Partial<Investment>) {
-    try {
-      const docRef = doc(db, 'investments', investmentId);
-      await updateDoc(docRef, updates);
-    } catch (error) {
-      console.error('Error updating investment:', error);
       throw error;
     }
   },
@@ -133,16 +123,4 @@ export const investmentService = {
       .filter(inv => inv.category === 'income' && inv.isRecurring && inv.recurringFrequency === 'monthly')
       .reduce((total, inv) => total + inv.amount, 0);
   },
-
-  getMonthlyTrend(investments: Investment[]) {
-    const monthlyData = investments.reduce((acc, investment) => {
-      const month = new Date(investment.date).toLocaleDateString('en-US', { month: 'short' });
-      acc[month] = (acc[month] || 0) + investment.amount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(monthlyData)
-      .slice(-6)
-      .map(([month, amount]) => ({ month, amount }));
-  }
 };

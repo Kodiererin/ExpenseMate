@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { commonStyles } from '../../styles/commonStyles';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../domain/Expense';
@@ -82,9 +83,7 @@ export default function HistoryScreen() {
   }, [expenses, filterTag, sortBy]);
 
   const loadExpensesForMonth = useCallback(() => {
-    console.log(`Loading expenses for month: ${selectedMonth}, year: ${selectedYear}`);
     const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
-    console.log(`Received ${fetchedExpenses.length} expenses from cache`);
     setExpenses(fetchedExpenses);
   }, [selectedMonth, selectedYear, getExpensesByMonth]);
 
@@ -101,13 +100,10 @@ export default function HistoryScreen() {
 
   // Also update when the context data changes (after add/update/delete operations)
   useEffect(() => {
-    console.log('History: Context data changed, updating local expenses...');
-    console.log('History: Total expenses in context:', allExpenses.length);
     const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
-    
+
     // Only update if the data actually changed to prevent unnecessary renders
     if (JSON.stringify(fetchedExpenses) !== JSON.stringify(expenses)) {
-      console.log(`History: Setting ${fetchedExpenses.length} expenses for ${selectedMonth}/${selectedYear}`);
       setExpenses(fetchedExpenses);
     }
   }, [allExpenses, getExpensesByMonth, selectedMonth, selectedYear, expenses]);
@@ -129,7 +125,6 @@ export default function HistoryScreen() {
               Alert.alert('Success', 'Expense deleted successfully!');
               
               // No need to manually refresh - the data context will handle it automatically
-              console.log('Expense deleted, context will refresh automatically');
             } catch (error) {
               console.error('Error deleting expense:', error);
               Alert.alert('Error', 'Failed to delete expense. Please try again.');
@@ -212,7 +207,6 @@ export default function HistoryScreen() {
     }
     
     // Calculate daily totals - make sure we're only processing expenses for the selected month/year
-    console.log('Processing expenses for chart:', expenses.length);
     expenses.forEach(expense => {
       const dateParts = expense.date.split('/');
       if (dateParts.length === 3) {
@@ -220,16 +214,13 @@ export default function HistoryScreen() {
         const expenseDay = parseInt(dateParts[1], 10);
         const expenseYear = parseInt(dateParts[2], 10);
         const amount = parseFloat(expense.price);
-        
-        console.log(`Expense: ${expense.date}, Month: ${expenseMonth}, Day: ${expenseDay}, Year: ${expenseYear}, Amount: ${amount}`);
-        
+
         // Double-check that this expense belongs to the selected month and year
         if (!isNaN(amount) && 
             expenseMonth === selectedMonth && 
             expenseYear === selectedYear && 
             expenseDay >= 1 && expenseDay <= daysInMonth) {
           dailyTotals[expenseDay] += amount;
-          console.log(`Added ${amount} to day ${expenseDay}, new total: ${dailyTotals[expenseDay]}`);
         }
       }
     });
@@ -243,9 +234,7 @@ export default function HistoryScreen() {
       .map(Number)
       .filter(day => dailyTotals[day] > 0)
       .sort((a, b) => a - b);
-    
-    console.log('Days with expenses:', daysWithExpenses);
-    
+
     // Create sampling strategy based on month length
     let selectedDays: number[] = [];
     
@@ -282,8 +271,6 @@ export default function HistoryScreen() {
       data.push(dailyTotals[day]);
     });
     
-    console.log('Final chart data - Labels:', labels, 'Data:', data);
-
     return {
       labels: labels.length > 0 ? labels : ['1'],
       datasets: [{
@@ -687,72 +674,9 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    paddingTop: 60,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
-  },
-  header: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  headerContent: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    letterSpacing: 0.3,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    letterSpacing: 0.2,
-  },
-  pickerContainer: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  pickerWrapper: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    minHeight: 80,
-  },
-  pickerLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-    letterSpacing: 0.2,
-  },
-  picker: {
-    height: Platform.OS === 'ios' ? 120 : 50,
-    marginHorizontal: Platform.OS === 'android' ? 8 : 0,
-  },
-  loadingCard: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '500',
-  },
+const styles = {
+  ...commonStyles,
+  ...StyleSheet.create({
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -782,23 +706,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontWeight: '500',
-  },
-  emptyCard: {
-    padding: 48,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   expenseList: {
     width: '100%',
@@ -874,4 +781,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-});
+  }),
+};
