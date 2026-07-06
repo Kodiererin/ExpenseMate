@@ -1,5 +1,6 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "../constants/firebase";
+import { CategoryLimit } from "../domain/CategoryLimit";
 import { Expense } from "../domain/Expense";
 import { Goal } from "../domain/Goal";
 
@@ -305,6 +306,58 @@ export const getAllAvailableGoalMonths = async (): Promise<string[]> => {
   } catch (error) {
     console.error("Error fetching available goal months: ", error);
     return [];
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Category budget limits
+// ---------------------------------------------------------------------------
+
+// Firestore document IDs cannot contain '/'; encode the category to be safe.
+const categoryDocId = (category: string) => encodeURIComponent(category.trim());
+
+export const getCategoryLimits = async (): Promise<CategoryLimit[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "categoryLimits"));
+    const limits: CategoryLimit[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.category != null && typeof data.monthlyLimit === 'number') {
+        limits.push({
+          id: docSnap.id,
+          category: data.category,
+          monthlyLimit: data.monthlyLimit,
+        });
+      }
+    });
+    return limits;
+  } catch (error) {
+    console.error("Error fetching category limits: ", error);
+    return [];
+  }
+};
+
+export const setCategoryLimit = async (category: string, monthlyLimit: number): Promise<void> => {
+  try {
+    const trimmed = category.trim();
+    await setDoc(doc(db, "categoryLimits", categoryDocId(trimmed)), {
+      category: trimmed,
+      monthlyLimit,
+    });
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error setting category limit: ", error);
+    throw error;
+  }
+};
+
+export const deleteCategoryLimit = async (category: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, "categoryLimits", categoryDocId(category)));
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error deleting category limit: ", error);
+    throw error;
   }
 };
 
