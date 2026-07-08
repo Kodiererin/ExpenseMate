@@ -89,6 +89,8 @@ const getInvestmentCategory = (investment: Investment) => {
 const InvestmentsScreen = () => {
   // Trend type state: 'monthly' or 'yearly'
   const [trendType, setTrendType] = useState<'monthly' | 'yearly'>('monthly');
+  // Active tab for the redesigned tabbed layout
+  const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'list'>('overview');
   const { colors } = useTheme();
   const { 
     investments, 
@@ -147,72 +149,6 @@ const InvestmentsScreen = () => {
     }).start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  /**
-   * Automatically add recurring investments on the selected date and frequency.
-   * This effect checks if today matches the selected date and frequency, and if so,
-   * auto-adds the investment for the user. This helps users avoid manual entry for recurring investments.
-   *
-   * Future developers: This logic assumes the formData is set for a recurring investment.
-   * You may want to move this logic to the backend for reliability in production apps.
-   */
-  useEffect(() => {
-    if (!formData.isRecurring) return;
-    // Get today's date (without time)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    // Get selected start date (without time)
-    const startDate = new Date(selectedDate);
-    startDate.setHours(0, 0, 0, 0);
-
-    // Helper to get all due dates from startDate up to today
-    const getDueDates = () => {
-      const dates: Date[] = [];
-      let current = new Date(startDate);
-      while (current <= today) {
-        dates.push(new Date(current));
-        if (formData.recurringFrequency === 'monthly') {
-          current.setMonth(current.getMonth() + 1);
-        } else if (formData.recurringFrequency === 'quarterly') {
-          current.setMonth(current.getMonth() + 3);
-        } else if (formData.recurringFrequency === 'yearly') {
-          current.setFullYear(current.getFullYear() + 1);
-        } else {
-          break;
-        }
-      }
-      return dates;
-    };
-
-    // Add all missed recurring investments from startDate up to today
-    const dueDates = getDueDates();
-    // For new recurring investment, add as a single entry with all dates
-    if (formData.title && formData.amount && dueDates.length > 0) {
-      // Check if investment for this title/type/amount already exists
-      const alreadyExists = investments.some(inv =>
-        inv.isRecurring &&
-        inv.title === formData.title &&
-        inv.amount === parseFloat(formData.amount)
-      );
-      if (!alreadyExists) {
-        addInvestment({
-          userId,
-          type: formData.type as Investment['type'],
-          title: formData.title,
-          amount: parseFloat(formData.amount),
-          date: dueDates.map(d => d.toISOString()),
-          description: formData.description,
-          source: formData.source,
-          isRecurring: true,
-          recurringFrequency: formData.recurringFrequency as Investment['recurringFrequency'],
-          taxable: formData.taxable,
-          category: formData.category as Investment['category'],
-        });
-        Alert.alert('Recurring Investments Added', `Recurring investments from ${startDate.toLocaleDateString()} to ${today.toLocaleDateString()} have been auto-added.`);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, selectedDate, investments]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -428,16 +364,11 @@ const InvestmentsScreen = () => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Monthly Income</Text>
-              <Text style={[styles.quickStatValue, { color: 'white' }]}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Last Updated</Text>
+            <Text style={styles.quickStatLabel}>Updated</Text>
             <Text style={styles.quickStatValue}>
               {(() => {
                 const minutes = Math.floor((Date.now() - lastRefresh) / 60000);
-                if (minutes < 1) return "Now";
+                if (minutes < 1) return "Just now";
                 if (minutes === 1) return "1m ago";
                 if (minutes < 60) return `${minutes}m ago`;
                 const hours = Math.floor(minutes / 60);
@@ -447,6 +378,30 @@ const InvestmentsScreen = () => {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Tab Navigation */}
+      <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        {([
+          { key: 'overview', label: 'Overview', icon: 'grid' },
+          { key: 'charts', label: 'Charts', icon: 'stats-chart' },
+          { key: 'list', label: 'History', icon: 'list' },
+        ] as const).map(tab => {
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tabButton, active && { backgroundColor: `${colors.primary}18` }]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={tab.icon} size={18} color={active ? colors.primary : colors.textSecondary} />
+              <Text style={[styles.tabButtonText, { color: active ? colors.primary : colors.textSecondary }]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <ScrollView 
         style={styles.content} 
@@ -464,6 +419,7 @@ const InvestmentsScreen = () => {
         }
       >
         {/* Enhanced Summary Cards */}
+        {activeTab === 'overview' && (
         <Section title="📊 Financial Overview" >
           {/* Primary Stats Row */}
           <View style={styles.summaryGrid}>
@@ -479,7 +435,7 @@ const InvestmentsScreen = () => {
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
                 <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>Income</Text>
+                <Text style={styles.summaryTrend}>All income sources</Text>
               </LinearGradient>
             </TouchableOpacity>
             
@@ -495,7 +451,7 @@ const InvestmentsScreen = () => {
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Investments</Text>
                 <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
-                 <Text style={styles.summaryTrend}>Total Investments</Text>
+                <Text style={styles.summaryTrend}>Portfolio value</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -514,7 +470,7 @@ const InvestmentsScreen = () => {
                 </View>
                 <Text style={styles.enhancedSummaryLabel}>Savings</Text>
                 <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>Emergency Savings</Text>
+                <Text style={styles.summaryTrend}>Safety net</Text>
               </LinearGradient>
             </TouchableOpacity>
             
@@ -556,9 +512,10 @@ const InvestmentsScreen = () => {
             </View>
           </View>
         </Section>
+        )}
 
         {/* Charts */}
-        {investments.length > 0 && (
+        {investments.length > 0 && activeTab === 'charts' && (
           <>
             <Section title="📈 Investment Distribution" subtitle="Breakdown by category">
               <Card>
@@ -635,7 +592,18 @@ const InvestmentsScreen = () => {
           </>
         )}
 
+        {investments.length === 0 && activeTab === 'charts' && (
+          <Card style={styles.emptyCard}>
+            <Ionicons name="stats-chart-outline" size={48} color={colors.textSecondary} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No chart data yet</Text>
+            <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+              Add investments to see your distribution and trends.
+            </Text>
+          </Card>
+        )}
+
         {/* Investment List */}
+        {activeTab === 'list' && (
         <Section title="💰 Recent Investments" subtitle="Your latest entries">
           {investments.length === 0 ? (
             <Card style={styles.emptyCard}>
@@ -814,6 +782,7 @@ const InvestmentsScreen = () => {
             </View>
           )}
         </Section>
+        )}
 
         <Separator height={32} />
       </ScrollView>
@@ -1166,6 +1135,26 @@ const styles = {
   container: {
     flex: 1,
   },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    borderBottomWidth: 1,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  tabButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
   addButton: {
     width: 44,
     height: 44,
@@ -1412,40 +1401,40 @@ const styles = {
     flex: 1,
     borderRadius: 16,
     overflow: 'hidden',
-    elevation: 8,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   cardGradient: {
-    padding: 20,
-    minHeight: 120,
+    padding: 16,
+    minHeight: 108,
     justifyContent: 'space-between',
   },
   cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-end',
   },
   enhancedSummaryLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   enhancedSummaryAmount: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: 'white',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   summaryTrend: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.8)',
     fontWeight: '500',
   },

@@ -1,27 +1,27 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Dimensions,
-  Animated,
-  PanResponder,
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { useTheme } from '../contexts/ThemeContext';
-import { useData } from '../contexts/DataContext';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { ThemedView } from '../components/ThemedView';
-import { getCategoryLimits } from '../utils/firebaseUtils';
+import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { CategoryLimit } from '../domain/CategoryLimit';
+import { getCategoryLimits } from '../utils/firebaseUtils';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -84,27 +84,27 @@ export default function Analysis() {
   // Enhanced date parsing function with better error handling
   const parseDate = (dateString: string | Date): Date => {
     if (!dateString) return new Date();
-    
+
     // If it's already a valid Date object
     if (dateString instanceof Date && !isNaN(dateString.getTime())) return dateString;
-    
+
     try {
       // Convert to string and clean
       const cleanDateString = dateString.toString().trim();
-      
+
       // Try parsing as ISO string first
       const isoDate = new Date(cleanDateString);
       if (!isNaN(isoDate.getTime()) && isoDate.getFullYear() > 1900 && isoDate.getFullYear() < 2100) {
         return isoDate;
       }
-      
+
       // Try different date formats with validation
       const patterns = [
         /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/dd/yyyy or dd/MM/yyyy
         /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // yyyy-MM-dd
         /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // dd-MM-yyyy or MM-dd-yyyy
       ];
-      
+
       for (const pattern of patterns) {
         const match = pattern.exec(cleanDateString);
         if (match) {
@@ -112,20 +112,20 @@ export default function Analysis() {
           const num1 = parseInt(part1, 10);
           const num2 = parseInt(part2, 10);
           const num3 = parseInt(part3, 10);
-          
+
           // Try different interpretations
           const attempts = [
             new Date(num3, num1 - 1, num2), // yyyy, MM, dd
             new Date(num3, num2 - 1, num1), // yyyy, dd, MM
             new Date(num1, num2 - 1, num3), // MM, dd, yyyy (if num1 < 13)
           ];
-          
+
           for (const attempt of attempts) {
-            if (!isNaN(attempt.getTime()) && 
-                attempt.getFullYear() > 1900 && 
-                attempt.getFullYear() < 2100 &&
-                attempt.getMonth() >= 0 && attempt.getMonth() < 12 &&
-                attempt.getDate() > 0 && attempt.getDate() <= 31) {
+            if (!isNaN(attempt.getTime()) &&
+              attempt.getFullYear() > 1900 &&
+              attempt.getFullYear() < 2100 &&
+              attempt.getMonth() >= 0 && attempt.getMonth() < 12 &&
+              attempt.getDate() > 0 && attempt.getDate() <= 31) {
               return attempt;
             }
           }
@@ -134,7 +134,7 @@ export default function Analysis() {
     } catch (error) {
       console.warn(`Date parsing error for: ${dateString}`, error);
     }
-    
+
     // Fallback to current date
     return new Date();
   };
@@ -493,7 +493,7 @@ export default function Analysis() {
         useNativeDriver: true,
       }).start();
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [selectedTab, expenses, fadeAnim]);
 
@@ -594,13 +594,13 @@ export default function Analysis() {
     onPanResponderRelease: (evt, gestureState) => {
       const { dx } = gestureState;
       const threshold = 50;
-      
+
       if (dx > threshold && selectedTab > 0) {
         setSelectedTab(selectedTab - 1);
       } else if (dx < -threshold && selectedTab < 4) {
         setSelectedTab(selectedTab + 1);
       }
-      
+
       Animated.spring(scrollX, {
         toValue: 0,
         useNativeDriver: true,
@@ -614,7 +614,7 @@ export default function Analysis() {
     backgroundGradientTo: colors.background,
     backgroundGradientToOpacity: 0,
     color: (opacity = 1) => {
-      const primaryColor = colors.primary?.includes?.('#') 
+      const primaryColor = colors.primary?.includes?.('#')
         ? colors.primary
         : '#3B82F6';
       const hex = primaryColor.replace('#', '');
@@ -666,7 +666,7 @@ export default function Analysis() {
 
   const StatCard = ({ title, value, subtitle, icon, color, trend }: any) => (
     <Animated.View style={[
-      styles.modernStatCard, 
+      styles.modernStatCard,
       { backgroundColor: colors.card, borderColor: colors.border },
       { opacity: fadeAnim }
     ]}>
@@ -676,10 +676,10 @@ export default function Analysis() {
         </View>
         {trend !== undefined && (
           <View style={[styles.modernTrendBadge, { backgroundColor: trend >= 0 ? '#EF444415' : '#10B98115' }]}>
-            <Ionicons 
-              name={trend >= 0 ? 'arrow-up' : 'arrow-down'} 
-              size={14} 
-              color={trend >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={trend >= 0 ? 'arrow-up' : 'arrow-down'}
+              size={14}
+              color={trend >= 0 ? '#EF4444' : '#10B981'}
             />
             <Text style={[styles.trendText, { color: trend >= 0 ? '#EF4444' : '#10B981' }]}>
               {Math.abs(trend).toFixed(1)}%
@@ -755,7 +755,7 @@ export default function Analysis() {
               <BarChart
                 data={{
                   labels: analyticsData.weeklyTrend.map(item => item.day),
-                  datasets: [{ 
+                  datasets: [{
                     data: analyticsData.weeklyTrend.map(item => Math.max(item.amount, 0.1)), // Minimum 0.1 to show bars
                     color: (opacity = 1) => chartConfig.color(opacity)
                   }],
@@ -830,16 +830,16 @@ export default function Analysis() {
             </View>
             <Text style={[styles.chartTitle, { color: colors.text }]}>Monthly Spending Trend</Text>
           </View>
-          <View style={[styles.trendIndicator, { 
-            backgroundColor: analyticsData.growthRate >= 0 ? '#EF444420' : '#10B98120' 
+          <View style={[styles.trendIndicator, {
+            backgroundColor: analyticsData.growthRate >= 0 ? '#EF444420' : '#10B98120'
           }]}>
-            <Ionicons 
-              name={analyticsData.growthRate >= 0 ? 'arrow-up' : 'arrow-down'} 
-              size={16} 
-              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={analyticsData.growthRate >= 0 ? 'arrow-up' : 'arrow-down'}
+              size={16}
+              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'}
             />
-            <Text style={[styles.chartTrendText, { 
-              color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981' 
+            <Text style={[styles.chartTrendText, {
+              color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'
             }]}>
               {Math.abs(analyticsData.growthRate).toFixed(1)}%
             </Text>
@@ -851,7 +851,7 @@ export default function Analysis() {
               <LineChart
                 data={{
                   labels: analyticsData.monthlyTrend.map(item => item.month),
-                  datasets: [{ 
+                  datasets: [{
                     data: analyticsData.monthlyTrend.map(item => Math.max(item.amount, 0.1)),
                     color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
                     strokeWidth: 3,
@@ -897,10 +897,10 @@ export default function Analysis() {
       <View style={styles.growthContainer}>
         <View style={[styles.growthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.growthHeader}>
-            <Ionicons 
-              name={analyticsData.growthRate >= 0 ? 'trending-up' : 'trending-down'} 
-              size={32} 
-              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={analyticsData.growthRate >= 0 ? 'trending-up' : 'trending-down'}
+              size={32}
+              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'}
             />
             <Text style={[styles.growthValue, { color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981' }]}>
               {analyticsData.growthRate >= 0 ? '+' : ''}{analyticsData.growthRate.toFixed(1)}%
@@ -929,14 +929,14 @@ export default function Analysis() {
                 {item.percentage.toFixed(1)}%
               </Text>
               <View style={[styles.distributionBar, { backgroundColor: `${colors.border}50` }]}>
-                <View 
+                <View
                   style={[
-                    styles.distributionFill, 
-                    { 
-                      width: `${item.percentage}%`, 
-                      backgroundColor: colors.primary 
+                    styles.distributionFill,
+                    {
+                      width: `${item.percentage}%`,
+                      backgroundColor: colors.primary
                     }
-                  ]} 
+                  ]}
                 />
               </View>
             </View>
@@ -1340,10 +1340,10 @@ export default function Analysis() {
               onPress={() => handleTabChange(tab.id)}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name={tab.icon as any} 
-                size={18} 
-                color={selectedTab === tab.id ? colors.primary : colors.textSecondary} 
+              <Ionicons
+                name={tab.icon as any}
+                size={18}
+                color={selectedTab === tab.id ? colors.primary : colors.textSecondary}
               />
               <Text style={[
                 styles.tabText,
@@ -1354,7 +1354,7 @@ export default function Analysis() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        
+
         {/* Swipe indicator */}
         <View style={styles.swipeIndicator}>
           <Text style={[styles.swipeText, { color: colors.textSecondary }]}>
@@ -1364,8 +1364,8 @@ export default function Analysis() {
       </View>
 
       {/* Content */}
-      <Animated.View 
-        style={[styles.content, { 
+      <Animated.View
+        style={[styles.content, {
           opacity: fadeAnim,
           transform: [{ translateX: scrollX }]
         }]}
@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
-  
+
   // Stats Cards
   statsGrid: {
     flexDirection: 'row',
