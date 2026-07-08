@@ -28,16 +28,23 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
-               <Stack.Screen name="Calculator" 
-                options={{ 
+              <Stack.Screen name="Calculator"
+                options={{
                   headerShown: false,  // This hides the "Calculator" system header
                   presentation: 'card',
                   animation: 'slide_from_right'
-                }} 
+                }}
               />
-              <Stack.Screen name="Analysis" 
-                options={{ 
+              <Stack.Screen name="Analysis"
+                options={{
                   headerShown: false,  // This hides the "Analysis" system header
+                  presentation: 'card',
+                  animation: 'slide_from_right'
+                }}
+              />
+              <Stack.Screen name="Calendar"
+                options={{
+                  headerShown: false,  // This hides the "Calendar" system header
                   presentation: 'card',
                   animation: 'slide_from_right'
                 }}
