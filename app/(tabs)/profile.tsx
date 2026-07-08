@@ -290,7 +290,7 @@ export default function ProfileScreen() {
         </head>
         <body>
           <div class="header">
-            <h1>💰 ExpenseMate Report</h1>
+            <h1> ExpenseMate Report</h1>
             <p>Generated on ${new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -321,14 +321,14 @@ export default function ProfileScreen() {
             </div>
           </div>
           
-          <h2>📋 All Expenses</h2>
+          <h2> All Expenses</h2>
           <table>
             <thead>
               <tr>
-                <th>📅 Date</th>
-                <th>🏷️ Category</th>
-                <th>📝 Description</th>
-                <th>💰 Amount</th>
+                <th> Date</th>
+                <th> Category</th>
+                <th> Description</th>
+                <th> Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -494,7 +494,7 @@ export default function ProfileScreen() {
       ) : (
         <>
           {/* Statistics */}
-          <Section title="📊 Your Stats" subtitle="Overview of your spending">
+          <Section title="Your Stats" subtitle="Overview of your spending">
             <View style={styles.statsContainer}>
               <StatCard
                 title="Total Expenses"
@@ -596,14 +596,14 @@ export default function ProfileScreen() {
           </Section>
 
           {/* App Info */}
-          <Section title="ℹ️ About">
+          <Section title="About">
             <Card>
               <View style={styles.appInfo}>
                 <Text style={[styles.appTitle, { color: colors.primary }]}>
                   💰 ExpenseMate
                 </Text>
                 <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 4.1.0
+                  Version 6.0.0
                 </Text>
                 <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
                   Your open-source personal expense tracking companion.

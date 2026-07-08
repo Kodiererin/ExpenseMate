@@ -2,7 +2,7 @@
   "expo": {
     "name": "ExpenseMate",
     "slug": "ExpenseMate",
-    "version": "3.0.0",
+    "version": "5.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expensemate",
@@ -53,6 +53,7 @@
       "eas": {
         "projectId": "a61d88e7-c514-4f35-bbbc-e2b56936a2e7"
       }
-    }
+    },
+    "owner": "whoisujjwal"
   }
 }

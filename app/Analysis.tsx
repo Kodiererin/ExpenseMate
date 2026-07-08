@@ -1,23 +1,43 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-  Animated,
-  PanResponder,
-  ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LineChart, BarChart } from 'react-native-chart-kit';
-import { useTheme } from '../contexts/ThemeContext';
-import { useData } from '../contexts/DataContext';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
 import { ThemedView } from '../components/ThemedView';
+import { useData } from '../contexts/DataContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { CategoryLimit } from '../domain/CategoryLimit';
+import { getCategoryLimits } from '../utils/firebaseUtils';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+type TimeRange = 'week' | 'month' | 'year' | 'all';
+
+const TIME_RANGES: { key: TimeRange; label: string }[] = [
+  { key: 'week', label: 'Week' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+  { key: 'all', label: 'All' },
+];
+
+const CATEGORY_PALETTE = [
+  '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444',
+  '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#6366F1',
+];
 
 interface AnalyticsData {
   totalAmount: number;
@@ -26,14 +46,26 @@ interface AnalyticsData {
   highestExpense: number;
   mostExpensiveCategory: string;
   dailyAverage: number;
-  weeklyTrend: { day: string; amount: number }[];
+  weeklyTrend: { day: string; amount: number; count: number }[];
   monthlyTrend: { month: string; amount: number }[];
-  categoryAnalysis: { category: string; amount: number; percentage: number; count: number }[];
+  categoryAnalysis: { category: string; amount: number; percentage: number; count: number; color: string }[];
   expenseDistribution: { range: string; count: number; percentage: number }[];
-  spendingPattern: { hour: number; count: number }[];
+  dayOfWeekPattern: { day: string; amount: number; count: number }[];
+  recurringExpenses: { label: string; tag: string; count: number; total: number; average: number }[];
   growthRate: number;
   topSpendingDays: { date: string; amount: number }[];
   categoryTrends: { [key: string]: number };
+  previousPeriodTotal: number;
+  savingsAmount: number;
+  savingsRate: number;
+}
+
+interface BudgetRow {
+  category: string;
+  limit: number;
+  spent: number;
+  percentage: number;
+  remaining: number;
 }
 
 export default function Analysis() {
@@ -42,33 +74,37 @@ export default function Analysis() {
   const { expenses } = useData();
   const [selectedTab, setSelectedTab] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryLimits, setCategoryLimits] = useState<CategoryLimit[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scrollX = useRef(new Animated.Value(0)).current;
 
   // Enhanced date parsing function with better error handling
   const parseDate = (dateString: string | Date): Date => {
     if (!dateString) return new Date();
-    
+
     // If it's already a valid Date object
     if (dateString instanceof Date && !isNaN(dateString.getTime())) return dateString;
-    
+
     try {
       // Convert to string and clean
       const cleanDateString = dateString.toString().trim();
-      
+
       // Try parsing as ISO string first
       const isoDate = new Date(cleanDateString);
       if (!isNaN(isoDate.getTime()) && isoDate.getFullYear() > 1900 && isoDate.getFullYear() < 2100) {
         return isoDate;
       }
-      
+
       // Try different date formats with validation
       const patterns = [
         /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/dd/yyyy or dd/MM/yyyy
         /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // yyyy-MM-dd
         /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // dd-MM-yyyy or MM-dd-yyyy
       ];
-      
+
       for (const pattern of patterns) {
         const match = pattern.exec(cleanDateString);
         if (match) {
@@ -76,20 +112,20 @@ export default function Analysis() {
           const num1 = parseInt(part1, 10);
           const num2 = parseInt(part2, 10);
           const num3 = parseInt(part3, 10);
-          
+
           // Try different interpretations
           const attempts = [
             new Date(num3, num1 - 1, num2), // yyyy, MM, dd
             new Date(num3, num2 - 1, num1), // yyyy, dd, MM
             new Date(num1, num2 - 1, num3), // MM, dd, yyyy (if num1 < 13)
           ];
-          
+
           for (const attempt of attempts) {
-            if (!isNaN(attempt.getTime()) && 
-                attempt.getFullYear() > 1900 && 
-                attempt.getFullYear() < 2100 &&
-                attempt.getMonth() >= 0 && attempt.getMonth() < 12 &&
-                attempt.getDate() > 0 && attempt.getDate() <= 31) {
+            if (!isNaN(attempt.getTime()) &&
+              attempt.getFullYear() > 1900 &&
+              attempt.getFullYear() < 2100 &&
+              attempt.getMonth() >= 0 && attempt.getMonth() < 12 &&
+              attempt.getDate() > 0 && attempt.getDate() <= 31) {
               return attempt;
             }
           }
@@ -98,44 +134,51 @@ export default function Analysis() {
     } catch (error) {
       console.warn(`Date parsing error for: ${dateString}`, error);
     }
-    
+
     // Fallback to current date
     return new Date();
   };
 
   const analyticsData: AnalyticsData = useMemo(() => {
+    const empty: AnalyticsData = {
+      totalAmount: 0,
+      totalExpenses: 0,
+      averageExpense: 0,
+      highestExpense: 0,
+      mostExpensiveCategory: 'None',
+      dailyAverage: 0,
+      weeklyTrend: [],
+      monthlyTrend: [],
+      categoryAnalysis: [],
+      expenseDistribution: [],
+      dayOfWeekPattern: [],
+      recurringExpenses: [],
+      growthRate: 0,
+      topSpendingDays: [],
+      categoryTrends: {},
+      previousPeriodTotal: 0,
+      savingsAmount: 0,
+      savingsRate: 0,
+    };
+
     if (!expenses || expenses.length === 0) {
-      return {
-        totalAmount: 0,
-        totalExpenses: 0,
-        averageExpense: 0,
-        highestExpense: 0,
-        mostExpensiveCategory: 'None',
-        dailyAverage: 0,
-        weeklyTrend: [],
-        monthlyTrend: [],
-        categoryAnalysis: [],
-        expenseDistribution: [],
-        spendingPattern: [],
-        growthRate: 0,
-        topSpendingDays: [],
-        categoryTrends: {},
-      };
+      return empty;
     }
 
     // Enhanced expense processing with robust date parsing and validation
-    const allExpenses = expenses
+    const parsedAll = expenses
       .map(expense => {
         try {
           const parsedDate = parseDate(expense.date);
           const priceString = expense.price?.toString() || '0';
           const parsedPrice = parseFloat(priceString.replace(/[^\d.-]/g, '')) || 0;
-          
+
           return {
             ...expense,
             price: parsedPrice,
             date: parsedDate,
             tag: expense.tag || 'Other',
+            description: expense.description || '',
             id: expense.id || Math.random().toString()
           };
         } catch (error) {
@@ -143,16 +186,50 @@ export default function Analysis() {
           return null;
         }
       })
-      .filter((expense): expense is NonNullable<typeof expense> => 
-        expense !== null && 
-        expense.price > 0 && 
-        expense.price < 1000000 && // Reasonable upper limit
-        expense.date instanceof Date && 
+      .filter((expense): expense is NonNullable<typeof expense> =>
+        expense !== null &&
+        expense.price > 0 &&
+        expense.price < 1000000 &&
+        expense.date instanceof Date &&
         !isNaN(expense.date.getTime()) &&
         expense.date.getFullYear() > 1900 &&
         expense.date.getFullYear() < 2100
       )
       .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    // Determine current and previous period boundaries based on the selected range
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    let rangeStart: Date;
+    let prevStart: Date;
+    let prevEnd: Date;
+
+    if (timeRange === 'week') {
+      rangeStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+      prevEnd = new Date(rangeStart.getTime() - 1);
+      prevStart = startOfDay(new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() - 7));
+    } else if (timeRange === 'month') {
+      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      prevEnd = new Date(rangeStart.getTime() - 1);
+      prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    } else if (timeRange === 'year') {
+      rangeStart = new Date(now.getFullYear(), 0, 1);
+      prevEnd = new Date(rangeStart.getTime() - 1);
+      prevStart = new Date(now.getFullYear() - 1, 0, 1);
+    } else {
+      rangeStart = new Date(1900, 0, 1);
+      prevEnd = new Date(0);
+      prevStart = new Date(0);
+    }
+
+    const allExpenses = parsedAll.filter(e => e.date.getTime() >= rangeStart.getTime());
+    const previousPeriodExpenses = timeRange === 'all'
+      ? []
+      : parsedAll.filter(e => e.date.getTime() >= prevStart.getTime() && e.date.getTime() <= prevEnd.getTime());
+
+    if (allExpenses.length === 0) {
+      return empty;
+    }
 
     // Basic calculations
     const totalAmount = allExpenses.reduce((sum, expense) => sum + expense.price, 0);
@@ -164,6 +241,11 @@ export default function Analysis() {
     const dateStrings = allExpenses.map(e => e.date.toDateString());
     const uniqueDays = new Set(dateStrings).size;
     const dailyAverage = uniqueDays > 0 ? totalAmount / uniqueDays : 0;
+
+    // Savings vs previous equivalent period
+    const previousPeriodTotal = previousPeriodExpenses.reduce((sum, e) => sum + e.price, 0);
+    const savingsAmount = previousPeriodTotal - totalAmount;
+    const savingsRate = previousPeriodTotal > 0 ? (savingsAmount / previousPeriodTotal) * 100 : 0;
 
     // Category analysis with better error handling
     const categoryTotals: { [key: string]: { amount: number; count: number } } = {};
@@ -182,8 +264,10 @@ export default function Analysis() {
         amount: data.amount,
         count: data.count,
         percentage: totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0,
+        color: '',
       }))
-      .sort((a, b) => b.amount - a.amount);
+      .sort((a, b) => b.amount - a.amount)
+      .map((item, index) => ({ ...item, color: CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] }));
 
     const mostExpensiveCategory = categoryAnalysis[0]?.category || 'None';
 
@@ -196,12 +280,12 @@ export default function Analysis() {
 
     const weeklyTrend = last7Days.map(date => {
       const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const dayExpenses = allExpenses.filter(e => {
+      const dayExpenses = parsedAll.filter(e => {
         const expenseDate = new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate());
         const expenseKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}-${String(expenseDate.getDate()).padStart(2, '0')}`;
         return expenseKey === dateKey;
       });
-      
+
       return {
         day: date.toLocaleDateString('en-US', { weekday: 'short' }),
         amount: dayExpenses.reduce((sum, e) => sum + e.price, 0),
@@ -209,16 +293,16 @@ export default function Analysis() {
       };
     });
 
-    // Monthly trend with better date grouping
+    // Monthly trend with better date grouping (uses full history for context)
     const monthlyData: { [key: string]: number } = {};
-    allExpenses.forEach(expense => {
+    parsedAll.forEach(expense => {
       const monthKey = `${expense.date.getFullYear()}-${String(expense.date.getMonth() + 1).padStart(2, '0')}`;
       monthlyData[monthKey] = (monthlyData[monthKey] || 0) + expense.price;
     });
 
     const monthlyTrend = Object.entries(monthlyData)
       .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6) // Last 6 months
+      .slice(-6)
       .map(([month, amount]) => {
         const [year, monthNum] = month.split('-');
         const date = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
@@ -246,10 +330,47 @@ export default function Analysis() {
       };
     });
 
+    // Day-of-week spending pattern (real data derived from expense dates)
+    const dowLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dowBuckets = dowLabels.map(() => ({ amount: 0, count: 0 }));
+    allExpenses.forEach(e => {
+      const idx = e.date.getDay();
+      dowBuckets[idx].amount += e.price;
+      dowBuckets[idx].count += 1;
+    });
+    const dayOfWeekPattern = dowLabels.map((day, i) => ({
+      day,
+      amount: dowBuckets[i].amount,
+      count: dowBuckets[i].count,
+    }));
+
+    // Recurring expense detection (same tag + description appearing 3+ times)
+    const recurringMap: { [key: string]: { label: string; tag: string; count: number; total: number } } = {};
+    allExpenses.forEach(e => {
+      const desc = (e.description || '').trim().toLowerCase();
+      const key = `${e.tag}__${desc}`;
+      if (!recurringMap[key]) {
+        recurringMap[key] = {
+          label: (e.description || '').trim() || e.tag,
+          tag: e.tag,
+          count: 0,
+          total: 0,
+        };
+      }
+      recurringMap[key].count += 1;
+      recurringMap[key].total += e.price;
+    });
+
+    const recurringExpenses = Object.values(recurringMap)
+      .filter(r => r.count >= 3)
+      .map(r => ({ ...r, average: r.total / r.count }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+
     // Top spending days with improved date handling
     const dailyTotals: { [key: string]: number } = {};
     allExpenses.forEach(expense => {
-      const dateKey = expense.date.toISOString().split('T')[0]; // Use ISO date string for consistency
+      const dateKey = expense.date.toISOString().split('T')[0];
       dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + expense.price;
     });
 
@@ -264,20 +385,17 @@ export default function Analysis() {
         };
       });
 
-    // Growth rate calculation with better date handling
-    const now = new Date();
+    // Growth rate calculation (calendar month over month, from full history)
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-    
-    // Current month expenses
-    const currentMonthExpenses = allExpenses.filter(e => 
+
+    const currentMonthExpenses = parsedAll.filter(e =>
       e.date.getMonth() === currentMonth && e.date.getFullYear() === currentYear
     );
-    
-    // Previous month expenses
+
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const lastMonthExpenses = allExpenses.filter(e => 
+    const lastMonthExpenses = parsedAll.filter(e =>
       e.date.getMonth() === prevMonth && e.date.getFullYear() === prevYear
     );
 
@@ -294,24 +412,12 @@ export default function Analysis() {
       const currentMonthCatExpenses = currentMonthExpenses
         .filter(e => (e.tag || 'Other') === cat.category)
         .reduce((sum, e) => sum + e.price, 0);
-      
+
       if (lastMonthCatExpenses > 0) {
         categoryTrends[cat.category] = ((currentMonthCatExpenses - lastMonthCatExpenses) / lastMonthCatExpenses) * 100;
       } else if (currentMonthCatExpenses > 0) {
-        categoryTrends[cat.category] = 100; // New category this month
+        categoryTrends[cat.category] = 100;
       }
-    });
-
-    // Spending pattern analysis (simplified for better performance)
-    const spendingPattern = Array.from({ length: 24 }, (_, hour) => {
-      // In a real implementation, you would extract hour from timestamps
-      // For now, using a distribution based on common spending patterns
-      const commonHours = [9, 12, 14, 18, 20]; // Common spending hours
-      const baseCount = commonHours.includes(hour) ? Math.floor(Math.random() * 8) + 3 : Math.floor(Math.random() * 3) + 1;
-      return {
-        hour,
-        count: baseCount,
-      };
     });
 
     return {
@@ -325,12 +431,57 @@ export default function Analysis() {
       monthlyTrend,
       categoryAnalysis,
       expenseDistribution,
-      spendingPattern,
+      dayOfWeekPattern,
+      recurringExpenses,
       growthRate,
       topSpendingDays,
       categoryTrends,
+      previousPeriodTotal,
+      savingsAmount,
+      savingsRate,
     };
-  }, [expenses]);
+  }, [expenses, timeRange]);
+
+  // Budget vs actual for the current calendar month (limits are monthly)
+  const budgetRows: BudgetRow[] = useMemo(() => {
+    if (!categoryLimits || categoryLimits.length === 0) return [];
+
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+
+    const spentByCategory: { [key: string]: number } = {};
+    (expenses || []).forEach(e => {
+      const d = parseDate(e.date);
+      if (d.getMonth() === month && d.getFullYear() === year) {
+        const price = parseFloat((e.price?.toString() || '0').replace(/[^\d.-]/g, '')) || 0;
+        const cat = e.tag || 'Other';
+        spentByCategory[cat] = (spentByCategory[cat] || 0) + price;
+      }
+    });
+
+    return categoryLimits
+      .filter(l => l.monthlyLimit > 0)
+      .map(l => {
+        const spent = spentByCategory[l.category] || 0;
+        const percentage = l.monthlyLimit > 0 ? (spent / l.monthlyLimit) * 100 : 0;
+        return {
+          category: l.category,
+          limit: l.monthlyLimit,
+          spent,
+          percentage,
+          remaining: l.monthlyLimit - spent,
+        };
+      })
+      .sort((a, b) => b.percentage - a.percentage);
+  }, [categoryLimits, expenses]);
+
+  // Category list filtered by the search box (used in the Categories tab)
+  const filteredCategoryAnalysis = useMemo(() => {
+    const q = categorySearch.trim().toLowerCase();
+    if (!q) return analyticsData.categoryAnalysis;
+    return analyticsData.categoryAnalysis.filter(c => c.category.toLowerCase().includes(q));
+  }, [analyticsData.categoryAnalysis, categorySearch]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -342,9 +493,95 @@ export default function Analysis() {
         useNativeDriver: true,
       }).start();
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [selectedTab, expenses, fadeAnim]);
+
+  // Load monthly category limits for the Budget tab
+  useEffect(() => {
+    let mounted = true;
+    getCategoryLimits()
+      .then(limits => {
+        if (mounted) setCategoryLimits(limits);
+      })
+      .catch(err => console.warn('Failed to load category limits', err));
+    return () => {
+      mounted = false;
+    };
+  }, [expenses]);
+
+  const formatINR = useCallback((value: number) => `₹${Math.round(value).toLocaleString('en-IN')}`, []);
+
+  // Export the current analytics view as a CSV report and share it
+  const handleExport = useCallback(async () => {
+    if (isExporting) return;
+    if (analyticsData.totalExpenses === 0) {
+      Alert.alert('Nothing to Export', 'There is no expense data for the selected period.');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const rangeLabel = TIME_RANGES.find(r => r.key === timeRange)?.label || 'All';
+      const generatedAt = new Date().toLocaleString('en-US');
+
+      const lines: string[] = [];
+      lines.push('ExpenseMate Analytics Report');
+      lines.push(`Period,${rangeLabel}`);
+      lines.push(`Generated,${generatedAt}`);
+      lines.push('');
+      lines.push('Summary');
+      lines.push('Metric,Value');
+      lines.push(`Total Spent,${Math.round(analyticsData.totalAmount)}`);
+      lines.push(`Transactions,${analyticsData.totalExpenses}`);
+      lines.push(`Average Expense,${Math.round(analyticsData.averageExpense)}`);
+      lines.push(`Highest Expense,${Math.round(analyticsData.highestExpense)}`);
+      lines.push(`Daily Average,${Math.round(analyticsData.dailyAverage)}`);
+      lines.push(`Top Category,${analyticsData.mostExpensiveCategory}`);
+      lines.push(`Previous Period Total,${Math.round(analyticsData.previousPeriodTotal)}`);
+      lines.push(`Savings vs Previous,${Math.round(analyticsData.savingsAmount)}`);
+      lines.push('');
+      lines.push('Category Breakdown');
+      lines.push('Category,Amount,Transactions,Percentage');
+      analyticsData.categoryAnalysis.forEach(c => {
+        const safeCat = `"${c.category.replace(/"/g, '""')}"`;
+        lines.push(`${safeCat},${Math.round(c.amount)},${c.count},${c.percentage.toFixed(1)}%`);
+      });
+
+      if (budgetRows.length > 0) {
+        lines.push('');
+        lines.push('Budget vs Actual (This Month)');
+        lines.push('Category,Limit,Spent,Remaining,Used %');
+        budgetRows.forEach(b => {
+          const safeCat = `"${b.category.replace(/"/g, '""')}"`;
+          lines.push(`${safeCat},${Math.round(b.limit)},${Math.round(b.spent)},${Math.round(b.remaining)},${b.percentage.toFixed(1)}%`);
+        });
+      }
+
+      const csv = lines.join('\n');
+      const fileName = `ExpenseMate_Report_${rangeLabel}_${Date.now()}.csv`;
+      const fileUri = FileSystem.documentDirectory + fileName;
+
+      await FileSystem.writeAsStringAsync(fileUri, csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Share Analytics Report',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('Report Saved', `Report saved to:\n${fileUri}`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      Alert.alert('Export Failed', 'Could not generate the report. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [analyticsData, budgetRows, timeRange, isExporting]);
 
   // Pan responder for swipe navigation
   const panResponder = PanResponder.create({
@@ -357,13 +594,13 @@ export default function Analysis() {
     onPanResponderRelease: (evt, gestureState) => {
       const { dx } = gestureState;
       const threshold = 50;
-      
+
       if (dx > threshold && selectedTab > 0) {
         setSelectedTab(selectedTab - 1);
-      } else if (dx < -threshold && selectedTab < 3) {
+      } else if (dx < -threshold && selectedTab < 4) {
         setSelectedTab(selectedTab + 1);
       }
-      
+
       Animated.spring(scrollX, {
         toValue: 0,
         useNativeDriver: true,
@@ -377,7 +614,7 @@ export default function Analysis() {
     backgroundGradientTo: colors.background,
     backgroundGradientToOpacity: 0,
     color: (opacity = 1) => {
-      const primaryColor = colors.primary?.includes?.('#') 
+      const primaryColor = colors.primary?.includes?.('#')
         ? colors.primary
         : '#3B82F6';
       const hex = primaryColor.replace('#', '');
@@ -423,12 +660,13 @@ export default function Analysis() {
     { id: 0, title: 'Overview', icon: 'analytics' },
     { id: 1, title: 'Trends', icon: 'trending-up' },
     { id: 2, title: 'Categories', icon: 'pie-chart' },
-    { id: 3, title: 'Patterns', icon: 'time' },
+    { id: 3, title: 'Budget', icon: 'wallet' },
+    { id: 4, title: 'Patterns', icon: 'time' },
   ];
 
   const StatCard = ({ title, value, subtitle, icon, color, trend }: any) => (
     <Animated.View style={[
-      styles.modernStatCard, 
+      styles.modernStatCard,
       { backgroundColor: colors.card, borderColor: colors.border },
       { opacity: fadeAnim }
     ]}>
@@ -438,10 +676,10 @@ export default function Analysis() {
         </View>
         {trend !== undefined && (
           <View style={[styles.modernTrendBadge, { backgroundColor: trend >= 0 ? '#EF444415' : '#10B98115' }]}>
-            <Ionicons 
-              name={trend >= 0 ? 'arrow-up' : 'arrow-down'} 
-              size={14} 
-              color={trend >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={trend >= 0 ? 'arrow-up' : 'arrow-down'}
+              size={14}
+              color={trend >= 0 ? '#EF4444' : '#10B981'}
             />
             <Text style={[styles.trendText, { color: trend >= 0 ? '#EF4444' : '#10B981' }]}>
               {Math.abs(trend).toFixed(1)}%
@@ -517,7 +755,7 @@ export default function Analysis() {
               <BarChart
                 data={{
                   labels: analyticsData.weeklyTrend.map(item => item.day),
-                  datasets: [{ 
+                  datasets: [{
                     data: analyticsData.weeklyTrend.map(item => Math.max(item.amount, 0.1)), // Minimum 0.1 to show bars
                     color: (opacity = 1) => chartConfig.color(opacity)
                   }],
@@ -592,16 +830,16 @@ export default function Analysis() {
             </View>
             <Text style={[styles.chartTitle, { color: colors.text }]}>Monthly Spending Trend</Text>
           </View>
-          <View style={[styles.trendIndicator, { 
-            backgroundColor: analyticsData.growthRate >= 0 ? '#EF444420' : '#10B98120' 
+          <View style={[styles.trendIndicator, {
+            backgroundColor: analyticsData.growthRate >= 0 ? '#EF444420' : '#10B98120'
           }]}>
-            <Ionicons 
-              name={analyticsData.growthRate >= 0 ? 'arrow-up' : 'arrow-down'} 
-              size={16} 
-              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={analyticsData.growthRate >= 0 ? 'arrow-up' : 'arrow-down'}
+              size={16}
+              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'}
             />
-            <Text style={[styles.chartTrendText, { 
-              color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981' 
+            <Text style={[styles.chartTrendText, {
+              color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'
             }]}>
               {Math.abs(analyticsData.growthRate).toFixed(1)}%
             </Text>
@@ -613,7 +851,7 @@ export default function Analysis() {
               <LineChart
                 data={{
                   labels: analyticsData.monthlyTrend.map(item => item.month),
-                  datasets: [{ 
+                  datasets: [{
                     data: analyticsData.monthlyTrend.map(item => Math.max(item.amount, 0.1)),
                     color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
                     strokeWidth: 3,
@@ -659,10 +897,10 @@ export default function Analysis() {
       <View style={styles.growthContainer}>
         <View style={[styles.growthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.growthHeader}>
-            <Ionicons 
-              name={analyticsData.growthRate >= 0 ? 'trending-up' : 'trending-down'} 
-              size={32} 
-              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'} 
+            <Ionicons
+              name={analyticsData.growthRate >= 0 ? 'trending-up' : 'trending-down'}
+              size={32}
+              color={analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981'}
             />
             <Text style={[styles.growthValue, { color: analyticsData.growthRate >= 0 ? '#EF4444' : '#10B981' }]}>
               {analyticsData.growthRate >= 0 ? '+' : ''}{analyticsData.growthRate.toFixed(1)}%
@@ -691,14 +929,14 @@ export default function Analysis() {
                 {item.percentage.toFixed(1)}%
               </Text>
               <View style={[styles.distributionBar, { backgroundColor: `${colors.border}50` }]}>
-                <View 
+                <View
                   style={[
-                    styles.distributionFill, 
-                    { 
-                      width: `${item.percentage}%`, 
-                      backgroundColor: colors.primary 
+                    styles.distributionFill,
+                    {
+                      width: `${item.percentage}%`,
+                      backgroundColor: colors.primary
                     }
-                  ]} 
+                  ]}
                 />
               </View>
             </View>
@@ -708,136 +946,337 @@ export default function Analysis() {
     </ScrollView>
   );
 
-  const renderCategories = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {/* Category Performance */}
-      <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>🏆 Category Analysis</Text>
-        {analyticsData.categoryAnalysis.map((category, index) => {
-          const trend = analyticsData.categoryTrends[category.category] || 0;
-          return (
-            <View key={category.category} style={[styles.categoryCard, { backgroundColor: `${colors.primary}05` }]}>
-              <View style={styles.categoryHeader}>
-                <View style={styles.categoryLeft}>
-                  <View style={[styles.categoryRank, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.categoryRankText}>{index + 1}</Text>
+  const renderCategories = () => {
+    const donutData = analyticsData.categoryAnalysis.slice(0, 6).map(c => ({
+      name: c.category.length > 12 ? `${c.category.slice(0, 11)}…` : c.category,
+      population: Math.round(c.amount),
+      color: c.color,
+      legendFontColor: colors.textSecondary,
+      legendFontSize: 12,
+    }));
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Category Donut */}
+        <View style={[styles.modernChartContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.chartHeader}>
+            <View style={styles.chartTitleContainer}>
+              <View style={[styles.chartIcon, { backgroundColor: `${colors.primary}20` }]}>
+                <Ionicons name="pie-chart" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.chartTitle, { color: colors.text }]}>Spending by Category</Text>
+            </View>
+          </View>
+          {donutData.length > 0 ? (
+            <PieChart
+              data={donutData}
+              width={screenWidth - 60}
+              height={210}
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="8"
+              center={[0, 0]}
+              absolute={false}
+              hasLegend
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Ionicons name="pie-chart-outline" size={48} color={colors.textSecondary} style={{ opacity: 0.3 }} />
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No category data yet</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Search */}
+        <View style={[styles.searchWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search categories..."
+            placeholderTextColor={colors.textSecondary}
+            value={categorySearch}
+            onChangeText={setCategorySearch}
+            autoCapitalize="none"
+          />
+          {categorySearch.length > 0 && (
+            <TouchableOpacity onPress={() => setCategorySearch('')}>
+              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Category Performance */}
+        <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>🏆 Category Analysis</Text>
+          {filteredCategoryAnalysis.length === 0 ? (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No matching categories</Text>
+            </View>
+          ) : (
+            filteredCategoryAnalysis.map((category, index) => {
+              const trend = analyticsData.categoryTrends[category.category] || 0;
+              return (
+                <View key={category.category} style={[styles.categoryCard, { backgroundColor: `${colors.primary}05` }]}>
+                  <View style={styles.categoryHeader}>
+                    <View style={styles.categoryLeft}>
+                      <View style={[styles.categoryRank, { backgroundColor: category.color }]}>
+                        <Text style={styles.categoryRankText}>{index + 1}</Text>
+                      </View>
+                      <View>
+                        <Text style={[styles.categoryName, { color: colors.text }]}>{category.category}</Text>
+                        <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
+                          {category.count} transactions
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.categoryRight}>
+                      <Text style={[styles.categoryAmount, { color: category.color }]}>
+                        {formatINR(category.amount)}
+                      </Text>
+                      {trend !== 0 && (
+                        <View style={[styles.categoryTrend, { backgroundColor: trend >= 0 ? '#EF444420' : '#10B98120' }]}>
+                          <Ionicons
+                            name={trend >= 0 ? 'arrow-up' : 'arrow-down'}
+                            size={12}
+                            color={trend >= 0 ? '#EF4444' : '#10B981'}
+                          />
+                          <Text style={[styles.categoryTrendText, { color: trend >= 0 ? '#EF4444' : '#10B981' }]}>
+                            {Math.abs(trend).toFixed(1)}%
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                  <View>
-                    <Text style={[styles.categoryName, { color: colors.text }]}>{category.category}</Text>
-                    <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
-                      {category.count} transactions
+                  <View style={styles.categoryProgress}>
+                    <View style={[styles.progressBar, { backgroundColor: `${colors.border}40` }]}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          {
+                            width: `${category.percentage}%`,
+                            backgroundColor: category.color
+                          }
+                        ]}
+                      />
+                    </View>
+                    <Text style={[styles.categoryPercentage, { color: colors.textSecondary }]}>
+                      {category.percentage.toFixed(1)}% of total
                     </Text>
                   </View>
                 </View>
-                <View style={styles.categoryRight}>
-                  <Text style={[styles.categoryAmount, { color: colors.primary }]}>
-                    ₹{category.amount.toLocaleString()}
-                  </Text>
-                  {trend !== 0 && (
-                    <View style={[styles.categoryTrend, { backgroundColor: trend >= 0 ? '#EF444420' : '#10B98120' }]}>
-                      <Ionicons 
-                        name={trend >= 0 ? 'arrow-up' : 'arrow-down'} 
-                        size={12} 
-                        color={trend >= 0 ? '#EF4444' : '#10B981'} 
-                      />
-                      <Text style={[styles.categoryTrendText, { color: trend >= 0 ? '#EF4444' : '#10B981' }]}>
-                        {Math.abs(trend).toFixed(1)}%
-                      </Text>
-                    </View>
-                  )}
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const renderBudget = () => (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>💼 Budget vs Actual</Text>
+        <Text style={[styles.budgetSubheading, { color: colors.textSecondary }]}>
+          Monthly limits compared with this month&apos;s spending
+        </Text>
+        {budgetRows.length === 0 ? (
+          <View style={styles.noDataContainer}>
+            <Ionicons name="wallet-outline" size={48} color={colors.textSecondary} style={{ opacity: 0.3 }} />
+            <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No budgets set yet</Text>
+            <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
+              Set monthly category limits from the History screen to track budgets here
+            </Text>
+          </View>
+        ) : (
+          budgetRows.map(row => {
+            const over = row.percentage > 100;
+            const near = row.percentage >= 80 && row.percentage <= 100;
+            const barColor = over ? '#EF4444' : near ? '#F59E0B' : '#10B981';
+            return (
+              <View key={row.category} style={[styles.budgetItem, { borderBottomColor: colors.border }]}>
+                <View style={styles.budgetTopRow}>
+                  <Text style={[styles.budgetCategory, { color: colors.text }]}>{row.category}</Text>
+                  <View style={[styles.budgetStatusBadge, { backgroundColor: `${barColor}20` }]}>
+                    <Text style={[styles.budgetStatusText, { color: barColor }]}>
+                      {over ? 'Over' : near ? 'Close' : 'On track'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.categoryProgress}>
-                <View style={[styles.progressBar, { backgroundColor: `${colors.border}40` }]}>
-                  <View 
+                <View style={[styles.progressBar, styles.budgetBar, { backgroundColor: `${colors.border}40` }]}>
+                  <View
                     style={[
-                      styles.progressFill, 
-                      { 
-                        width: `${category.percentage}%`, 
-                        backgroundColor: colors.primary 
-                      }
-                    ]} 
+                      styles.progressFill,
+                      { width: `${Math.min(row.percentage, 100)}%`, backgroundColor: barColor }
+                    ]}
                   />
                 </View>
-                <Text style={[styles.categoryPercentage, { color: colors.textSecondary }]}>
-                  {category.percentage.toFixed(1)}% of total
-                </Text>
+                <View style={styles.budgetBottomRow}>
+                  <Text style={[styles.budgetDetail, { color: colors.textSecondary }]}>
+                    {formatINR(row.spent)} of {formatINR(row.limit)}
+                  </Text>
+                  <Text style={[styles.budgetDetail, { color: barColor, fontWeight: '700' }]}>
+                    {row.remaining >= 0
+                      ? `${formatINR(row.remaining)} left`
+                      : `${formatINR(Math.abs(row.remaining))} over`}
+                  </Text>
+                </View>
               </View>
+            );
+          })
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  const renderPatterns = () => {
+    const maxDow = Math.max(...analyticsData.dayOfWeekPattern.map(d => d.amount), 1);
+    const busiestDay = analyticsData.dayOfWeekPattern.reduce(
+      (max, d) => (d.amount > max.amount ? d : max),
+      { day: '—', amount: 0, count: 0 }
+    );
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Savings summary */}
+        {timeRange !== 'all' && (
+          <View style={[styles.growthCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 20 }]}>
+            <View style={styles.growthHeader}>
+              <Ionicons
+                name={analyticsData.savingsAmount >= 0 ? 'trending-down' : 'trending-up'}
+                size={32}
+                color={analyticsData.savingsAmount >= 0 ? '#10B981' : '#EF4444'}
+              />
+              <Text style={[styles.growthValue, { color: analyticsData.savingsAmount >= 0 ? '#10B981' : '#EF4444' }]}>
+                {analyticsData.savingsAmount >= 0 ? '' : '-'}{formatINR(Math.abs(analyticsData.savingsAmount))}
+              </Text>
             </View>
-          );
-        })}
-      </View>
-    </ScrollView>
-  );
-
-  const renderPatterns = () => (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {/* Spending Insights */}
-      <View style={[styles.insightsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>🧠 Smart Insights</Text>
-        
-        <View style={styles.insightItem}>
-          <View style={[styles.insightIcon, { backgroundColor: '#3B82F620' }]}>
-            <Ionicons name="calendar" size={20} color="#3B82F6" />
-          </View>
-          <View style={styles.insightContent}>
-            <Text style={[styles.insightTitle, { color: colors.text }]}>Spending Frequency</Text>
-            <Text style={[styles.insightText, { color: colors.textSecondary }]}>
-              You spend an average of ₹{analyticsData.dailyAverage.toFixed(0)} per day
+            <Text style={[styles.growthLabel, { color: colors.text }]}>
+              {analyticsData.savingsAmount >= 0 ? 'Saved vs Previous Period' : 'Increase vs Previous Period'}
+            </Text>
+            <Text style={[styles.growthSubtext, { color: colors.textSecondary }]}>
+              {analyticsData.previousPeriodTotal > 0
+                ? `${Math.abs(analyticsData.savingsRate).toFixed(1)}% change`
+                : 'No comparable previous period'}
             </Text>
           </View>
+        )}
+
+        {/* Day-of-week pattern */}
+        <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>📅 Day-of-Week Pattern</Text>
+          {analyticsData.dayOfWeekPattern.some(d => d.amount > 0) ? (
+            analyticsData.dayOfWeekPattern.map(d => (
+              <View key={d.day} style={styles.dowRow}>
+                <Text style={[styles.dowLabel, { color: colors.text }]}>{d.day}</Text>
+                <View style={[styles.dowBarTrack, { backgroundColor: `${colors.border}40` }]}>
+                  <View
+                    style={[
+                      styles.dowBarFill,
+                      {
+                        width: `${Math.max((d.amount / maxDow) * 100, d.amount > 0 ? 4 : 0)}%`,
+                        backgroundColor: d.day === busiestDay.day ? colors.primary : `${colors.primary}80`,
+                      }
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.dowAmount, { color: colors.textSecondary }]}>{formatINR(d.amount)}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No data for this period</Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.insightItem}>
-          <View style={[styles.insightIcon, { backgroundColor: '#10B98120' }]}>
-            <Ionicons name="flash" size={20} color="#10B981" />
-          </View>
-          <View style={styles.insightContent}>
-            <Text style={[styles.insightTitle, { color: colors.text }]}>Quick Tip</Text>
-            <Text style={[styles.insightText, { color: colors.textSecondary }]}>
-              Your {analyticsData.mostExpensiveCategory.toLowerCase()} expenses are your biggest category
-            </Text>
-          </View>
+        {/* Recurring expenses */}
+        <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>🔁 Recurring Expenses</Text>
+          {analyticsData.recurringExpenses.length > 0 ? (
+            analyticsData.recurringExpenses.map((r, index) => (
+              <View key={`${r.label}-${index}`} style={[styles.listItem, { borderBottomColor: colors.border }]}>
+                <View style={styles.listItemLeft}>
+                  <View style={[styles.rankBadge, { backgroundColor: `${colors.primary}20` }]}>
+                    <Ionicons name="repeat" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={[styles.listItemTitle, { color: colors.text }]} numberOfLines={1}>
+                      {r.label}
+                    </Text>
+                    <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
+                      {r.tag} • {r.count}x • avg {formatINR(r.average)}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.listItemAmount, { color: colors.primary }]}>{formatINR(r.total)}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>
+                No recurring patterns detected yet
+              </Text>
+              <Text style={[styles.noDataSubtext, { color: colors.textSecondary }]}>
+                Items with the same name appearing 3+ times will show here
+              </Text>
+            </View>
+          )}
         </View>
 
-        <View style={styles.insightItem}>
-          <View style={[styles.insightIcon, { backgroundColor: '#F59E0B20' }]}>
-            <Ionicons name="trophy" size={20} color="#F59E0B" />
-          </View>
-          <View style={styles.insightContent}>
-            <Text style={[styles.insightTitle, { color: colors.text }]}>Achievement</Text>
-            <Text style={[styles.insightText, { color: colors.textSecondary }]}>
-              You&apos;ve tracked {analyticsData.totalExpenses} expenses this month!
-            </Text>
-          </View>
-        </View>
-      </View>
+        {/* Smart Insights */}
+        <View style={[styles.insightsContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>🧠 Smart Insights</Text>
 
-      {/* Advanced Analytics Preview */}
-      <View style={[styles.comingSoonContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.comingSoonIcon, { backgroundColor: `${colors.primary}15` }]}>
-          <Ionicons name="rocket" size={40} color={colors.primary} />
+          <View style={styles.insightItem}>
+            <View style={[styles.insightIcon, { backgroundColor: '#3B82F620' }]}>
+              <Ionicons name="calendar" size={20} color="#3B82F6" />
+            </View>
+            <View style={styles.insightContent}>
+              <Text style={[styles.insightTitle, { color: colors.text }]}>Spending Frequency</Text>
+              <Text style={[styles.insightText, { color: colors.textSecondary }]}>
+                You spend an average of {formatINR(analyticsData.dailyAverage)} per active day
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.insightItem}>
+            <View style={[styles.insightIcon, { backgroundColor: '#10B98120' }]}>
+              <Ionicons name="flash" size={20} color="#10B981" />
+            </View>
+            <View style={styles.insightContent}>
+              <Text style={[styles.insightTitle, { color: colors.text }]}>Busiest Day</Text>
+              <Text style={[styles.insightText, { color: colors.textSecondary }]}>
+                {busiestDay.amount > 0
+                  ? `${busiestDay.day} is your highest-spending day of the week`
+                  : 'Not enough data to detect a pattern yet'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.insightItem}>
+            <View style={[styles.insightIcon, { backgroundColor: '#F59E0B20' }]}>
+              <Ionicons name="trophy" size={20} color="#F59E0B" />
+            </View>
+            <View style={styles.insightContent}>
+              <Text style={[styles.insightTitle, { color: colors.text }]}>Activity</Text>
+              <Text style={[styles.insightText, { color: colors.textSecondary }]}>
+                You&apos;ve tracked {analyticsData.totalExpenses} expenses in this period!
+              </Text>
+            </View>
+          </View>
         </View>
-        <Text style={[styles.comingSoonTitle, { color: colors.text }]}>
-          🚀 Advanced Analytics Coming Soon!
-        </Text>
-        <View style={styles.featureList}>
-          <Text style={[styles.featureItem, { color: colors.textSecondary }]}>• AI-powered spending predictions</Text>
-          <Text style={[styles.featureItem, { color: colors.textSecondary }]}>• Budget optimization suggestions</Text>
-          <Text style={[styles.featureItem, { color: colors.textSecondary }]}>• Seasonal spending patterns</Text>
-          <Text style={[styles.featureItem, { color: colors.textSecondary }]}>• Goal tracking & milestones</Text>
-          <Text style={[styles.featureItem, { color: colors.textSecondary }]}>• Export detailed reports</Text>
-        </View>
-      </View>
-    </ScrollView>
-  );
+      </ScrollView>
+    );
+  };
 
   const renderTabContent = () => {
     switch (selectedTab) {
       case 0: return renderOverview();
       case 1: return renderTrends();
       case 2: return renderCategories();
-      case 3: return renderPatterns();
+      case 3: return renderBudget();
+      case 4: return renderPatterns();
       default: return renderOverview();
     }
   };
@@ -857,7 +1296,34 @@ export default function Analysis() {
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Analytics Dashboard</Text>
-        <View style={styles.headerRight} />
+        <TouchableOpacity style={styles.backButton} onPress={handleExport} disabled={isExporting}>
+          {isExporting ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Ionicons name="share-outline" size={22} color="white" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Time Range Filter */}
+      <View style={[styles.rangeContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.rangeSegment, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {TIME_RANGES.map((range) => {
+            const active = timeRange === range.key;
+            return (
+              <TouchableOpacity
+                key={range.key}
+                style={[styles.rangePill, active && { backgroundColor: colors.primary }]}
+                onPress={() => setTimeRange(range.key)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.rangePillText, { color: active ? 'white' : colors.textSecondary }]}>
+                  {range.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* Tab Navigation */}
@@ -874,10 +1340,10 @@ export default function Analysis() {
               onPress={() => handleTabChange(tab.id)}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name={tab.icon as any} 
-                size={18} 
-                color={selectedTab === tab.id ? colors.primary : colors.textSecondary} 
+              <Ionicons
+                name={tab.icon as any}
+                size={18}
+                color={selectedTab === tab.id ? colors.primary : colors.textSecondary}
               />
               <Text style={[
                 styles.tabText,
@@ -888,7 +1354,7 @@ export default function Analysis() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-        
+
         {/* Swipe indicator */}
         <View style={styles.swipeIndicator}>
           <Text style={[styles.swipeText, { color: colors.textSecondary }]}>
@@ -898,8 +1364,8 @@ export default function Analysis() {
       </View>
 
       {/* Content */}
-      <Animated.View 
-        style={[styles.content, { 
+      <Animated.View
+        style={[styles.content, {
           opacity: fadeAnim,
           transform: [{ translateX: scrollX }]
         }]}
@@ -993,7 +1459,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
-  
+
   // Stats Cards
   statsGrid: {
     flexDirection: 'row',
@@ -1456,5 +1922,120 @@ const styles = StyleSheet.create({
     opacity: 0.5,
     marginTop: 6,
     lineHeight: 18,
+  },
+
+  // Time Range Filter
+  rangeContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  rangeSegment: {
+    flexDirection: 'row',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 4,
+  },
+  rangePill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rangePillText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Category search
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    height: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 16,
+    marginHorizontal: 2,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+
+  // Budget
+  budgetSubheading: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: -12,
+    marginBottom: 16,
+  },
+  budgetItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+  },
+  budgetTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  budgetCategory: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  budgetStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  budgetStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  budgetBar: {
+    height: 8,
+    marginBottom: 8,
+  },
+  budgetBottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  budgetDetail: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // Day of week pattern
+  dowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  dowLabel: {
+    width: 42,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dowBarTrack: {
+    flex: 1,
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginHorizontal: 10,
+  },
+  dowBarFill: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  dowAmount: {
+    width: 78,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'right',
   },
 });

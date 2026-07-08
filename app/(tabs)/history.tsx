@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -45,6 +46,7 @@ function formatDate(dateString: string) {
 
 export default function HistoryScreen() {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const {
     getExpensesByMonth,
     refreshExpenses,
@@ -429,6 +431,22 @@ export default function HistoryScreen() {
                       <Text style={[styles.budgetButtonText, { color: colors.primary }]}>Budgets</Text>
                     </Pressable>
                   </View>
+                  <Pressable
+                    onPress={() => router.push('/Calendar')}
+                    style={({ pressed }) => [
+                      styles.calendarButton,
+                      {
+                        backgroundColor: colors.primary + '15',
+                        borderColor: colors.primary + '40',
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.calendarButtonText, { color: colors.primary }]}>
+                      Calendar View
+                    </Text>
+                  </Pressable>
                   <View style={styles.chartContainer}>
                     <PieChart
                       data={getPieChartData()}
@@ -750,6 +768,23 @@ const styles = {
     },
     budgetButtonText: {
       fontSize: 13,
+      fontWeight: '700',
+      letterSpacing: 0.2,
+    },
+    calendarButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    calendarButtonText: {
+      fontSize: 14,
       fontWeight: '700',
       letterSpacing: 0.2,
     },

@@ -36,14 +36,22 @@ export const investmentService = {
         );
         querySnapshot = await getDocs(q);
       }
-      
+
       const investments = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Investment[];
-      
-      // Sort manually if we used fallback query
-      return investments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Sort by most recent date. Dates are stored as string[] (recurring has many),
+      // so compare using the latest date in each investment's array.
+      const latestTime = (inv: Investment) => {
+        const dates = Array.isArray(inv.date) ? inv.date : [inv.date as unknown as string];
+        return dates.reduce((max, d) => {
+          const t = new Date(d).getTime();
+          return isNaN(t) ? max : Math.max(max, t);
+        }, 0);
+      };
+      return investments.sort((a, b) => latestTime(b) - latestTime(a));
     } catch (error) {
       console.error('Error fetching investments:', error);
       throw error;
@@ -63,24 +71,24 @@ export const investmentService = {
     // Helper function to get category from type if category is missing (legacy data)
     const getCategory = (investment: Investment) => {
       if (investment.category) return investment.category;
-      
+
       // Fallback for legacy data
       const incomeTypes = ['salary', 'bonus', 'commission', 'freelance', 'dividend', 'interest', 'rental', 'other'];
       const investmentTypes = ['mutual_fund', 'stocks', 'bonds', 'real_estate', 'crypto'];
       const savingsTypes = ['fixed_deposit', 'ppf', 'nps', 'insurance'];
-      
+
       if (incomeTypes.includes(investment.type)) return 'income';
       if (investmentTypes.includes(investment.type)) return 'investment';
       if (savingsTypes.includes(investment.type)) return 'savings';
       return 'income'; // default fallback
     };
-    
+
     const categories = {
       income: investments.filter(inv => getCategory(inv) === 'income'),
       investment: investments.filter(inv => getCategory(inv) === 'investment'),
       savings: investments.filter(inv => getCategory(inv) === 'savings'),
     };
-    
+
     return {
       income: categories.income.reduce((sum, inv) => sum + inv.amount, 0),
       investment: categories.investment.reduce((sum, inv) => sum + inv.amount, 0),
