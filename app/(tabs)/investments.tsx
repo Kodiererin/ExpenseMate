@@ -21,10 +21,10 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Section, Separator } from '../../components/common';
-import { commonStyles } from '../../styles/commonStyles';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Investment } from '../../domain/Investment';
+import { commonStyles } from '../../styles/commonStyles';
 import { investmentService } from '../../utils/investmentService';
 import { seedInvestmentData } from '../../utils/seedData';
 
@@ -39,14 +39,14 @@ const investmentTypes = [
   { label: '💳 Dividend', value: 'dividend', category: 'income' },
   { label: '🏦 Interest', value: 'interest', category: 'income' },
   { label: '🏠 Rental Income', value: 'rental', category: 'income' },
-  
+
   // Investment Types
   { label: '📈 Mutual Fund', value: 'mutual_fund', category: 'investment' },
   { label: '📊 Stocks', value: 'stocks', category: 'investment' },
   { label: '🏛️ Bonds', value: 'bonds', category: 'investment' },
   { label: '🏠 Real Estate', value: 'real_estate', category: 'investment' },
   { label: '₿ Cryptocurrency', value: 'crypto', category: 'investment' },
-  
+
   // Savings Types
   { label: '🏦 Fixed Deposit', value: 'fixed_deposit', category: 'savings' },
   { label: '🛡️ PPF', value: 'ppf', category: 'savings' },
@@ -74,12 +74,12 @@ const getCategoryColor = (category: string) => {
 // Helper function to get category from investment (handles legacy data)
 const getInvestmentCategory = (investment: Investment) => {
   if (investment.category) return investment.category;
-  
+
   // Fallback for legacy data
   const incomeTypes = ['salary', 'bonus', 'commission', 'freelance', 'dividend', 'interest', 'rental', 'other'];
   const investmentTypes = ['mutual_fund', 'stocks', 'bonds', 'real_estate', 'crypto'];
   const savingsTypes = ['fixed_deposit', 'ppf', 'nps', 'insurance'];
-  
+
   if (incomeTypes.includes(investment.type)) return 'income';
   if (investmentTypes.includes(investment.type)) return 'investment';
   if (savingsTypes.includes(investment.type)) return 'savings';
@@ -92,8 +92,8 @@ const InvestmentsScreen = () => {
   // Active tab for the redesigned tabbed layout
   const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'list'>('overview');
   const { colors } = useTheme();
-  const { 
-    investments, 
+  const {
+    investments,
     lastRefresh,
     refreshInvestments,
     addInvestment,
@@ -104,13 +104,13 @@ const InvestmentsScreen = () => {
     getNonTaxableIncome,
     getRecurringIncome
   } = useInvestments();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [animatedValues] = useState({
     headerOpacity: new Animated.Value(0),
   });
-  
+
   // Form states
   const [formData, setFormData] = useState({
     type: 'salary',
@@ -331,7 +331,7 @@ const InvestmentsScreen = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
+
       {/* Enhanced Header with Gradient */}
       <LinearGradient
         colors={[colors.primary, colors.accent]}
@@ -353,7 +353,7 @@ const InvestmentsScreen = () => {
             </TouchableOpacity>
           </View>
         </Animated.View>
-        
+
         {/* Quick Stats Bar */}
         <View style={styles.quickStatsContainer}>
           <View style={styles.quickStat}>
@@ -403,8 +403,8 @@ const InvestmentsScreen = () => {
         })}
       </View>
 
-      <ScrollView 
-        style={styles.content} 
+      <ScrollView
+        style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -420,98 +420,98 @@ const InvestmentsScreen = () => {
       >
         {/* Enhanced Summary Cards */}
         {activeTab === 'overview' && (
-        <Section title="📊 Financial Overview" >
-          {/* Primary Stats Row */}
-          <View style={styles.summaryGrid}>
-            <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-              <LinearGradient
-                colors={['#22C55E', '#16A34A']}
-                style={styles.cardGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.cardIcon}>
-                  <Ionicons name="trending-up" size={24} color="white" />
-                </View>
-                <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>All income sources</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-              <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
-                style={styles.cardGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.cardIcon}>
-                  <Ionicons name="bar-chart" size={24} color="white" />
-                </View>
-                <Text style={styles.enhancedSummaryLabel}>Investments</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>Portfolio value</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Secondary Stats Row */}
-          <View style={styles.summaryGrid}>
-            <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                style={styles.cardGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.cardIcon}>
-                  <Ionicons name="shield-checkmark" size={24} color="white" />
-                </View>
-                <Text style={styles.enhancedSummaryLabel}>Savings</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>Safety net</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-              <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
-                style={styles.cardGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.cardIcon}>
-                  <Ionicons name="calendar" size={24} color="white" />
-                </View>
-                <Text style={styles.enhancedSummaryLabel}>Monthly Income</Text>
-                <Text style={styles.enhancedSummaryAmount}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
-                <Text style={styles.summaryTrend}>Recurring income</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-          
-          {/* Tax Information Cards */}
-          <View style={styles.summaryGrid}>
-            <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
-              <View style={styles.taxHeader}>
-                <Ionicons name="receipt" size={20} color={colors.error} />
-                <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Taxable Income</Text>
-              </View>
-              <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
-              <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
+          <Section title="📊 Financial Overview" >
+            {/* Primary Stats Row */}
+            <View style={styles.summaryGrid}>
+              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                <LinearGradient
+                  colors={['#22C55E', '#16A34A']}
+                  style={styles.cardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.cardIcon}>
+                    <Ionicons name="trending-up" size={24} color="white" />
+                  </View>
+                  <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
+                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
+                  <Text style={styles.summaryTrend}>All income sources</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                <LinearGradient
+                  colors={['#3B82F6', '#2563EB']}
+                  style={styles.cardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.cardIcon}>
+                    <Ionicons name="bar-chart" size={24} color="white" />
+                  </View>
+                  <Text style={styles.enhancedSummaryLabel}>Investments</Text>
+                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
+                  <Text style={styles.summaryTrend}>Portfolio value</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-            
-            <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
-              <View style={styles.taxHeader}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Tax-Free Income</Text>
-              </View>
-              <Text style={[styles.taxAmount, { color: colors.success }]}>₹{typeof financialSummary.nonTaxableIncome === 'number' ? financialSummary.nonTaxableIncome.toLocaleString() : '0'}</Text>
-              <Text style={[styles.taxNote, { color: colors.placeholder }]}>Tax exempt savings</Text>
+
+            {/* Secondary Stats Row */}
+            <View style={styles.summaryGrid}>
+              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  style={styles.cardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.cardIcon}>
+                    <Ionicons name="shield-checkmark" size={24} color="white" />
+                  </View>
+                  <Text style={styles.enhancedSummaryLabel}>Savings</Text>
+                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
+                  <Text style={styles.summaryTrend}>Safety net</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                <LinearGradient
+                  colors={['#8B5CF6', '#7C3AED']}
+                  style={styles.cardGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <View style={styles.cardIcon}>
+                    <Ionicons name="calendar" size={24} color="white" />
+                  </View>
+                  <Text style={styles.enhancedSummaryLabel}>Monthly Income</Text>
+                  <Text style={styles.enhancedSummaryAmount}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
+                  <Text style={styles.summaryTrend}>Recurring income</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-          </View>
-        </Section>
+
+            {/* Tax Information Cards */}
+            <View style={styles.summaryGrid}>
+              <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
+                <View style={styles.taxHeader}>
+                  <Ionicons name="receipt" size={20} color={colors.error} />
+                  <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Taxable Income</Text>
+                </View>
+                <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
+                <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
+              </View>
+
+              <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
+                <View style={styles.taxHeader}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                  <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Tax-Free Income</Text>
+                </View>
+                <Text style={[styles.taxAmount, { color: colors.success }]}>₹{typeof financialSummary.nonTaxableIncome === 'number' ? financialSummary.nonTaxableIncome.toLocaleString() : '0'}</Text>
+                <Text style={[styles.taxNote, { color: colors.placeholder }]}>Tax exempt savings</Text>
+              </View>
+            </View>
+          </Section>
         )}
 
         {/* Charts */}
@@ -604,121 +604,55 @@ const InvestmentsScreen = () => {
 
         {/* Investment List */}
         {activeTab === 'list' && (
-        <Section title="💰 Recent Investments" subtitle="Your latest entries">
-          {investments.length === 0 ? (
-            <Card style={styles.emptyCard}>
-              <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}> 
-                No investments yet
-              </Text>
-              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}> 
-                Start tracking your investments by adding your first entry!
-              </Text>
-              {__DEV__ && (
-                <Button
-                  title="Add Sample Data (Dev)"
-                  onPress={async () => {
-                    try {
-                      await seedInvestmentData();
-                      await refreshInvestments();
-                      Alert.alert('Success', 'Sample data added!');
-                    } catch (error) {
-                      console.error('Error seeding data:', error);
-                      Alert.alert('Error', 'Failed to add sample data');
-                    }
-                  }}
-                  variant="outline"
-                  style={{ marginTop: 16 }}
-                />
-              )}
-            </Card>
-          ) : (
-            <View style={styles.listContainer}>
-              {/* Group recurring investments by title and show only one entry for each recurring investment */}
-              {(() => {
-                // Group recurring investments by title, type, and amount
-                const grouped: { [key: string]: Investment[] } = {};
-                investments.forEach(inv => {
-                  if (inv.isRecurring) {
-                    const key = `${inv.title}|${inv.type}|${inv.amount}`;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push(inv);
-                  }
-                });
-                // Non-recurring investments
-                const nonRecurring = investments.filter(inv => !inv.isRecurring);
-                // Render non-recurring investments
-                const rendered = nonRecurring.map((investment, idx) => (
-                  <TouchableOpacity
-                    key={investment.id + '-' + idx}
-                    onPress={() => {
-                      setSelectedInvestment(investment);
-                      setInvestmentDetailModalVisible(true);
+          <Section title="💰 Recent Investments" subtitle="Your latest entries">
+            {investments.length === 0 ? (
+              <Card style={styles.emptyCard}>
+                <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                  No investments yet
+                </Text>
+                <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+                  Start tracking your investments by adding your first entry!
+                </Text>
+                {__DEV__ && (
+                  <Button
+                    title="Add Sample Data (Dev)"
+                    onPress={async () => {
+                      try {
+                        await seedInvestmentData();
+                        await refreshInvestments();
+                        Alert.alert('Success', 'Sample data added!');
+                      } catch (error) {
+                        console.error('Error seeding data:', error);
+                        Alert.alert('Error', 'Failed to add sample data');
+                      }
                     }}
-                    activeOpacity={0.8}
-                  >
-                    <Card
-                      style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
-                    >
-                      <View style={styles.investmentInfo}>
-                        <View style={styles.investmentHeader}>
-                          <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
-                          <View style={styles.badgeContainer}>
-                            <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
-                              <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
-                                {getInvestmentCategory(investment).toUpperCase()}
-                              </Text>
-                            </View>
-                            {investment.taxable && (
-                              <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
-                                <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                        <Text style={[styles.investmentType, { color: colors.primary }]}> 
-                          {investmentTypes.find(t => t.value === investment.type)?.label}
-                        </Text>
-                        {investment.source && (
-                          <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
-                            📍 {investment.source}
-                          </Text>
-                        )}
-                        <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
-                          📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
-                        </Text>
-                        {investment.isRecurring && (
-                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
-                            🔄 {investment.recurringFrequency}
-                          </Text>
-                        )}
-                        {investment.description && (
-                          <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
-                            {investment.description}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.amountContainer}>
-                        <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
-                          ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
-                        </Text>
-                        {investment.taxable && (
-                          <Text style={[styles.taxInfo, { color: colors.error }]}> 
-                            + Tax
-                          </Text>
-                        )}
-                      </View>
-                    </Card>
-                  </TouchableOpacity>
-                ));
-                // Render grouped recurring investments
-                Object.entries(grouped).forEach(([key, group], idx) => {
-                  const first = group[0];
-                  rendered.push(
+                    variant="outline"
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+              </Card>
+            ) : (
+              <View style={styles.listContainer}>
+                {/* Group recurring investments by title and show only one entry for each recurring investment */}
+                {(() => {
+                  // Group recurring investments by title, type, and amount
+                  const grouped: { [key: string]: Investment[] } = {};
+                  investments.forEach(inv => {
+                    if (inv.isRecurring) {
+                      const key = `${inv.title}|${inv.type}|${inv.amount}`;
+                      if (!grouped[key]) grouped[key] = [];
+                      grouped[key].push(inv);
+                    }
+                  });
+                  // Non-recurring investments
+                  const nonRecurring = investments.filter(inv => !inv.isRecurring);
+                  // Render non-recurring investments
+                  const rendered = nonRecurring.map((investment, idx) => (
                     <TouchableOpacity
-                      key={key + '-' + idx}
+                      key={investment.id + '-' + idx}
                       onPress={() => {
-                        setSelectedInvestment({ ...first, recurringDates: Array.isArray(first.date) ? first.date : [first.date] });
+                        setSelectedInvestment(investment);
                         setInvestmentDetailModalVisible(true);
                       }}
                       activeOpacity={0.8}
@@ -728,60 +662,126 @@ const InvestmentsScreen = () => {
                       >
                         <View style={styles.investmentInfo}>
                           <View style={styles.investmentHeader}>
-                            <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
+                            <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
                             <View style={styles.badgeContainer}>
-                              <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
-                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}> 
-                                  {getInvestmentCategory(first).toUpperCase()}
+                              <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
+                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
+                                  {getInvestmentCategory(investment).toUpperCase()}
                                 </Text>
                               </View>
-                              {first.taxable && (
-                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}> 
+                              {investment.taxable && (
+                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
                                   <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
                                 </View>
                               )}
                             </View>
                           </View>
-                          <Text style={[styles.investmentType, { color: colors.primary }]}> 
-                            {investmentTypes.find(t => t.value === first.type)?.label}
+                          <Text style={[styles.investmentType, { color: colors.primary }]}>
+                            {investmentTypes.find(t => t.value === investment.type)?.label}
                           </Text>
-                          {first.source && (
-                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}> 
-                              📍 {first.source}
+                          {investment.source && (
+                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
+                              📍 {investment.source}
                             </Text>
                           )}
-                          {/* Show user selected date to present */}
-                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}> 
-                            📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
+                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
+                            📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
                           </Text>
-                          <Text style={[styles.recurringBadge, { color: colors.success }]}> 
-                            🔄 {first.recurringFrequency}
-                          </Text>
-                          {first.description && (
-                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}> 
-                              {first.description}
+                          {investment.isRecurring && (
+                            <Text style={[styles.recurringBadge, { color: colors.success }]}>
+                              🔄 {investment.recurringFrequency}
+                            </Text>
+                          )}
+                          {investment.description && (
+                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                              {investment.description}
                             </Text>
                           )}
                         </View>
                         <View style={styles.amountContainer}>
-                          <Text style={[styles.investmentAmount, { color: colors.primary }]}> 
-                          ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                          <Text style={[styles.investmentAmount, { color: colors.primary }]}>
+                            ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
                           </Text>
-                          {first.taxable && (
-                            <Text style={[styles.taxInfo, { color: colors.error }]}> 
+                          {investment.taxable && (
+                            <Text style={[styles.taxInfo, { color: colors.error }]}>
                               + Tax
                             </Text>
                           )}
                         </View>
                       </Card>
                     </TouchableOpacity>
-                  );
-                });
-                return rendered;
-              })()}
-            </View>
-          )}
-        </Section>
+                  ));
+                  // Render grouped recurring investments
+                  Object.entries(grouped).forEach(([key, group], idx) => {
+                    const first = group[0];
+                    rendered.push(
+                      <TouchableOpacity
+                        key={key + '-' + idx}
+                        onPress={() => {
+                          setSelectedInvestment({ ...first, recurringDates: Array.isArray(first.date) ? first.date : [first.date] });
+                          setInvestmentDetailModalVisible(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Card
+                          style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
+                        >
+                          <View style={styles.investmentInfo}>
+                            <View style={styles.investmentHeader}>
+                              <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
+                              <View style={styles.badgeContainer}>
+                                <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
+                                  <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
+                                    {getInvestmentCategory(first).toUpperCase()}
+                                  </Text>
+                                </View>
+                                {first.taxable && (
+                                  <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
+                                    <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                            <Text style={[styles.investmentType, { color: colors.primary }]}>
+                              {investmentTypes.find(t => t.value === first.type)?.label}
+                            </Text>
+                            {first.source && (
+                              <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
+                                📍 {first.source}
+                              </Text>
+                            )}
+                            {/* Show user selected date to present */}
+                            <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
+                              📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
+                            </Text>
+                            <Text style={[styles.recurringBadge, { color: colors.success }]}>
+                              🔄 {first.recurringFrequency}
+                            </Text>
+                            {first.description && (
+                              <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                                {first.description}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.amountContainer}>
+                            <Text style={[styles.investmentAmount, { color: colors.primary }]}>
+                              ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                            </Text>
+                            {first.taxable && (
+                              <Text style={[styles.taxInfo, { color: colors.error }]}>
+                                + Tax
+                              </Text>
+                            )}
+                          </View>
+                        </Card>
+                      </TouchableOpacity>
+                    );
+                  });
+                  return rendered;
+                })()}
+              </View>
+            )}
+          </Section>
         )}
 
         <Separator height={32} />
@@ -817,8 +817,8 @@ const InvestmentsScreen = () => {
                     const category = selectedInvestmentType?.category || 'income';
                     setFormData(prev => ({ ...prev, type: value, category: category }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   textStyle={{ color: colors.text }}
                   placeholderStyle={{ color: colors.placeholder }}
                   selectedItemLabelStyle={{ color: colors.text }}
@@ -900,8 +900,8 @@ const InvestmentsScreen = () => {
                     const value = callback(formData.category);
                     setFormData(prev => ({ ...prev, category: value }));
                   }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   textStyle={{ color: colors.text }}
                   placeholderStyle={{ color: colors.placeholder }}
                   selectedItemLabelStyle={{ color: colors.text }}
@@ -972,8 +972,8 @@ const InvestmentsScreen = () => {
                       const value = callback(formData.recurringFrequency);
                       setFormData(prev => ({ ...prev, recurringFrequency: value }));
                     }}
-                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]} 
-                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]} 
+                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     textStyle={{ color: colors.text }}
                     placeholderStyle={{ color: colors.placeholder }}
                     selectedItemLabelStyle={{ color: colors.text }}
@@ -1024,8 +1024,8 @@ const InvestmentsScreen = () => {
         onRequestClose={() => setInvestmentDetailModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}> 
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}> 
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Investment Details</Text>
               <TouchableOpacity onPress={() => setInvestmentDetailModalVisible(false)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
@@ -1132,340 +1132,340 @@ const InvestmentsScreen = () => {
 const styles = {
   ...commonStyles,
   ...StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-    borderBottomWidth: 1,
-  },
-  tabButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  tabButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
-  },
-  chartContainer: {
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  chart: {
-    borderRadius: 16,
-  },
-  listContainer: {
-    gap: 12,
-  },
-  investmentItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderLeftWidth: 4,
-  },
-  investmentInfo: {
-    flex: 1,
-  },
-  investmentTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  investmentType: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  investmentDate: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  recurringBadge: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  investmentAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  investmentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  categoryBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  taxBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  taxBadgeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-  },
-  investmentSource: {
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  investmentDescription: {
-    fontSize: 12,
-    marginTop: 6,
-    lineHeight: 16,
-  },
-  amountContainer: {
-    alignItems: 'flex-end',
-  },
-  taxInfo: {
-    fontSize: 10,
-    marginTop: 2,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    height: '85%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  modalForm: {
-    flex: 1,
-    padding: 20,
-  },
-  formGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  dropdown: {
-    borderRadius: 8,
-    borderWidth: 1,
-    minHeight: 50,
-  },
-  dropdownContainer: {
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  dateText: {
-    fontSize: 16,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  checkboxLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  submitButton: {
-    marginTop: 20,
-  },
-  
-  // Enhanced UI Styles
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 0 : 20,
-    paddingBottom: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  quickStatsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginTop: 8,
-  },
-  quickStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 4,
-  },
-  quickStatValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 16,
-  },
-  
-  // Enhanced Summary Cards
-  enhancedSummaryCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-  },
-  cardGradient: {
-    padding: 16,
-    minHeight: 108,
-    justifyContent: 'space-between',
-  },
-  cardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-  },
-  enhancedSummaryLabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  enhancedSummaryAmount: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 2,
-  },
-  summaryTrend: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-  },
-  
-  // Tax Cards
-  taxCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  taxHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  taxLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  taxAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  taxNote: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
+    container: {
+      flex: 1,
+    },
+    tabBar: {
+      flexDirection: 'row',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 8,
+      borderBottomWidth: 1,
+    },
+    tabButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 10,
+      borderRadius: 12,
+    },
+    tabButtonText: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    addButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    content: {
+      flex: 1,
+      padding: 16,
+    },
+    summaryGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: 12,
+      marginBottom: 12,
+    },
+    chartContainer: {
+      alignItems: 'center',
+      marginVertical: 8,
+    },
+    chart: {
+      borderRadius: 16,
+    },
+    listContainer: {
+      gap: 12,
+    },
+    investmentItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      borderLeftWidth: 4,
+    },
+    investmentInfo: {
+      flex: 1,
+    },
+    investmentTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    investmentType: {
+      fontSize: 14,
+      fontWeight: '500',
+      marginBottom: 4,
+    },
+    investmentDate: {
+      fontSize: 12,
+      marginBottom: 4,
+    },
+    recurringBadge: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    investmentAmount: {
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    investmentHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 8,
+    },
+    badgeContainer: {
+      flexDirection: 'row',
+      gap: 6,
+    },
+    categoryBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+    },
+    categoryBadgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    taxBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    taxBadgeText: {
+      fontSize: 9,
+      fontWeight: 'bold',
+    },
+    investmentSource: {
+      fontSize: 12,
+      marginBottom: 4,
+    },
+    investmentDescription: {
+      fontSize: 12,
+      marginTop: 6,
+      lineHeight: 16,
+    },
+    amountContainer: {
+      alignItems: 'flex-end',
+    },
+    taxInfo: {
+      fontSize: 10,
+      marginTop: 2,
+    },
+    emptyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      marginTop: 16,
+      textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      height: '85%',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 20,
+      borderBottomWidth: 1,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+    },
+    modalForm: {
+      flex: 1,
+      padding: 20,
+    },
+    formGroup: {
+      marginBottom: 20,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    input: {
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+    },
+    textArea: {
+      minHeight: 80,
+      textAlignVertical: 'top',
+    },
+    dropdown: {
+      borderRadius: 8,
+      borderWidth: 1,
+      minHeight: 50,
+    },
+    dropdownContainer: {
+      borderRadius: 8,
+      borderWidth: 1,
+    },
+    dateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 8,
+      padding: 12,
+      gap: 8,
+    },
+    dateText: {
+      fontSize: 16,
+    },
+    checkboxRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    checkboxLabel: {
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    submitButton: {
+      marginTop: 20,
+    },
+
+    // Enhanced UI Styles
+    headerGradient: {
+      paddingTop: Platform.OS === 'ios' ? 0 : 20,
+      paddingBottom: 20,
+    },
+    headerContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 4,
+    },
+    headerSubtitle: {
+      fontSize: 16,
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontWeight: '500',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    quickStatsContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      marginTop: 8,
+    },
+    quickStat: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    quickStatLabel: {
+      fontSize: 12,
+      color: 'rgba(255, 255, 255, 0.7)',
+      marginBottom: 4,
+    },
+    quickStatValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: 'white',
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      marginHorizontal: 16,
+    },
+
+    // Enhanced Summary Cards
+    enhancedSummaryCard: {
+      flex: 1,
+      borderRadius: 16,
+      overflow: 'hidden',
+      elevation: 3,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+    },
+    cardGradient: {
+      padding: 16,
+      minHeight: 108,
+      justifyContent: 'space-between',
+    },
+    cardIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      alignSelf: 'flex-end',
+    },
+    enhancedSummaryLabel: {
+      fontSize: 13,
+      color: 'rgba(255, 255, 255, 0.9)',
+      fontWeight: '600',
+      marginBottom: 6,
+    },
+    enhancedSummaryAmount: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: 2,
+    },
+    summaryTrend: {
+      fontSize: 11,
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontWeight: '500',
+    },
+
+    // Tax Cards
+    taxCard: {
+      flex: 1,
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    taxHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    taxLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    taxAmount: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    taxNote: {
+      fontSize: 12,
+      fontStyle: 'italic',
+    },
   }),
 };
 

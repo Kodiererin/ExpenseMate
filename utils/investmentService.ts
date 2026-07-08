@@ -41,9 +41,17 @@ export const investmentService = {
         id: doc.id,
         ...doc.data()
       })) as Investment[];
-      
-      // Sort manually if we used fallback query
-      return investments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Sort by most recent date. Dates are stored as string[] (recurring has many),
+      // so compare using the latest date in each investment's array.
+      const latestTime = (inv: Investment) => {
+        const dates = Array.isArray(inv.date) ? inv.date : [inv.date as unknown as string];
+        return dates.reduce((max, d) => {
+          const t = new Date(d).getTime();
+          return isNaN(t) ? max : Math.max(max, t);
+        }, 0);
+      };
+      return investments.sort((a, b) => latestTime(b) - latestTime(a));
     } catch (error) {
       console.error('Error fetching investments:', error);
       throw error;
