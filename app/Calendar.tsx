@@ -43,8 +43,11 @@ const getEmoji = (category: string) => CATEGORY_EMOJI[category] || '🏷️';
 const GRID_PADDING = 16;
 const CARD_PADDING = 12;
 const CELL_GAP = 4;
+// Each of the 7 cells has CELL_GAP of horizontal margin (CELL_GAP / 2 per side),
+// so subtract CELL_GAP * 7 to guarantee all 7 fit in one row and stay aligned
+// with the weekday header (otherwise the last cell wraps and days shift columns).
 const CELL_SIZE = Math.floor(
-    (screenWidth - GRID_PADDING * 2 - CARD_PADDING * 2 - CELL_GAP * 6) / 7
+    (screenWidth - GRID_PADDING * 2 - CARD_PADDING * 2 - CELL_GAP * 7) / 7
 );
 
 const formatCurrency = (amount: number) =>
