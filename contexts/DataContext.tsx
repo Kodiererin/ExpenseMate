@@ -4,13 +4,13 @@ import { Expense } from '../domain/Expense';
 import { Goal } from '../domain/Goal';
 import { JournalEntry } from '../domain/JournalEntry';
 import {
-    getAllAvailableGoalMonths,
-    getAllAvailableMonths,
-    getAllExpenses,
-    getAllJournalEntries,
-    getGoalsByMonthYear,
-    registerDataChangeCallback,
-    unregisterDataChangeCallback
+  getAllAvailableGoalMonths,
+  getAllAvailableMonths,
+  getAllExpenses,
+  getAllJournalEntries,
+  getGoalsByMonthYear,
+  registerDataChangeCallback,
+  unregisterDataChangeCallback
 } from '../utils/firebaseUtils';
 
 interface DataContextType {
@@ -19,7 +19,7 @@ interface DataContextType {
   expensesLoading: boolean;
   getExpensesByMonth: (month: number, year: number) => Expense[];
   refreshExpenses: () => Promise<void>;
-  
+
   // Goals
   goals: { [monthYear: string]: Goal[] };
   goalsLoading: boolean;
@@ -31,11 +31,11 @@ interface DataContextType {
   journalLoading: boolean;
   getJournalByDate: (date: string) => JournalEntry[];
   refreshJournal: () => Promise<void>;
-  
+
   // Available months
   availableMonths: string[];
   availableGoalMonths: string[];
-  
+
   // Cache management
   clearCache: () => Promise<void>;
   lastRefresh: Date | null;
@@ -66,7 +66,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Add debounced refresh to prevent excessive operations
   const [refreshTimeout, setRefreshTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-  
+
   const refreshExpenses = useCallback(async () => {
     console.log('Starting refreshExpenses...');
     setExpensesLoading(true);
@@ -75,21 +75,21 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getAllExpenses(),
         getAllAvailableMonths()
       ]);
-      
+
       console.log(`Setting ${freshExpenses.length} fresh expenses in context`);
       setExpenses(freshExpenses);
       setAvailableMonths(freshAvailableMonths);
-      
+
       const refreshTime = new Date();
       setLastRefresh(refreshTime);
-      
+
       // Cache the data
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(freshExpenses)),
         AsyncStorage.setItem(STORAGE_KEYS.AVAILABLE_MONTHS, JSON.stringify(freshAvailableMonths)),
         AsyncStorage.setItem(STORAGE_KEYS.LAST_REFRESH, refreshTime.toISOString())
       ]);
-      
+
       console.log('Expenses refreshed and cached successfully');
     } catch (error) {
       console.error('Error refreshing expenses:', error);
@@ -102,11 +102,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (refreshTimeout) {
       clearTimeout(refreshTimeout);
     }
-    
+
     const timeout = setTimeout(async () => {
       await refreshExpenses();
     }, 300); // 300ms debounce
-    
+
     setRefreshTimeout(timeout);
   }, [refreshExpenses, refreshTimeout]);
 
@@ -152,7 +152,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const lastRefreshTime = new Date(cachedLastRefresh);
         const now = new Date();
         const timeDiff = now.getTime() - lastRefreshTime.getTime();
-        
+
         if (timeDiff > CACHE_DURATION) {
           console.log('Cache is stale, refreshing data...');
           await refreshExpenses();
@@ -173,16 +173,16 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Load cached data on app start
   useEffect(() => {
     loadCachedData();
-    
+
     // Register for data change notifications
     const handleDataChange = async () => {
       console.log('Data changed, refreshing cache...');
       // Use debounced refresh to prevent excessive operations
       await debouncedRefresh();
     };
-    
+
     registerDataChangeCallback(handleDataChange);
-    
+
     // Cleanup on unmount
     return () => {
       if (refreshTimeout) {
@@ -199,24 +199,24 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         getGoalsByMonthYear(monthYear),
         getAllAvailableGoalMonths()
       ]);
-      
+
       setGoals(prev => ({
         ...prev,
         [monthYear]: freshGoals
       }));
       setAvailableGoalMonths(freshAvailableGoalMonths);
-      
+
       // Cache the goals
       const updatedGoals = {
         ...goals,
         [monthYear]: freshGoals
       };
-      
+
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(updatedGoals)),
         AsyncStorage.setItem(STORAGE_KEYS.AVAILABLE_GOAL_MONTHS, JSON.stringify(freshAvailableGoalMonths))
       ]);
-      
+
       console.log(`Goals for ${monthYear} refreshed and cached`);
     } catch (error) {
       console.error('Error refreshing goals:', error);
@@ -228,7 +228,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getExpensesByMonth = useCallback((month: number, year: number): Expense[] => {
     console.log(`DataContext: Getting expenses for month ${month}, year ${year}`);
     console.log(`DataContext: Total expenses available: ${expenses.length}`);
-    
+
     const filteredExpenses = expenses.filter(expense => {
       const dateParts = expense.date.split('/');
       if (dateParts.length === 3) {
@@ -242,7 +242,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       return false;
     });
-    
+
     console.log(`DataContext: Returning ${filteredExpenses.length} expenses for ${month}/${year}`);
     return filteredExpenses;
   }, [expenses]);
@@ -284,14 +284,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         AsyncStorage.removeItem(STORAGE_KEYS.AVAILABLE_GOAL_MONTHS),
         AsyncStorage.removeItem(STORAGE_KEYS.LAST_REFRESH)
       ]);
-      
+
       setExpenses([]);
       setGoals({});
       setJournalEntries([]);
       setAvailableMonths([]);
       setAvailableGoalMonths([]);
       setLastRefresh(null);
-      
+
       console.log('Cache cleared');
     } catch (error) {
       console.error('Error clearing cache:', error);

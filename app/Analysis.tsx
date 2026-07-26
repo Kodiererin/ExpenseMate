@@ -1291,98 +1291,98 @@ export default function Analysis() {
   };
   return (
     <ScreenLock screen="analysis">
-    <ThemedView style={styles.container}>
-      {/* Modern Header */}
-      <View style={[styles.header, { backgroundColor: colors.primary }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Analytics Dashboard</Text>
-        <TouchableOpacity style={styles.backButton} onPress={handleExport} disabled={isExporting}>
-          {isExporting ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Ionicons name="share-outline" size={22} color="white" />
-          )}
-        </TouchableOpacity>
-      </View>
+      <ThemedView style={styles.container}>
+        {/* Modern Header */}
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Analytics Dashboard</Text>
+          <TouchableOpacity style={styles.backButton} onPress={handleExport} disabled={isExporting}>
+            {isExporting ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Ionicons name="share-outline" size={22} color="white" />
+            )}
+          </TouchableOpacity>
+        </View>
 
-      {/* Time Range Filter */}
-      <View style={[styles.rangeContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.rangeSegment, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          {TIME_RANGES.map((range) => {
-            const active = timeRange === range.key;
-            return (
+        {/* Time Range Filter */}
+        <View style={[styles.rangeContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.rangeSegment, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {TIME_RANGES.map((range) => {
+              const active = timeRange === range.key;
+              return (
+                <TouchableOpacity
+                  key={range.key}
+                  style={[styles.rangePill, active && { backgroundColor: colors.primary }]}
+                  onPress={() => setTimeRange(range.key)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.rangePillText, { color: active ? 'white' : colors.textSecondary }]}>
+                    {range.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Tab Navigation */}
+        <View style={[styles.tabContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollView}>
+            {tabs.map((tab) => (
               <TouchableOpacity
-                key={range.key}
-                style={[styles.rangePill, active && { backgroundColor: colors.primary }]}
-                onPress={() => setTimeRange(range.key)}
-                activeOpacity={0.8}
+                key={tab.id}
+                style={[
+                  styles.tab,
+                  selectedTab === tab.id && { backgroundColor: `${colors.primary}20` },
+                  { borderColor: selectedTab === tab.id ? colors.primary : 'transparent' }
+                ]}
+                onPress={() => handleTabChange(tab.id)}
+                activeOpacity={0.7}
               >
-                <Text style={[styles.rangePillText, { color: active ? 'white' : colors.textSecondary }]}>
-                  {range.label}
+                <Ionicons
+                  name={tab.icon as any}
+                  size={18}
+                  color={selectedTab === tab.id ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[
+                  styles.tabText,
+                  { color: selectedTab === tab.id ? colors.primary : colors.textSecondary }
+                ]}>
+                  {tab.title}
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+            ))}
+          </ScrollView>
 
-      {/* Tab Navigation */}
-      <View style={[styles.tabContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollView}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              style={[
-                styles.tab,
-                selectedTab === tab.id && { backgroundColor: `${colors.primary}20` },
-                { borderColor: selectedTab === tab.id ? colors.primary : 'transparent' }
-              ]}
-              onPress={() => handleTabChange(tab.id)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={tab.icon as any}
-                size={18}
-                color={selectedTab === tab.id ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[
-                styles.tabText,
-                { color: selectedTab === tab.id ? colors.primary : colors.textSecondary }
-              ]}>
-                {tab.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Swipe indicator */}
-        <View style={styles.swipeIndicator}>
-          <Text style={[styles.swipeText, { color: colors.textSecondary }]}>
-            Swipe left/right to navigate • {selectedTab + 1} of {tabs.length}
-          </Text>
-        </View>
-      </View>
-
-      {/* Content */}
-      <Animated.View
-        style={[styles.content, {
-          opacity: fadeAnim,
-          transform: [{ translateX: scrollX }]
-        }]}
-        {...panResponder.panHandlers}
-      >
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Analyzing your expenses...</Text>
+          {/* Swipe indicator */}
+          <View style={styles.swipeIndicator}>
+            <Text style={[styles.swipeText, { color: colors.textSecondary }]}>
+              Swipe left/right to navigate • {selectedTab + 1} of {tabs.length}
+            </Text>
           </View>
-        ) : (
-          renderTabContent()
-        )}
-      </Animated.View>
-    </ThemedView>
+        </View>
+
+        {/* Content */}
+        <Animated.View
+          style={[styles.content, {
+            opacity: fadeAnim,
+            transform: [{ translateX: scrollX }]
+          }]}
+          {...panResponder.panHandlers}
+        >
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Analyzing your expenses...</Text>
+            </View>
+          ) : (
+            renderTabContent()
+          )}
+        </Animated.View>
+      </ThemedView>
     </ScreenLock>
   );
 }

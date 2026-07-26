@@ -410,234 +410,234 @@ export default function ProfileScreen() {
 
   return (
     <ScreenLock screen="profile">
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {/* Header */}
-      <Card style={styles.header}>
-        <Pressable
-          style={[styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={() => router.push('/Settings')}
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.text} />
-        </Pressable>
-        <View style={styles.profileSection}>
-          <View style={[styles.profileIcon, { backgroundColor: colors.primary }]}>
-            <Ionicons name="person" size={32} color={colors.white} />
-          </View>
-          <Text style={[styles.title, { color: colors.text }]}>{settings.userName}</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {settings.userSubtitle}
-          </Text>
-
-          {/* Quick Actions - Circular Buttons */}
-          <View style={styles.quickActionsContainer}>
-            <View style={styles.circularButtonsGrid}>
-              <View style={styles.buttonContainer}>
-                <Pressable
-                  style={[styles.circularButton, {
-                    backgroundColor: colors.primary,
-                    shadowColor: colors.primary,
-                  }]}
-                  onPress={handleAskAI}
-                >
-                  <Ionicons name="chatbubble-ellipses" size={25} color={colors.white} />
-                </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Ask AI</Text>
-              </View>
-
-              <View style={styles.buttonContainer}>
-                <Pressable
-                  style={[styles.circularButton, {
-                    backgroundColor: colors.success,
-                    shadowColor: colors.success,
-                  }]}
-                  onPress={handleCalculator}
-                >
-                  <Ionicons name="calculator" size={25} color={colors.white} />
-                </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Calculator</Text>
-              </View>
-
-              <View style={styles.buttonContainer}>
-                <Pressable
-                  style={[styles.circularButton, {
-                    backgroundColor: colors.warning,
-                    shadowColor: colors.warning,
-                  }]}
-                  onPress={settings.features.analysis ? handleAnalysis : () => Alert.alert('Feature Off', 'Enable Analysis in Settings to use this.')}
-                >
-                  <Ionicons name="analytics" size={25} color={colors.white} />
-                </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Analysis</Text>
-              </View>
-
-              <View style={styles.buttonContainer}>
-                <Pressable
-                  style={[styles.circularButton, {
-                    backgroundColor: colors.accent,
-                    shadowColor: colors.accent,
-                  }]}
-                  onPress={toggleTheme}
-                >
-                  <Ionicons name={getThemeIcon()} size={25} color={colors.white} />
-                </Pressable>
-                <Text style={[styles.circularButtonLabel, { color: colors.text }]}>
-                  {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Card>
-
-      <Separator height={24} />
-
-      {expensesLoading || investmentsLoading ? (
-        <Card style={styles.loadingCard}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-            Loading your data...
-          </Text>
-        </Card>
-      ) : (
-        <>
-          {/* Statistics */}
-          <Section title="Your Stats" subtitle="Overview of your spending">
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="Total Expenses"
-                value={stats.totalExpenses.toString()}
-                icon="receipt-outline"
-                color={colors.primary}
-              />
-              <StatCard
-                title="Total Spent"
-                value={`₹${stats.totalAmount.toFixed(0)}`}
-                icon="trending-up"
-                color={colors.success}
-              />
-            </View>
-
-            <Separator height={12} />
-
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="This Month"
-                value={`₹${stats.currentMonthAmount.toFixed(0)}`}
-                icon="calendar-outline"
-                color={colors.warning}
-              />
-              <StatCard
-                title="Top Category"
-                value={stats.mostSpentCategory}
-                icon="trophy"
-                color={colors.accent}
-              />
-            </View>
-          </Section>
-
-          {/* Investment Statistics */}
-          {settings.features.investments && (
-          <Section title="💼 Investment Overview" subtitle="Your investment portfolio">
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="Total Investments"
-                value={`₹${stats.totalInvestments.toFixed(0)}`}
-                icon="trending-up-outline"
-                color={colors.success}
-              />
-              <StatCard
-                title="Monthly Income"
-                value={`₹${stats.monthlyIncome.toFixed(0)}`}
-                icon="cash-outline"
-                color={colors.primary}
-              />
-            </View>
-
-            <Separator height={12} />
-
-            <View style={styles.statsContainer}>
-              <StatCard
-                title="Net Worth"
-                value={`₹${(stats.totalInvestments - stats.totalAmount).toFixed(0)}`}
-                icon="wallet-outline"
-                color={stats.totalInvestments > stats.totalAmount ? colors.success : colors.error}
-              />
-              <StatCard
-                title="Investment Types"
-                value={investments.length > 0 ? new Set(investments.map((inv: Investment) => inv.type)).size.toString() : '0'}
-                icon="grid-outline"
-                color={colors.accent}
-              />
-            </View>
-          </Section>
-          )}
-
-          {/* Export Section */}
-          <Section
-            title="📤 Export Data"
-            subtitle="Download your expense data"
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {/* Header */}
+        <Card style={styles.header}>
+          <Pressable
+            style={[styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push('/Settings')}
           >
-            <Card>
-              <View style={styles.exportButtons}>
-                <Button
-                  title="Export to Excel"
-                  onPress={exportToCSV}
-                  icon="document-text"
-                  loading={exportingCSV}
-                  disabled={exportingCSV}
-                  variant="primary"
-                  style={[styles.exportButton, { backgroundColor: colors.success }]}
-                />
+            <Ionicons name="settings-outline" size={22} color={colors.text} />
+          </Pressable>
+          <View style={styles.profileSection}>
+            <View style={[styles.profileIcon, { backgroundColor: colors.primary }]}>
+              <Ionicons name="person" size={32} color={colors.white} />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>{settings.userName}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {settings.userSubtitle}
+            </Text>
 
-                <Separator height={12} />
+            {/* Quick Actions - Circular Buttons */}
+            <View style={styles.quickActionsContainer}>
+              <View style={styles.circularButtonsGrid}>
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={[styles.circularButton, {
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.primary,
+                    }]}
+                    onPress={handleAskAI}
+                  >
+                    <Ionicons name="chatbubble-ellipses" size={25} color={colors.white} />
+                  </Pressable>
+                  <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Ask AI</Text>
+                </View>
 
-                <Button
-                  title="Export Report"
-                  onPress={exportToPDF}
-                  icon="newspaper"
-                  loading={exportingPDF}
-                  disabled={exportingPDF}
-                  variant="primary"
-                  style={styles.exportButton}
-                />
-              </View>
-            </Card>
-          </Section>
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={[styles.circularButton, {
+                      backgroundColor: colors.success,
+                      shadowColor: colors.success,
+                    }]}
+                    onPress={handleCalculator}
+                  >
+                    <Ionicons name="calculator" size={25} color={colors.white} />
+                  </Pressable>
+                  <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Calculator</Text>
+                </View>
 
-          {/* App Info */}
-          <Section title="About">
-            <Card>
-              <View style={styles.appInfo}>
-                <Text style={[styles.appTitle, { color: colors.primary }]}>
-                  💰 ExpenseMate
-                </Text>
-                <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
-                  Version 6.0.0
-                </Text>
-                <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
-                  Your open-source personal expense tracking companion.
-                  Track, analyze, and save with ease! 🌟
-                </Text>
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={[styles.circularButton, {
+                      backgroundColor: colors.warning,
+                      shadowColor: colors.warning,
+                    }]}
+                    onPress={settings.features.analysis ? handleAnalysis : () => Alert.alert('Feature Off', 'Enable Analysis in Settings to use this.')}
+                  >
+                    <Ionicons name="analytics" size={25} color={colors.white} />
+                  </Pressable>
+                  <Text style={[styles.circularButtonLabel, { color: colors.text }]}>Analysis</Text>
+                </View>
 
-                <Separator height={16} />
-
-                <View style={styles.openSourceBadge}>
-                  <Ionicons name="code-slash" size={20} color={colors.primary} />
-                  <Text style={[styles.openSourceText, { color: colors.primary }]}>
-                    Open Source Project
+                <View style={styles.buttonContainer}>
+                  <Pressable
+                    style={[styles.circularButton, {
+                      backgroundColor: colors.accent,
+                      shadowColor: colors.accent,
+                    }]}
+                    onPress={toggleTheme}
+                  >
+                    <Ionicons name={getThemeIcon()} size={25} color={colors.white} />
+                  </Pressable>
+                  <Text style={[styles.circularButtonLabel, { color: colors.text }]}>
+                    {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'}
                   </Text>
                 </View>
               </View>
-            </Card>
-          </Section>
-        </>
-      )}
+            </View>
+          </View>
+        </Card>
 
-      <Separator height={32} />
-    </ScrollView>
+        <Separator height={24} />
+
+        {expensesLoading || investmentsLoading ? (
+          <Card style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Loading your data...
+            </Text>
+          </Card>
+        ) : (
+          <>
+            {/* Statistics */}
+            <Section title="Your Stats" subtitle="Overview of your spending">
+              <View style={styles.statsContainer}>
+                <StatCard
+                  title="Total Expenses"
+                  value={stats.totalExpenses.toString()}
+                  icon="receipt-outline"
+                  color={colors.primary}
+                />
+                <StatCard
+                  title="Total Spent"
+                  value={`₹${stats.totalAmount.toFixed(0)}`}
+                  icon="trending-up"
+                  color={colors.success}
+                />
+              </View>
+
+              <Separator height={12} />
+
+              <View style={styles.statsContainer}>
+                <StatCard
+                  title="This Month"
+                  value={`₹${stats.currentMonthAmount.toFixed(0)}`}
+                  icon="calendar-outline"
+                  color={colors.warning}
+                />
+                <StatCard
+                  title="Top Category"
+                  value={stats.mostSpentCategory}
+                  icon="trophy"
+                  color={colors.accent}
+                />
+              </View>
+            </Section>
+
+            {/* Investment Statistics */}
+            {settings.features.investments && (
+              <Section title="💼 Investment Overview" subtitle="Your investment portfolio">
+                <View style={styles.statsContainer}>
+                  <StatCard
+                    title="Total Investments"
+                    value={`₹${stats.totalInvestments.toFixed(0)}`}
+                    icon="trending-up-outline"
+                    color={colors.success}
+                  />
+                  <StatCard
+                    title="Monthly Income"
+                    value={`₹${stats.monthlyIncome.toFixed(0)}`}
+                    icon="cash-outline"
+                    color={colors.primary}
+                  />
+                </View>
+
+                <Separator height={12} />
+
+                <View style={styles.statsContainer}>
+                  <StatCard
+                    title="Net Worth"
+                    value={`₹${(stats.totalInvestments - stats.totalAmount).toFixed(0)}`}
+                    icon="wallet-outline"
+                    color={stats.totalInvestments > stats.totalAmount ? colors.success : colors.error}
+                  />
+                  <StatCard
+                    title="Investment Types"
+                    value={investments.length > 0 ? new Set(investments.map((inv: Investment) => inv.type)).size.toString() : '0'}
+                    icon="grid-outline"
+                    color={colors.accent}
+                  />
+                </View>
+              </Section>
+            )}
+
+            {/* Export Section */}
+            <Section
+              title="📤 Export Data"
+              subtitle="Download your expense data"
+            >
+              <Card>
+                <View style={styles.exportButtons}>
+                  <Button
+                    title="Export to Excel"
+                    onPress={exportToCSV}
+                    icon="document-text"
+                    loading={exportingCSV}
+                    disabled={exportingCSV}
+                    variant="primary"
+                    style={[styles.exportButton, { backgroundColor: colors.success }]}
+                  />
+
+                  <Separator height={12} />
+
+                  <Button
+                    title="Export Report"
+                    onPress={exportToPDF}
+                    icon="newspaper"
+                    loading={exportingPDF}
+                    disabled={exportingPDF}
+                    variant="primary"
+                    style={styles.exportButton}
+                  />
+                </View>
+              </Card>
+            </Section>
+
+            {/* App Info */}
+            <Section title="About">
+              <Card>
+                <View style={styles.appInfo}>
+                  <Text style={[styles.appTitle, { color: colors.primary }]}>
+                    💰 ExpenseMate
+                  </Text>
+                  <Text style={[styles.appVersion, { color: colors.textSecondary }]}>
+                    Version 6.0.0
+                  </Text>
+                  <Text style={[styles.appDescription, { color: colors.textSecondary }]}>
+                    Your open-source personal expense tracking companion.
+                    Track, analyze, and save with ease! 🌟
+                  </Text>
+
+                  <Separator height={16} />
+
+                  <View style={styles.openSourceBadge}>
+                    <Ionicons name="code-slash" size={20} color={colors.primary} />
+                    <Text style={[styles.openSourceText, { color: colors.primary }]}>
+                      Open Source Project
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            </Section>
+          </>
+        )}
+
+        <Separator height={32} />
+      </ScrollView>
     </ScreenLock>
   );
 }
