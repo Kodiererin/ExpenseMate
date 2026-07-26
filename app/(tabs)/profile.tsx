@@ -5,8 +5,10 @@ import * as Sharing from 'expo-sharing';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Section, Separator, StatCard } from '../../components/common';
+import { ScreenLock } from '../../components/ScreenLock';
 import { useData } from '../../contexts/DataContext';
 import { useInvestments } from '../../contexts/InvestmentContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Type definitions for better type safety
@@ -34,6 +36,7 @@ interface Stats {
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useTheme();
   const { expenses, expensesLoading } = useData();
+  const { settings } = useSettings();
   const {
     investments,
     loading: investmentsLoading,
@@ -406,19 +409,26 @@ export default function ProfileScreen() {
   };
 
   return (
+    <ScreenLock screen="profile">
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
     >
       {/* Header */}
       <Card style={styles.header}>
+        <Pressable
+          style={[styles.settingsButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => router.push('/Settings')}
+        >
+          <Ionicons name="settings-outline" size={22} color={colors.text} />
+        </Pressable>
         <View style={styles.profileSection}>
           <View style={[styles.profileIcon, { backgroundColor: colors.primary }]}>
             <Ionicons name="person" size={32} color={colors.white} />
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>Ujjwal</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{settings.userName}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            ExpenseMate User
+            {settings.userSubtitle}
           </Text>
 
           {/* Quick Actions - Circular Buttons */}
@@ -456,7 +466,7 @@ export default function ProfileScreen() {
                     backgroundColor: colors.warning,
                     shadowColor: colors.warning,
                   }]}
-                  onPress={handleAnalysis}
+                  onPress={settings.features.analysis ? handleAnalysis : () => Alert.alert('Feature Off', 'Enable Analysis in Settings to use this.')}
                 >
                   <Ionicons name="analytics" size={25} color={colors.white} />
                 </Pressable>
@@ -529,6 +539,7 @@ export default function ProfileScreen() {
           </Section>
 
           {/* Investment Statistics */}
+          {settings.features.investments && (
           <Section title="💼 Investment Overview" subtitle="Your investment portfolio">
             <View style={styles.statsContainer}>
               <StatCard
@@ -562,6 +573,7 @@ export default function ProfileScreen() {
               />
             </View>
           </Section>
+          )}
 
           {/* Export Section */}
           <Section
@@ -626,6 +638,7 @@ export default function ProfileScreen() {
 
       <Separator height={32} />
     </ScrollView>
+    </ScreenLock>
   );
 }
 
@@ -639,6 +652,18 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    zIndex: 2,
   },
   profileSection: {
     alignItems: 'center',

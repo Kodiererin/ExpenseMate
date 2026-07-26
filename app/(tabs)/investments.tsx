@@ -21,6 +21,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { ScreenLock } from '../../components/ScreenLock';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Investment } from '../../domain/Investment';
@@ -329,6 +330,7 @@ const InvestmentsScreen = () => {
   const trendChartData = React.useMemo(() => getTrendData(), [getTrendData, investments, trendType]);
 
   return (
+    <ScreenLock screen="investments">
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
@@ -1126,6 +1128,7 @@ const InvestmentsScreen = () => {
         </View>
       </Modal>
     </SafeAreaView>
+    </ScreenLock>
   );
 };
 

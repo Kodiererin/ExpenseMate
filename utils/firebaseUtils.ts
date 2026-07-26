@@ -3,6 +3,7 @@ import { db } from "../constants/firebase";
 import { CategoryLimit } from "../domain/CategoryLimit";
 import { Expense } from "../domain/Expense";
 import { Goal } from "../domain/Goal";
+import { JournalEntry } from "../domain/JournalEntry";
 
 // Cache invalidation callbacks with debouncing
 let onDataChangeCallbacks: (() => void)[] = [];
@@ -358,6 +359,86 @@ export const deleteCategoryLimit = async (category: string): Promise<void> => {
   } catch (error) {
     console.error("Error deleting category limit: ", error);
     throw error;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Daily journal entries ("what I learnt / did / achieved today")
+// ---------------------------------------------------------------------------
+
+export const addJournalEntryToFirestore = async (
+  entry: Omit<JournalEntry, 'id'>
+): Promise<void> => {
+  try {
+    const docRef = await addDoc(collection(db, "journal"), entry);
+    console.log("Journal entry stored with ID: ", docRef.id);
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error adding journal entry to Firestore: ", error);
+    throw error;
+  }
+};
+
+export const updateJournalEntryInFirestore = async (
+  entryId: string,
+  updates: Partial<Omit<JournalEntry, 'id'>>
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, "journal", entryId), updates);
+    console.log("Journal entry updated with ID: ", entryId);
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error updating journal entry in Firestore: ", error);
+    throw error;
+  }
+};
+
+export const deleteJournalEntryFromFirestore = async (
+  entryId: string
+): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, "journal", entryId));
+    console.log("Journal entry deleted with ID: ", entryId);
+    notifyDataChange();
+  } catch (error) {
+    console.error("Error deleting journal entry from Firestore: ", error);
+    throw error;
+  }
+};
+
+export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "journal"));
+    const entries: JournalEntry[] = [];
+
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data.date && typeof data.text === 'string') {
+        entries.push({
+          id: docSnap.id,
+          date: data.date,
+          text: data.text,
+          mood: data.mood,
+          createdAt: data.createdAt,
+        } as JournalEntry);
+      }
+    });
+
+    // Newest first by date, then by creation time.
+    entries.sort((a, b) => {
+      if (a.date !== b.date) {
+        return a.date < b.date ? 1 : -1;
+      }
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+
+    console.log(`Fetched ${entries.length} journal entries`);
+    return entries;
+  } catch (error) {
+    console.error("Error fetching journal entries: ", error);
+    return [];
   }
 };
 

@@ -43,7 +43,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow ExpenseMate to use Face ID to unlock protected screens."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

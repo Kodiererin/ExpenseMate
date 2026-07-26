@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { BarChart, LineChart, PieChart } from 'react-native-chart-kit';
+import { ScreenLock } from '../components/ScreenLock';
 import { ThemedView } from '../components/ThemedView';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1289,6 +1290,7 @@ export default function Analysis() {
     }
   };
   return (
+    <ScreenLock screen="analysis">
     <ThemedView style={styles.container}>
       {/* Modern Header */}
       <View style={[styles.header, { backgroundColor: colors.primary }]}>
@@ -1381,6 +1383,7 @@ export default function Analysis() {
         )}
       </Animated.View>
     </ThemedView>
+    </ScreenLock>
   );
 }
 

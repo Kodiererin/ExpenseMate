@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DataProvider } from '../contexts/DataContext';
 import { InvestmentProvider } from '../contexts/InvestmentContext';
+import { SettingsProvider } from '../contexts/SettingsContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 
 export default function RootLayout() {
@@ -22,38 +23,54 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <DataProvider>
-        <InvestmentProvider>
-          <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-              <Stack.Screen name="Calculator"
-                options={{
-                  headerShown: false,  // This hides the "Calculator" system header
-                  presentation: 'card',
-                  animation: 'slide_from_right'
-                }}
-              />
-              <Stack.Screen name="Analysis"
-                options={{
-                  headerShown: false,  // This hides the "Analysis" system header
-                  presentation: 'card',
-                  animation: 'slide_from_right'
-                }}
-              />
-              <Stack.Screen name="Calendar"
-                options={{
-                  headerShown: false,  // This hides the "Calendar" system header
-                  presentation: 'card',
-                  animation: 'slide_from_right'
-                }}
-              />
-            </Stack>
-            <StatusBar style="auto" />
-          </NavigationThemeProvider>
-        </InvestmentProvider>
-      </DataProvider>
+      <SettingsProvider>
+        <DataProvider>
+          <InvestmentProvider>
+            <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+                <Stack.Screen name="Calculator"
+                  options={{
+                    headerShown: false,  // This hides the "Calculator" system header
+                    presentation: 'card',
+                    animation: 'slide_from_right'
+                  }}
+                />
+                <Stack.Screen name="Analysis"
+                  options={{
+                    headerShown: false,  // This hides the "Analysis" system header
+                    presentation: 'card',
+                    animation: 'slide_from_right'
+                  }}
+                />
+                <Stack.Screen name="Calendar"
+                  options={{
+                    headerShown: false,  // This hides the "Calendar" system header
+                    presentation: 'card',
+                    animation: 'slide_from_right'
+                  }}
+                />
+                <Stack.Screen name="Settings"
+                  options={{
+                    headerShown: false,
+                    presentation: 'card',
+                    animation: 'slide_from_right'
+                  }}
+                />
+                <Stack.Screen name="JournalCalendar"
+                  options={{
+                    headerShown: false,
+                    presentation: 'card',
+                    animation: 'slide_from_right'
+                  }}
+                />
+              </Stack>
+              <StatusBar style="auto" />
+            </NavigationThemeProvider>
+          </InvestmentProvider>
+        </DataProvider>
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

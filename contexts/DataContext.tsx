@@ -2,10 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { Expense } from '../domain/Expense';
 import { Goal } from '../domain/Goal';
+import { JournalEntry } from '../domain/JournalEntry';
 import {
     getAllAvailableGoalMonths,
     getAllAvailableMonths,
     getAllExpenses,
+    getAllJournalEntries,
     getGoalsByMonthYear,
     registerDataChangeCallback,
     unregisterDataChangeCallback
@@ -23,6 +25,12 @@ interface DataContextType {
   goalsLoading: boolean;
   getGoalsByMonth: (monthYear: string) => Goal[];
   refreshGoals: (monthYear: string) => Promise<void>;
+
+  // Journal
+  journalEntries: JournalEntry[];
+  journalLoading: boolean;
+  getJournalByDate: (date: string) => JournalEntry[];
+  refreshJournal: () => Promise<void>;
   
   // Available months
   availableMonths: string[];
@@ -39,6 +47,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const STORAGE_KEYS = {
   EXPENSES: 'cached_expenses',
   GOALS: 'cached_goals',
+  JOURNAL: 'cached_journal',
   AVAILABLE_MONTHS: 'cached_available_months',
   AVAILABLE_GOAL_MONTHS: 'cached_available_goal_months',
   LAST_REFRESH: 'last_refresh_timestamp'
@@ -47,10 +56,12 @@ const STORAGE_KEYS = {
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [goals, setGoals] = useState<{ [monthYear: string]: Goal[] }>({});
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [availableGoalMonths, setAvailableGoalMonths] = useState<string[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
   const [goalsLoading, setGoalsLoading] = useState(false);
+  const [journalLoading, setJournalLoading] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   // Add debounced refresh to prevent excessive operations
@@ -104,12 +115,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const [
         cachedExpenses,
         cachedGoals,
+        cachedJournal,
         cachedAvailableMonths,
         cachedAvailableGoalMonths,
         cachedLastRefresh
       ] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.EXPENSES),
         AsyncStorage.getItem(STORAGE_KEYS.GOALS),
+        AsyncStorage.getItem(STORAGE_KEYS.JOURNAL),
         AsyncStorage.getItem(STORAGE_KEYS.AVAILABLE_MONTHS),
         AsyncStorage.getItem(STORAGE_KEYS.AVAILABLE_GOAL_MONTHS),
         AsyncStorage.getItem(STORAGE_KEYS.LAST_REFRESH)
@@ -120,6 +133,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       if (cachedGoals) {
         setGoals(JSON.parse(cachedGoals));
+      }
+      if (cachedJournal) {
+        setJournalEntries(JSON.parse(cachedJournal));
       }
       if (cachedAvailableMonths) {
         setAvailableMonths(JSON.parse(cachedAvailableMonths));
@@ -235,11 +251,35 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return goals[monthYear] || [];
   }, [goals]);
 
+  const getJournalByDate = useCallback((date: string): JournalEntry[] => {
+    return journalEntries.filter(entry => entry.date === date);
+  }, [journalEntries]);
+
+  const refreshJournal = useCallback(async () => {
+    setJournalLoading(true);
+    try {
+      const freshEntries = await getAllJournalEntries();
+      setJournalEntries(freshEntries);
+      await AsyncStorage.setItem(STORAGE_KEYS.JOURNAL, JSON.stringify(freshEntries));
+      console.log(`Journal refreshed with ${freshEntries.length} entries`);
+    } catch (error) {
+      console.error('Error refreshing journal:', error);
+    } finally {
+      setJournalLoading(false);
+    }
+  }, []);
+
+  // Load journal entries on app start
+  useEffect(() => {
+    refreshJournal();
+  }, [refreshJournal]);
+
   const clearCache = useCallback(async () => {
     try {
       await Promise.all([
         AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES),
         AsyncStorage.removeItem(STORAGE_KEYS.GOALS),
+        AsyncStorage.removeItem(STORAGE_KEYS.JOURNAL),
         AsyncStorage.removeItem(STORAGE_KEYS.AVAILABLE_MONTHS),
         AsyncStorage.removeItem(STORAGE_KEYS.AVAILABLE_GOAL_MONTHS),
         AsyncStorage.removeItem(STORAGE_KEYS.LAST_REFRESH)
@@ -247,6 +287,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setExpenses([]);
       setGoals({});
+      setJournalEntries([]);
       setAvailableMonths([]);
       setAvailableGoalMonths([]);
       setLastRefresh(null);
@@ -266,6 +307,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     goalsLoading,
     getGoalsByMonth,
     refreshGoals,
+    journalEntries,
+    journalLoading,
+    getJournalByDate,
+    refreshJournal,
     availableMonths,
     availableGoalMonths,
     clearCache,
