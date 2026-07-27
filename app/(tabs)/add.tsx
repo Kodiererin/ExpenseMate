@@ -1,27 +1,50 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Easing,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { Button, Card, Separator } from '../../components/common';
-import { commonStyles } from '../../styles/commonStyles';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { commonStyles } from '../../styles/commonStyles';
 import { addExpenseToFirestore } from '../../utils/firebaseUtils';
 import { filterText } from '../../utils/validateText';
+
+// Persisted key for user-created custom categories
+const CUSTOM_CATEGORIES_KEY = '@custom_categories';
+
+type CategoryItem = { label: string; value: string };
+
+// Built-in categories that ship with the app
+const DEFAULT_TAGS: CategoryItem[] = [
+  { label: 'Food 🍔', value: 'Food' },
+  { label: 'Travel 🚗', value: 'Travel' },
+  { label: 'Shopping 🛍️', value: 'Shopping' },
+  { label: 'Bills 💡', value: 'Bills' },
+  { label: 'Entertainment 🎬', value: 'Entertainment' },
+  { label: 'Games 🎮', value: 'Games' },
+  { label: 'Health 🏥', value: 'Health' },
+  { label: 'Education 📚', value: 'Education' },
+  { label: 'PG 🏠', value: 'PG' },
+  { label: 'Papa 🏠', value: 'PAPA' },
+  { label: 'Mummi 🏠', value: 'MUMMI' },
+  { label: 'Nimmi 🏠', value: 'NIMMI' },
+  { label: 'Harsh 🏠', value: 'HARSH' },
+];
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
@@ -29,21 +52,7 @@ export default function AddScreen() {
   useData();
   const [open, setOpen] = useState(false);
   const [tag, setTag] = useState('');
-  const [tags, setTags] = useState([
-    { label: 'Food 🍔', value: 'Food' },
-    { label: 'Travel 🚗', value: 'Travel' },
-    { label: 'Shopping 🛍️', value: 'Shopping' },
-    { label: 'Bills 💡', value: 'Bills' },
-    { label: 'Entertainment 🎬', value: 'Entertainment' },
-    { label: 'Games 🎮', value: 'Games' },
-    { label: 'Health 🏥', value: 'Health' },
-    { label: 'Education 📚', value: 'Education' },
-    { label: 'PG 🏠', value: 'PG' },
-    { label: 'Papa 🏠', value: 'PAPA' },
-    { label: 'Mummi 🏠', value: 'MUMMI' },
-    { label: 'Nimmi 🏠', value: 'NIMMI' },
-    { label: 'Harsh 🏠', value: 'HARSH' },
-  ]);
+  const [tags, setTags] = useState<CategoryItem[]>(DEFAULT_TAGS);
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
@@ -52,7 +61,7 @@ export default function AddScreen() {
   // Animation for Add button
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  
+
   useEffect(() => {
     animationRef.current = Animated.loop(
       Animated.sequence([
@@ -78,6 +87,50 @@ export default function AddScreen() {
       }
     };
   }, [scaleAnim]);
+
+  // Load user-created custom categories saved in previous sessions
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(CUSTOM_CATEGORIES_KEY);
+        if (!saved) return;
+        const custom: CategoryItem[] = JSON.parse(saved);
+        if (!Array.isArray(custom) || custom.length === 0) return;
+        setTags((prev) => {
+          const existing = new Set(prev.map((t) => t.value));
+          const merged = [...prev];
+          custom.forEach((c) => {
+            if (c?.value && !existing.has(c.value)) {
+              merged.push(c);
+            }
+          });
+          return merged;
+        });
+      } catch (error) {
+        console.error('Failed to load custom categories:', error);
+      }
+    })();
+  }, []);
+
+  // Persist a category to storage if it is not one of the built-in ones
+  const persistCategoryIfNew = async (categoryValue: string) => {
+    const value = categoryValue.trim();
+    if (!value) return;
+    if (DEFAULT_TAGS.some((t) => t.value === value)) return;
+    try {
+      const saved = await AsyncStorage.getItem(CUSTOM_CATEGORIES_KEY);
+      const custom: CategoryItem[] = saved ? JSON.parse(saved) : [];
+      if (custom.some((c) => c.value === value)) return;
+      const newItem: CategoryItem = { label: value, value };
+      await AsyncStorage.setItem(
+        CUSTOM_CATEGORIES_KEY,
+        JSON.stringify([...custom, newItem])
+      );
+      setTags((prev) => (prev.some((t) => t.value === value) ? prev : [...prev, newItem]));
+    } catch (error) {
+      console.error('Failed to save custom category:', error);
+    }
+  };
 
   // User feedback state
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -125,6 +178,9 @@ export default function AddScreen() {
     try {
       await addExpenseToFirestore(expenseData);
 
+      // Remember new custom categories for future use
+      await persistCategoryIfNew(expenseData.tag);
+
       // Clear form immediately to show success
       setTag('');
       setPrice('');
@@ -139,7 +195,7 @@ export default function AddScreen() {
     } finally {
       setIsLoading(false);
     }
-    
+
     setTimeout(() => setFeedback(null), 3000);
   };
 
@@ -168,28 +224,28 @@ export default function AddScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-        <TouchableWithoutFeedback onPress={handleContainerPress}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={[styles.container, { backgroundColor: colors.background }]}>
-              <Card style={styles.header}>
-                <View style={styles.headerContent}>
-                  <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
-                  <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                    Track your expenses with ease
-                  </Text>
-                </View>
-              </Card>
+      <TouchableWithoutFeedback onPress={handleContainerPress}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <Card style={styles.header}>
+              <View style={styles.headerContent}>
+                <Text style={[styles.title, { color: colors.text }]}>💰 ExpenseMate</Text>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  Track your expenses with ease
+                </Text>
+              </View>
+            </Card>
 
             <Separator height={24} />
 
             <Card>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Expense Details</Text>
-              
+
               <Separator height={10} />
-              
+
               <View style={styles.inputRow}>
                 <View style={{ flex: 0.58, zIndex: open ? 1000 : 10 }}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Category</Text>
@@ -234,14 +290,14 @@ export default function AddScreen() {
                       fontSize: 18,
                       color: colors.text,
                     }}
-                    listItemLabelStyle={{ 
-                      fontWeight: '500', 
-                      color: colors.text, 
-                      fontSize: 16 
+                    listItemLabelStyle={{
+                      fontWeight: '500',
+                      color: colors.text,
+                      fontSize: 16
                     }}
-                    placeholderStyle={{ 
-                      color: colors.placeholder, 
-                      fontSize: 16 
+                    placeholderStyle={{
+                      color: colors.placeholder,
+                      fontSize: 16
                     }}
                     theme={isDark ? "DARK" : "LIGHT"}
                     ArrowDownIconComponent={() => (
@@ -253,27 +309,27 @@ export default function AddScreen() {
                     TickIconComponent={() => (
                       <Ionicons name="checkmark" size={20} color={colors.primary} />
                     )}
-                    searchContainerStyle={{ 
-                      borderBottomColor: colors.border, 
+                    searchContainerStyle={{
+                      borderBottomColor: colors.border,
                       backgroundColor: colors.surface,
                       borderRadius: 8,
                       marginHorizontal: 10,
                       marginTop: 10,
                     }}
-                    searchTextInputStyle={{ 
-                      color: colors.text, 
-                      fontSize: 15, 
+                    searchTextInputStyle={{
+                      color: colors.text,
+                      fontSize: 15,
                       backgroundColor: colors.surface,
                       borderRadius: 8,
                     }}
-                    listItemContainerStyle={{ 
-                      borderRadius: 8, 
+                    listItemContainerStyle={{
+                      borderRadius: 8,
                       marginVertical: 2,
                       marginHorizontal: 10,
                     }}
-                    selectedItemLabelStyle={{ 
-                      color: colors.primary, 
-                      fontWeight: 'bold' 
+                    selectedItemLabelStyle={{
+                      color: colors.primary,
+                      fontWeight: 'bold'
                     }}
                     labelStyle={{
                       color: colors.text,
@@ -301,15 +357,15 @@ export default function AddScreen() {
 
                 <View style={{ flex: 0.42 }}>
                   <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Amount</Text>
-                  <View style={[styles.priceInputWrapper, { 
+                  <View style={[styles.priceInputWrapper, {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                   }, shadowStyle]}>
-                    <MaterialCommunityIcons 
-                      name="currency-inr" 
-                      size={20} 
-                      color={colors.primary} 
-                      style={styles.rupeeIcon} 
+                    <MaterialCommunityIcons
+                      name="currency-inr"
+                      size={20}
+                      color={colors.primary}
+                      style={styles.rupeeIcon}
                     />
                     <TextInput
                       style={[styles.priceInput, { color: colors.text }]}
@@ -342,17 +398,17 @@ export default function AddScreen() {
 
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date</Text>
               <Pressable onPress={() => setShowDatePicker(true)}>
-                <View style={[styles.dateCard, { 
+                <View style={[styles.dateCard, {
                   backgroundColor: colors.surface,
                   borderColor: colors.border,
                 }, shadowStyle]}>
                   <Ionicons name="calendar" size={20} color={colors.primary} />
                   <Text style={[styles.dateText, { color: colors.text }]}>
-                    {date.toLocaleDateString('en-US', { 
+                    {date.toLocaleDateString('en-US', {
                       weekday: 'short',
-                      year: 'numeric', 
-                      month: 'short', 
-                      day: 'numeric' 
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
                     })}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
@@ -374,7 +430,7 @@ export default function AddScreen() {
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
                 Description (Optional)
               </Text>
-              <View style={[styles.descInputWrapper, { 
+              <View style={[styles.descInputWrapper, {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
               }, shadowStyle]}>
@@ -415,7 +471,7 @@ export default function AddScreen() {
             {feedback && (
               <Card style={[
                 styles.feedback,
-                { 
+                {
                   backgroundColor: feedback.type === 'success' ? colors.success : colors.error,
                   borderColor: feedback.type === 'success' ? colors.success : colors.error,
                 }
@@ -444,118 +500,118 @@ export default function AddScreen() {
 const styles = {
   ...commonStyles,
   ...StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 40, // Extra bottom padding
-  },
-  container: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    letterSpacing: 0.3,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 12,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    letterSpacing: 0.2,
-  },
-  priceInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    minHeight: 52,
-    borderWidth: 1,
-  },
-  rupeeIcon: {
-    marginRight: 10,
-  },
-  priceInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  dateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    minHeight: 52,
-  },
-  dateText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 12,
-  },
-  descInputWrapper: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    minHeight: 100,
-  },
-  descInput: {
-    fontSize: 16,
-    minHeight: 80,
-    paddingVertical: 12,
-    textAlignVertical: 'top',
-    lineHeight: 22,
-  },
-  characterCount: {
-    fontSize: 12,
-    textAlign: 'right',
-    paddingVertical: 4,
-    fontWeight: '500',
-  },
-  addButton: {
-    marginTop: 16,
-    alignSelf: 'stretch',
-  },
-  feedback: {
-    marginTop: 24,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  feedbackContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  feedbackText: {
-    marginLeft: 12,
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-    lineHeight: 22,
-  },
+    scrollContainer: {
+      flexGrow: 1,
+      padding: 20,
+      paddingTop: 60,
+      paddingBottom: 40, // Extra bottom padding
+    },
+    container: {
+      flex: 1,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      textAlign: 'center',
+      marginBottom: 8,
+      letterSpacing: 0.5,
+    },
+    subtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      opacity: 0.8,
+      marginTop: 4,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      marginBottom: 16,
+      letterSpacing: 0.3,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: 12,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+      letterSpacing: 0.2,
+    },
+    priceInputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      minHeight: 52,
+      borderWidth: 1,
+    },
+    rupeeIcon: {
+      marginRight: 10,
+    },
+    priceInput: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '600',
+      textAlign: 'right',
+    },
+    dateCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      minHeight: 52,
+    },
+    dateText: {
+      flex: 1,
+      fontSize: 16,
+      fontWeight: '500',
+      marginLeft: 12,
+    },
+    descInputWrapper: {
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderWidth: 1,
+      minHeight: 100,
+    },
+    descInput: {
+      fontSize: 16,
+      minHeight: 80,
+      paddingVertical: 12,
+      textAlignVertical: 'top',
+      lineHeight: 22,
+    },
+    characterCount: {
+      fontSize: 12,
+      textAlign: 'right',
+      paddingVertical: 4,
+      fontWeight: '500',
+    },
+    addButton: {
+      marginTop: 16,
+      alignSelf: 'stretch',
+    },
+    feedback: {
+      marginTop: 24,
+      borderWidth: 1,
+      borderRadius: 12,
+    },
+    feedbackContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    feedbackText: {
+      marginLeft: 12,
+      fontSize: 16,
+      fontWeight: '600',
+      flex: 1,
+      lineHeight: 22,
+    },
   }),
 };
