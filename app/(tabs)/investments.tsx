@@ -21,6 +21,7 @@ import { LineChart, PieChart } from 'react-native-chart-kit';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Section, Separator } from '../../components/common';
+import { ScreenLock } from '../../components/ScreenLock';
 import { useInvestments } from '../../contexts/InvestmentContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Investment } from '../../domain/Investment';
@@ -329,396 +330,331 @@ const InvestmentsScreen = () => {
   const trendChartData = React.useMemo(() => getTrendData(), [getTrendData, investments, trendType]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <ScreenLock screen="investments">
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Enhanced Header with Gradient */}
-      <LinearGradient
-        colors={[colors.primary, colors.accent]}
-        style={styles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Animated.View style={[styles.headerContent, { opacity: animatedValues.headerOpacity }]}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>💼 Portfolio</Text>
-            <Text style={styles.headerSubtitle}>• Track your Investments</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <Ionicons name="add" size={40} color="white" />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+        {/* Enhanced Header with Gradient */}
+        <LinearGradient
+          colors={[colors.primary, colors.accent]}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Animated.View style={[styles.headerContent, { opacity: animatedValues.headerOpacity }]}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>💼 Portfolio</Text>
+              <Text style={styles.headerSubtitle}>• Track your Investments</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setModalVisible(true)}
+              >
+                <Ionicons name="add" size={40} color="white" />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
 
-        {/* Quick Stats Bar */}
-        <View style={styles.quickStatsContainer}>
-          <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Total Wealth</Text>
-            <Text style={styles.quickStatValue}>
-              ₹{typeof financialSummary.totalWealth === 'number' ? financialSummary.totalWealth.toLocaleString() : '0'}
-            </Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.quickStat}>
-            <Text style={styles.quickStatLabel}>Updated</Text>
-            <Text style={styles.quickStatValue}>
-              {(() => {
-                const minutes = Math.floor((Date.now() - lastRefresh) / 60000);
-                if (minutes < 1) return "Just now";
-                if (minutes === 1) return "1m ago";
-                if (minutes < 60) return `${minutes}m ago`;
-                const hours = Math.floor(minutes / 60);
-                return hours === 1 ? "1h ago" : `${hours}h ago`;
-              })()}
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
-
-      {/* Tab Navigation */}
-      <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        {([
-          { key: 'overview', label: 'Overview', icon: 'grid' },
-          { key: 'charts', label: 'Charts', icon: 'stats-chart' },
-          { key: 'list', label: 'History', icon: 'list' },
-        ] as const).map(tab => {
-          const active = activeTab === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tabButton, active && { backgroundColor: `${colors.primary}18` }]}
-              onPress={() => setActiveTab(tab.key)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name={tab.icon} size={18} color={active ? colors.primary : colors.textSecondary} />
-              <Text style={[styles.tabButtonText, { color: active ? colors.primary : colors.textSecondary }]}>
-                {tab.label}
+          {/* Quick Stats Bar */}
+          <View style={styles.quickStatsContainer}>
+            <View style={styles.quickStat}>
+              <Text style={styles.quickStatLabel}>Total Wealth</Text>
+              <Text style={styles.quickStatValue}>
+                ₹{typeof financialSummary.totalWealth === 'number' ? financialSummary.totalWealth.toLocaleString() : '0'}
               </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[colors.primary, colors.accent]}
-            tintColor={colors.primary}
-            title="Pull to refresh your portfolio..."
-            titleColor={colors.textSecondary}
-            progressBackgroundColor={colors.background}
-          />
-        }
-      >
-        {/* Enhanced Summary Cards */}
-        {activeTab === 'overview' && (
-          <Section title="📊 Financial Overview" >
-            {/* Primary Stats Row */}
-            <View style={styles.summaryGrid}>
-              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-                <LinearGradient
-                  colors={['#22C55E', '#16A34A']}
-                  style={styles.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="trending-up" size={24} color="white" />
-                  </View>
-                  <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
-                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
-                  <Text style={styles.summaryTrend}>All income sources</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-                <LinearGradient
-                  colors={['#3B82F6', '#2563EB']}
-                  style={styles.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="bar-chart" size={24} color="white" />
-                  </View>
-                  <Text style={styles.enhancedSummaryLabel}>Investments</Text>
-                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
-                  <Text style={styles.summaryTrend}>Portfolio value</Text>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
-
-            {/* Secondary Stats Row */}
-            <View style={styles.summaryGrid}>
-              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-                <LinearGradient
-                  colors={['#F59E0B', '#D97706']}
-                  style={styles.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="shield-checkmark" size={24} color="white" />
-                  </View>
-                  <Text style={styles.enhancedSummaryLabel}>Savings</Text>
-                  <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
-                  <Text style={styles.summaryTrend}>Safety net</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
-                <LinearGradient
-                  colors={['#8B5CF6', '#7C3AED']}
-                  style={styles.cardGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <View style={styles.cardIcon}>
-                    <Ionicons name="calendar" size={24} color="white" />
-                  </View>
-                  <Text style={styles.enhancedSummaryLabel}>Monthly Income</Text>
-                  <Text style={styles.enhancedSummaryAmount}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
-                  <Text style={styles.summaryTrend}>Recurring income</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* Tax Information Cards */}
-            <View style={styles.summaryGrid}>
-              <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
-                <View style={styles.taxHeader}>
-                  <Ionicons name="receipt" size={20} color={colors.error} />
-                  <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Taxable Income</Text>
-                </View>
-                <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
-                <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
-              </View>
-
-              <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
-                <View style={styles.taxHeader}>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                  <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Tax-Free Income</Text>
-                </View>
-                <Text style={[styles.taxAmount, { color: colors.success }]}>₹{typeof financialSummary.nonTaxableIncome === 'number' ? financialSummary.nonTaxableIncome.toLocaleString() : '0'}</Text>
-                <Text style={[styles.taxNote, { color: colors.placeholder }]}>Tax exempt savings</Text>
-              </View>
-            </View>
-          </Section>
-        )}
-
-        {/* Charts */}
-        {investments.length > 0 && activeTab === 'charts' && (
-          <>
-            <Section title="📈 Investment Distribution" subtitle="Breakdown by category">
-              <Card>
-                <View style={styles.chartContainer}>
-                  <PieChart
-                    data={pieChartData}
-                    width={screenWidth - 64}
-                    height={200}
-                    chartConfig={{
-                      backgroundColor: colors.card,
-                      backgroundGradientFrom: colors.card,
-                      backgroundGradientTo: colors.card,
-                      color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                    }}
-                    accessor="amount"
-                    backgroundColor="transparent"
-                    paddingLeft="15"
-                    absolute
-                  />
-                </View>
-              </Card>
-            </Section>
-
-            <Section title={trendType === 'monthly' ? "📊 Monthly Trend" : "📊 Yearly Trend"} subtitle="Investment growth over time">
-              <Card>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ marginRight: 8, color: colors.textSecondary }}>Trend Type:</Text>
-                  <TouchableOpacity
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: trendType === 'monthly' ? colors.primary : colors.surface,
-                      borderRadius: 8,
-                      marginRight: 8,
-                    }}
-                    onPress={() => setTrendType('monthly')}
-                  >
-                    <Text style={{ color: trendType === 'monthly' ? 'white' : colors.text }}>Monthly</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      backgroundColor: trendType === 'yearly' ? colors.primary : colors.surface,
-                      borderRadius: 8,
-                    }}
-                    onPress={() => setTrendType('yearly')}
-                  >
-                    <Text style={{ color: trendType === 'yearly' ? 'white' : colors.text }}>Yearly</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.chartContainer}>
-                  <LineChart
-                    data={trendChartData}
-                    width={screenWidth - 64}
-                    height={200}
-                    chartConfig={{
-                      backgroundColor: colors.card,
-                      backgroundGradientFrom: colors.card,
-                      backgroundGradientTo: colors.card,
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-                      labelColor: (opacity = 1) => colors.text,
-                      style: {
-                        borderRadius: 16,
-                      },
-                    }}
-                    bezier
-                    style={styles.chart}
-                  />
-                </View>
-              </Card>
-            </Section>
-          </>
-        )}
-
-        {investments.length === 0 && activeTab === 'charts' && (
-          <Card style={styles.emptyCard}>
-            <Ionicons name="stats-chart-outline" size={48} color={colors.textSecondary} />
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No chart data yet</Text>
-            <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
-              Add investments to see your distribution and trends.
-            </Text>
-          </Card>
-        )}
-
-        {/* Investment List */}
-        {activeTab === 'list' && (
-          <Section title="💰 Recent Investments" subtitle="Your latest entries">
-            {investments.length === 0 ? (
-              <Card style={styles.emptyCard}>
-                <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                  No investments yet
-                </Text>
-                <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
-                  Start tracking your investments by adding your first entry!
-                </Text>
-                {__DEV__ && (
-                  <Button
-                    title="Add Sample Data (Dev)"
-                    onPress={async () => {
-                      try {
-                        await seedInvestmentData();
-                        await refreshInvestments();
-                        Alert.alert('Success', 'Sample data added!');
-                      } catch (error) {
-                        console.error('Error seeding data:', error);
-                        Alert.alert('Error', 'Failed to add sample data');
-                      }
-                    }}
-                    variant="outline"
-                    style={{ marginTop: 16 }}
-                  />
-                )}
-              </Card>
-            ) : (
-              <View style={styles.listContainer}>
-                {/* Group recurring investments by title and show only one entry for each recurring investment */}
+            <View style={styles.statDivider} />
+            <View style={styles.quickStat}>
+              <Text style={styles.quickStatLabel}>Updated</Text>
+              <Text style={styles.quickStatValue}>
                 {(() => {
-                  // Group recurring investments by title, type, and amount
-                  const grouped: { [key: string]: Investment[] } = {};
-                  investments.forEach(inv => {
-                    if (inv.isRecurring) {
-                      const key = `${inv.title}|${inv.type}|${inv.amount}`;
-                      if (!grouped[key]) grouped[key] = [];
-                      grouped[key].push(inv);
-                    }
-                  });
-                  // Non-recurring investments
-                  const nonRecurring = investments.filter(inv => !inv.isRecurring);
-                  // Render non-recurring investments
-                  const rendered = nonRecurring.map((investment, idx) => (
-                    <TouchableOpacity
-                      key={investment.id + '-' + idx}
-                      onPress={() => {
-                        setSelectedInvestment(investment);
-                        setInvestmentDetailModalVisible(true);
+                  const minutes = Math.floor((Date.now() - lastRefresh) / 60000);
+                  if (minutes < 1) return "Just now";
+                  if (minutes === 1) return "1m ago";
+                  if (minutes < 60) return `${minutes}m ago`;
+                  const hours = Math.floor(minutes / 60);
+                  return hours === 1 ? "1h ago" : `${hours}h ago`;
+                })()}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* Tab Navigation */}
+        <View style={[styles.tabBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          {([
+            { key: 'overview', label: 'Overview', icon: 'grid' },
+            { key: 'charts', label: 'Charts', icon: 'stats-chart' },
+            { key: 'list', label: 'History', icon: 'list' },
+          ] as const).map(tab => {
+            const active = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tabButton, active && { backgroundColor: `${colors.primary}18` }]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name={tab.icon} size={18} color={active ? colors.primary : colors.textSecondary} />
+                <Text style={[styles.tabButtonText, { color: active ? colors.primary : colors.textSecondary }]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary, colors.accent]}
+              tintColor={colors.primary}
+              title="Pull to refresh your portfolio..."
+              titleColor={colors.textSecondary}
+              progressBackgroundColor={colors.background}
+            />
+          }
+        >
+          {/* Enhanced Summary Cards */}
+          {activeTab === 'overview' && (
+            <Section title="📊 Financial Overview" >
+              {/* Primary Stats Row */}
+              <View style={styles.summaryGrid}>
+                <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                  <LinearGradient
+                    colors={['#22C55E', '#16A34A']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.cardIcon}>
+                      <Ionicons name="trending-up" size={24} color="white" />
+                    </View>
+                    <Text style={styles.enhancedSummaryLabel}>Total Income</Text>
+                    <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.income === 'number' ? financialSummary.income.toLocaleString() : '0'}</Text>
+                    <Text style={styles.summaryTrend}>All income sources</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                  <LinearGradient
+                    colors={['#3B82F6', '#2563EB']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.cardIcon}>
+                      <Ionicons name="bar-chart" size={24} color="white" />
+                    </View>
+                    <Text style={styles.enhancedSummaryLabel}>Investments</Text>
+                    <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.investment === 'number' ? financialSummary.investment.toLocaleString() : '0'}</Text>
+                    <Text style={styles.summaryTrend}>Portfolio value</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              {/* Secondary Stats Row */}
+              <View style={styles.summaryGrid}>
+                <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                  <LinearGradient
+                    colors={['#F59E0B', '#D97706']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.cardIcon}>
+                      <Ionicons name="shield-checkmark" size={24} color="white" />
+                    </View>
+                    <Text style={styles.enhancedSummaryLabel}>Savings</Text>
+                    <Text style={styles.enhancedSummaryAmount}>₹{typeof financialSummary.savings === 'number' ? financialSummary.savings.toLocaleString() : '0'}</Text>
+                    <Text style={styles.summaryTrend}>Safety net</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.enhancedSummaryCard, { backgroundColor: colors.card }]}>
+                  <LinearGradient
+                    colors={['#8B5CF6', '#7C3AED']}
+                    style={styles.cardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <View style={styles.cardIcon}>
+                      <Ionicons name="calendar" size={24} color="white" />
+                    </View>
+                    <Text style={styles.enhancedSummaryLabel}>Monthly Income</Text>
+                    <Text style={styles.enhancedSummaryAmount}>₹{typeof monthlyIncome === 'number' ? monthlyIncome.toLocaleString() : '0'}</Text>
+                    <Text style={styles.summaryTrend}>Recurring income</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+
+              {/* Tax Information Cards */}
+              <View style={styles.summaryGrid}>
+                <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
+                  <View style={styles.taxHeader}>
+                    <Ionicons name="receipt" size={20} color={colors.error} />
+                    <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Taxable Income</Text>
+                  </View>
+                  <Text style={[styles.taxAmount, { color: colors.error }]}>₹{typeof financialSummary.taxableIncome === 'number' ? financialSummary.taxableIncome.toLocaleString() : '0'}</Text>
+                  <Text style={[styles.taxNote, { color: colors.placeholder }]}>Subject to taxation</Text>
+                </View>
+
+                <View style={[styles.taxCard, { backgroundColor: colors.surface }]}>
+                  <View style={styles.taxHeader}>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                    <Text style={[styles.taxLabel, { color: colors.textSecondary }]}>Tax-Free Income</Text>
+                  </View>
+                  <Text style={[styles.taxAmount, { color: colors.success }]}>₹{typeof financialSummary.nonTaxableIncome === 'number' ? financialSummary.nonTaxableIncome.toLocaleString() : '0'}</Text>
+                  <Text style={[styles.taxNote, { color: colors.placeholder }]}>Tax exempt savings</Text>
+                </View>
+              </View>
+            </Section>
+          )}
+
+          {/* Charts */}
+          {investments.length > 0 && activeTab === 'charts' && (
+            <>
+              <Section title="📈 Investment Distribution" subtitle="Breakdown by category">
+                <Card>
+                  <View style={styles.chartContainer}>
+                    <PieChart
+                      data={pieChartData}
+                      width={screenWidth - 64}
+                      height={200}
+                      chartConfig={{
+                        backgroundColor: colors.card,
+                        backgroundGradientFrom: colors.card,
+                        backgroundGradientTo: colors.card,
+                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                       }}
-                      activeOpacity={0.8}
+                      accessor="amount"
+                      backgroundColor="transparent"
+                      paddingLeft="15"
+                      absolute
+                    />
+                  </View>
+                </Card>
+              </Section>
+
+              <Section title={trendType === 'monthly' ? "📊 Monthly Trend" : "📊 Yearly Trend"} subtitle="Investment growth over time">
+                <Card>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                    <Text style={{ marginRight: 8, color: colors.textSecondary }}>Trend Type:</Text>
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        backgroundColor: trendType === 'monthly' ? colors.primary : colors.surface,
+                        borderRadius: 8,
+                        marginRight: 8,
+                      }}
+                      onPress={() => setTrendType('monthly')}
                     >
-                      <Card
-                        style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
-                      >
-                        <View style={styles.investmentInfo}>
-                          <View style={styles.investmentHeader}>
-                            <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
-                            <View style={styles.badgeContainer}>
-                              <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
-                                <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
-                                  {getInvestmentCategory(investment).toUpperCase()}
-                                </Text>
-                              </View>
-                              {investment.taxable && (
-                                <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
-                                  <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
-                                </View>
-                              )}
-                            </View>
-                          </View>
-                          <Text style={[styles.investmentType, { color: colors.primary }]}>
-                            {investmentTypes.find(t => t.value === investment.type)?.label}
-                          </Text>
-                          {investment.source && (
-                            <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
-                              📍 {investment.source}
-                            </Text>
-                          )}
-                          <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
-                            📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
-                          </Text>
-                          {investment.isRecurring && (
-                            <Text style={[styles.recurringBadge, { color: colors.success }]}>
-                              🔄 {investment.recurringFrequency}
-                            </Text>
-                          )}
-                          {investment.description && (
-                            <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                              {investment.description}
-                            </Text>
-                          )}
-                        </View>
-                        <View style={styles.amountContainer}>
-                          <Text style={[styles.investmentAmount, { color: colors.primary }]}>
-                            ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
-                          </Text>
-                          {investment.taxable && (
-                            <Text style={[styles.taxInfo, { color: colors.error }]}>
-                              + Tax
-                            </Text>
-                          )}
-                        </View>
-                      </Card>
+                      <Text style={{ color: trendType === 'monthly' ? 'white' : colors.text }}>Monthly</Text>
                     </TouchableOpacity>
-                  ));
-                  // Render grouped recurring investments
-                  Object.entries(grouped).forEach(([key, group], idx) => {
-                    const first = group[0];
-                    rendered.push(
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        backgroundColor: trendType === 'yearly' ? colors.primary : colors.surface,
+                        borderRadius: 8,
+                      }}
+                      onPress={() => setTrendType('yearly')}
+                    >
+                      <Text style={{ color: trendType === 'yearly' ? 'white' : colors.text }}>Yearly</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.chartContainer}>
+                    <LineChart
+                      data={trendChartData}
+                      width={screenWidth - 64}
+                      height={200}
+                      chartConfig={{
+                        backgroundColor: colors.card,
+                        backgroundGradientFrom: colors.card,
+                        backgroundGradientTo: colors.card,
+                        decimalPlaces: 0,
+                        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
+                        labelColor: (opacity = 1) => colors.text,
+                        style: {
+                          borderRadius: 16,
+                        },
+                      }}
+                      bezier
+                      style={styles.chart}
+                    />
+                  </View>
+                </Card>
+              </Section>
+            </>
+          )}
+
+          {investments.length === 0 && activeTab === 'charts' && (
+            <Card style={styles.emptyCard}>
+              <Ionicons name="stats-chart-outline" size={48} color={colors.textSecondary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No chart data yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+                Add investments to see your distribution and trends.
+              </Text>
+            </Card>
+          )}
+
+          {/* Investment List */}
+          {activeTab === 'list' && (
+            <Section title="💰 Recent Investments" subtitle="Your latest entries">
+              {investments.length === 0 ? (
+                <Card style={styles.emptyCard}>
+                  <Ionicons name="trending-up-outline" size={48} color={colors.textSecondary} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    No investments yet
+                  </Text>
+                  <Text style={[styles.emptySubtext, { color: colors.placeholder }]}>
+                    Start tracking your investments by adding your first entry!
+                  </Text>
+                  {__DEV__ && (
+                    <Button
+                      title="Add Sample Data (Dev)"
+                      onPress={async () => {
+                        try {
+                          await seedInvestmentData();
+                          await refreshInvestments();
+                          Alert.alert('Success', 'Sample data added!');
+                        } catch (error) {
+                          console.error('Error seeding data:', error);
+                          Alert.alert('Error', 'Failed to add sample data');
+                        }
+                      }}
+                      variant="outline"
+                      style={{ marginTop: 16 }}
+                    />
+                  )}
+                </Card>
+              ) : (
+                <View style={styles.listContainer}>
+                  {/* Group recurring investments by title and show only one entry for each recurring investment */}
+                  {(() => {
+                    // Group recurring investments by title, type, and amount
+                    const grouped: { [key: string]: Investment[] } = {};
+                    investments.forEach(inv => {
+                      if (inv.isRecurring) {
+                        const key = `${inv.title}|${inv.type}|${inv.amount}`;
+                        if (!grouped[key]) grouped[key] = [];
+                        grouped[key].push(inv);
+                      }
+                    });
+                    // Non-recurring investments
+                    const nonRecurring = investments.filter(inv => !inv.isRecurring);
+                    // Render non-recurring investments
+                    const rendered = nonRecurring.map((investment, idx) => (
                       <TouchableOpacity
-                        key={key + '-' + idx}
+                        key={investment.id + '-' + idx}
                         onPress={() => {
-                          setSelectedInvestment({ ...first, recurringDates: Array.isArray(first.date) ? first.date : [first.date] });
+                          setSelectedInvestment(investment);
                           setInvestmentDetailModalVisible(true);
                         }}
                         activeOpacity={0.8}
@@ -728,14 +664,14 @@ const InvestmentsScreen = () => {
                         >
                           <View style={styles.investmentInfo}>
                             <View style={styles.investmentHeader}>
-                              <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
+                              <Text style={[styles.investmentTitle, { color: colors.text }]}>{investment.title}</Text>
                               <View style={styles.badgeContainer}>
-                                <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
+                                <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(investment)) }]}>
                                   <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
-                                    {getInvestmentCategory(first).toUpperCase()}
+                                    {getInvestmentCategory(investment).toUpperCase()}
                                   </Text>
                                 </View>
-                                {first.taxable && (
+                                {investment.taxable && (
                                   <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
                                     <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
                                   </View>
@@ -743,31 +679,32 @@ const InvestmentsScreen = () => {
                               </View>
                             </View>
                             <Text style={[styles.investmentType, { color: colors.primary }]}>
-                              {investmentTypes.find(t => t.value === first.type)?.label}
+                              {investmentTypes.find(t => t.value === investment.type)?.label}
                             </Text>
-                            {first.source && (
+                            {investment.source && (
                               <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
-                                📍 {first.source}
+                                📍 {investment.source}
                               </Text>
                             )}
-                            {/* Show user selected date to present */}
                             <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
-                              📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
+                              📅 {Array.isArray(investment.date) ? new Date(investment.date[0]).toLocaleDateString() : new Date(investment.date).toLocaleDateString()}
                             </Text>
-                            <Text style={[styles.recurringBadge, { color: colors.success }]}>
-                              🔄 {first.recurringFrequency}
-                            </Text>
-                            {first.description && (
+                            {investment.isRecurring && (
+                              <Text style={[styles.recurringBadge, { color: colors.success }]}>
+                                🔄 {investment.recurringFrequency}
+                              </Text>
+                            )}
+                            {investment.description && (
                               <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-                                {first.description}
+                                {investment.description}
                               </Text>
                             )}
                           </View>
                           <View style={styles.amountContainer}>
                             <Text style={[styles.investmentAmount, { color: colors.primary }]}>
-                              ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                              ₹{typeof investment.amount === 'number' ? investment.amount.toLocaleString() : '0'}
                             </Text>
-                            {first.taxable && (
+                            {investment.taxable && (
                               <Text style={[styles.taxInfo, { color: colors.error }]}>
                                 + Tax
                               </Text>
@@ -775,202 +712,195 @@ const InvestmentsScreen = () => {
                           </View>
                         </Card>
                       </TouchableOpacity>
-                    );
-                  });
-                  return rendered;
-                })()}
-              </View>
-            )}
-          </Section>
-        )}
+                    ));
+                    // Render grouped recurring investments
+                    Object.entries(grouped).forEach(([key, group], idx) => {
+                      const first = group[0];
+                      rendered.push(
+                        <TouchableOpacity
+                          key={key + '-' + idx}
+                          onPress={() => {
+                            setSelectedInvestment({ ...first, recurringDates: Array.isArray(first.date) ? first.date : [first.date] });
+                            setInvestmentDetailModalVisible(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Card
+                            style={[styles.investmentItem, { borderLeftColor: colors.primary }]}
+                          >
+                            <View style={styles.investmentInfo}>
+                              <View style={styles.investmentHeader}>
+                                <Text style={[styles.investmentTitle, { color: colors.text }]}>{first.title}</Text>
+                                <View style={styles.badgeContainer}>
+                                  <View style={[styles.categoryBadge, { backgroundColor: getCategoryColor(getInvestmentCategory(first)) }]}>
+                                    <Text style={[styles.categoryBadgeText, { color: 'white' }]}>
+                                      {getInvestmentCategory(first).toUpperCase()}
+                                    </Text>
+                                  </View>
+                                  {first.taxable && (
+                                    <View style={[styles.taxBadge, { backgroundColor: colors.error }]}>
+                                      <Text style={[styles.taxBadgeText, { color: 'white' }]}>TAX</Text>
+                                    </View>
+                                  )}
+                                </View>
+                              </View>
+                              <Text style={[styles.investmentType, { color: colors.primary }]}>
+                                {investmentTypes.find(t => t.value === first.type)?.label}
+                              </Text>
+                              {first.source && (
+                                <Text style={[styles.investmentSource, { color: colors.textSecondary }]}>
+                                  📍 {first.source}
+                                </Text>
+                              )}
+                              {/* Show user selected date to present */}
+                              <Text style={[styles.investmentDate, { color: colors.textSecondary }]}>
+                                📅 {Array.isArray(first.date) ? new Date(first.date[0]).toLocaleDateString() : new Date(first.date).toLocaleDateString()} to {Array.isArray(first.date) ? new Date(first.date[first.date.length - 1]).toLocaleDateString() : new Date(first.date).toLocaleDateString()}
+                              </Text>
+                              <Text style={[styles.recurringBadge, { color: colors.success }]}>
+                                🔄 {first.recurringFrequency}
+                              </Text>
+                              {first.description && (
+                                <Text style={[styles.investmentDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                                  {first.description}
+                                </Text>
+                              )}
+                            </View>
+                            <View style={styles.amountContainer}>
+                              <Text style={[styles.investmentAmount, { color: colors.primary }]}>
+                                ₹{typeof first.amount === 'number' ? first.amount.toLocaleString() : '0'}
+                              </Text>
+                              {first.taxable && (
+                                <Text style={[styles.taxInfo, { color: colors.error }]}>
+                                  + Tax
+                                </Text>
+                              )}
+                            </View>
+                          </Card>
+                        </TouchableOpacity>
+                      );
+                    });
+                    return rendered;
+                  })()}
+                </View>
+              )}
+            </Section>
+          )}
 
-        <Separator height={32} />
-      </ScrollView>
+          <Separator height={32} />
+        </ScrollView>
 
-      {/* Add Investment Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Add Investment</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
-                <DropDownPicker
-                  open={typeDropdownOpen}
-                  value={formData.type}
-                  items={investmentTypes}
-                  setOpen={setTypeDropdownOpen}
-                  setValue={(callback) => {
-                    const value = callback(formData.type);
-                    const selectedInvestmentType = investmentTypes.find(t => t.value === value);
-                    const category = selectedInvestmentType?.category || 'income';
-                    setFormData(prev => ({ ...prev, type: value, category: category }));
-                  }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  textStyle={{ color: colors.text }}
-                  placeholderStyle={{ color: colors.placeholder }}
-                  selectedItemLabelStyle={{ color: colors.text }}
-                  listItemLabelStyle={{ color: colors.text }}
-                  flatListProps={{
-                    nestedScrollEnabled: true,
-                    style: { backgroundColor: colors.surface },
-                  }}
-                  zIndex={3000}
-                  zIndexInverse={1000}
-                  listMode="MODAL"
-                  modalTitle="Select Investment Type"
-                  modalAnimationType="slide"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.title}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
-                  placeholder="Enter investment title"
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.amount}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, amount: text }))}
-                  placeholder="Enter amount"
-                  placeholderTextColor={colors.placeholder}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
-                <TouchableOpacity
-                  style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Ionicons name="calendar" size={20} color={colors.primary} />
-                  <Text style={[styles.dateText, { color: colors.text }]}>
-                    {selectedDate.toLocaleDateString()}
-                  </Text>
+        {/* Add Investment Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Investment</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Description (Optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.description}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
-                  placeholder="Enter description"
-                  placeholderTextColor={colors.placeholder}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-
-              {/* Category Selection */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
-                <DropDownPicker
-                  open={categoryDropdownOpen}
-                  value={formData.category}
-                  items={[
-                    { label: 'Income', value: 'income' },
-                    { label: 'Investment', value: 'investment' },
-                    { label: 'Savings', value: 'savings' },
-                  ]}
-                  setOpen={setCategoryDropdownOpen}
-                  setValue={(callback) => {
-                    const value = callback(formData.category);
-                    setFormData(prev => ({ ...prev, category: value }));
-                  }}
-                  style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
-                  textStyle={{ color: colors.text }}
-                  placeholderStyle={{ color: colors.placeholder }}
-                  selectedItemLabelStyle={{ color: colors.text }}
-                  listItemLabelStyle={{ color: colors.text }}
-                  arrowIconStyle={{}}
-                  tickIconStyle={{}}
-                  zIndex={3000}
-                  zIndexInverse={1000}
-                  listMode="MODAL"
-                  modalTitle="Select Category"
-                  modalAnimationType="slide"
-                  flatListProps={{
-                    nestedScrollEnabled: true,
-                  }}
-                />
-              </View>
-
-              {/* Source Field */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.label, { color: colors.textSecondary }]}>Source</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-                  value={formData.source}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, source: text }))}
-                  placeholder="e.g., Company Name, Platform, etc."
-                  placeholderTextColor={colors.placeholder}
-                />
-              </View>
-
-              {/* Tax Information */}
-              <View style={styles.formGroup}>
-                <TouchableOpacity
-                  style={styles.checkboxRow}
-                  onPress={() => setFormData(prev => ({ ...prev, taxable: !prev.taxable }))}
-                >
-                  <Ionicons
-                    name={formData.taxable ? "checkbox" : "square-outline"}
-                    size={24}
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.checkboxLabel, { color: colors.text }]}>Taxable Income</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.formGroup}>
-                <TouchableOpacity
-                  style={styles.checkboxRow}
-                  onPress={() => setFormData(prev => ({ ...prev, isRecurring: !prev.isRecurring }))}
-                >
-                  <Ionicons
-                    name={formData.isRecurring ? "checkbox" : "square-outline"}
-                    size={24}
-                    color={colors.primary}
-                  />
-                  <Text style={[styles.checkboxLabel, { color: colors.text }]}>Recurring Investment</Text>
-                </TouchableOpacity>
-              </View>
-
-              {formData.isRecurring && (
+              <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
                 <View style={styles.formGroup}>
-                  <Text style={[styles.label, { color: colors.textSecondary }]}>Frequency</Text>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
                   <DropDownPicker
-                    open={frequencyDropdownOpen}
-                    value={formData.recurringFrequency}
-                    items={frequencyOptions}
-                    setOpen={setFrequencyDropdownOpen}
+                    open={typeDropdownOpen}
+                    value={formData.type}
+                    items={investmentTypes}
+                    setOpen={setTypeDropdownOpen}
                     setValue={(callback) => {
-                      const value = callback(formData.recurringFrequency);
-                      setFormData(prev => ({ ...prev, recurringFrequency: value }));
+                      const value = callback(formData.type);
+                      const selectedInvestmentType = investmentTypes.find(t => t.value === value);
+                      const category = selectedInvestmentType?.category || 'income';
+                      setFormData(prev => ({ ...prev, type: value, category: category }));
+                    }}
+                    style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    textStyle={{ color: colors.text }}
+                    placeholderStyle={{ color: colors.placeholder }}
+                    selectedItemLabelStyle={{ color: colors.text }}
+                    listItemLabelStyle={{ color: colors.text }}
+                    flatListProps={{
+                      nestedScrollEnabled: true,
+                      style: { backgroundColor: colors.surface },
+                    }}
+                    zIndex={3000}
+                    zIndexInverse={1000}
+                    listMode="MODAL"
+                    modalTitle="Select Investment Type"
+                    modalAnimationType="slide"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                    value={formData.title}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
+                    placeholder="Enter investment title"
+                    placeholderTextColor={colors.placeholder}
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                    value={formData.amount}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, amount: text }))}
+                    placeholder="Enter amount"
+                    placeholderTextColor={colors.placeholder}
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+                  <TouchableOpacity
+                    style={[styles.dateButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Ionicons name="calendar" size={20} color={colors.primary} />
+                    <Text style={[styles.dateText, { color: colors.text }]}>
+                      {selectedDate.toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Description (Optional)</Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                    value={formData.description}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+                    placeholder="Enter description"
+                    placeholderTextColor={colors.placeholder}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+
+                {/* Category Selection */}
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+                  <DropDownPicker
+                    open={categoryDropdownOpen}
+                    value={formData.category}
+                    items={[
+                      { label: 'Income', value: 'income' },
+                      { label: 'Investment', value: 'investment' },
+                      { label: 'Savings', value: 'savings' },
+                    ]}
+                    setOpen={setCategoryDropdownOpen}
+                    setValue={(callback) => {
+                      const value = callback(formData.category);
+                      setFormData(prev => ({ ...prev, category: value }));
                     }}
                     style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
                     dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -980,152 +910,225 @@ const InvestmentsScreen = () => {
                     listItemLabelStyle={{ color: colors.text }}
                     arrowIconStyle={{}}
                     tickIconStyle={{}}
-                    zIndex={2000}
-                    zIndexInverse={2000}
+                    zIndex={3000}
+                    zIndexInverse={1000}
                     listMode="MODAL"
-                    modalTitle="Select Frequency"
+                    modalTitle="Select Category"
                     modalAnimationType="slide"
                     flatListProps={{
                       nestedScrollEnabled: true,
                     }}
                   />
                 </View>
-              )}
 
-              <Button
-                title="Add Investment"
-                onPress={handleAddInvestment}
-                style={styles.submitButton}
-              />
+                {/* Source Field */}
+                <View style={styles.formGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Source</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+                    value={formData.source}
+                    onChangeText={(text) => setFormData(prev => ({ ...prev, source: text }))}
+                    placeholder="e.g., Company Name, Platform, etc."
+                    placeholderTextColor={colors.placeholder}
+                  />
+                </View>
 
-              <Separator height={32} />
-            </ScrollView>
-          </View>
-        </View>
+                {/* Tax Information */}
+                <View style={styles.formGroup}>
+                  <TouchableOpacity
+                    style={styles.checkboxRow}
+                    onPress={() => setFormData(prev => ({ ...prev, taxable: !prev.taxable }))}
+                  >
+                    <Ionicons
+                      name={formData.taxable ? "checkbox" : "square-outline"}
+                      size={24}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.checkboxLabel, { color: colors.text }]}>Taxable Income</Text>
+                  </TouchableOpacity>
+                </View>
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={selectedDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              setShowDatePicker(false);
-              if (date) setSelectedDate(date);
-            }}
-          />
-        )}
-      </Modal>
+                <View style={styles.formGroup}>
+                  <TouchableOpacity
+                    style={styles.checkboxRow}
+                    onPress={() => setFormData(prev => ({ ...prev, isRecurring: !prev.isRecurring }))}
+                  >
+                    <Ionicons
+                      name={formData.isRecurring ? "checkbox" : "square-outline"}
+                      size={24}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.checkboxLabel, { color: colors.text }]}>Recurring Investment</Text>
+                  </TouchableOpacity>
+                </View>
 
-      {/* Investment Detail Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={investmentDetailModalVisible}
-        onRequestClose={() => setInvestmentDetailModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Investment Details</Text>
-              <TouchableOpacity onPress={() => setInvestmentDetailModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
+                {formData.isRecurring && (
+                  <View style={styles.formGroup}>
+                    <Text style={[styles.label, { color: colors.textSecondary }]}>Frequency</Text>
+                    <DropDownPicker
+                      open={frequencyDropdownOpen}
+                      value={formData.recurringFrequency}
+                      items={frequencyOptions}
+                      setOpen={setFrequencyDropdownOpen}
+                      setValue={(callback) => {
+                        const value = callback(formData.recurringFrequency);
+                        setFormData(prev => ({ ...prev, recurringFrequency: value }));
+                      }}
+                      style={[styles.dropdown, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      dropDownContainerStyle={[styles.dropdownContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      textStyle={{ color: colors.text }}
+                      placeholderStyle={{ color: colors.placeholder }}
+                      selectedItemLabelStyle={{ color: colors.text }}
+                      listItemLabelStyle={{ color: colors.text }}
+                      arrowIconStyle={{}}
+                      tickIconStyle={{}}
+                      zIndex={2000}
+                      zIndexInverse={2000}
+                      listMode="MODAL"
+                      modalTitle="Select Frequency"
+                      modalAnimationType="slide"
+                      flatListProps={{
+                        nestedScrollEnabled: true,
+                      }}
+                    />
+                  </View>
+                )}
+
+                <Button
+                  title="Add Investment"
+                  onPress={handleAddInvestment}
+                  style={styles.submitButton}
+                />
+
+                <Separator height={32} />
+              </ScrollView>
             </View>
-            {selectedInvestment && (
-              <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-                {selectedInvestment && (
-                  <>
-                    <View style={styles.formGroup}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
-                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.title}</Text>
-                    </View>
-                    <View style={styles.formGroup}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
-                      <Text style={[styles.input, { color: colors.text }]}>{investmentTypes.find(t => t.value === selectedInvestment.type)?.label}</Text>
-                    </View>
-                    <View style={styles.formGroup}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
-                      <Text style={[styles.input, { color: colors.text }]}>
-                        ₹{typeof selectedInvestment.amount === 'number' ? selectedInvestment.amount.toLocaleString() : '0'}
-                      </Text>
-                    </View>
-                    {/* Show all dates for recurring investments */}
-                    {selectedInvestment.isRecurring && Array.isArray(selectedInvestment.date) ? (
+          </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={selectedDate}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) setSelectedDate(date);
+              }}
+            />
+          )}
+        </Modal>
+
+        {/* Investment Detail Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={investmentDetailModalVisible}
+          onRequestClose={() => setInvestmentDetailModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Investment Details</Text>
+                <TouchableOpacity onPress={() => setInvestmentDetailModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              {selectedInvestment && (
+                <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+                  {selectedInvestment && (
+                    <>
                       <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Dates</Text>
-                        <View>
-                          {selectedInvestment.date.map((d: string, i: number) => (
-                            <Text key={d + '-' + i} style={[styles.input, { color: colors.text }]}>
-                              {new Date(d).toLocaleDateString()}
-                            </Text>
-                          ))}
-                        </View>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.title}</Text>
                       </View>
-                    ) : (
                       <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{investmentTypes.find(t => t.value === selectedInvestment.type)?.label}</Text>
+                      </View>
+                      <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Amount</Text>
                         <Text style={[styles.input, { color: colors.text }]}>
-                          {Array.isArray(selectedInvestment.date) ? new Date(selectedInvestment.date[0]).toLocaleDateString() : new Date(selectedInvestment.date).toLocaleDateString()}
+                          ₹{typeof selectedInvestment.amount === 'number' ? selectedInvestment.amount.toLocaleString() : '0'}
                         </Text>
                       </View>
-                    )}
-                    {selectedInvestment.source && (
+                      {/* Show all dates for recurring investments */}
+                      {selectedInvestment.isRecurring && Array.isArray(selectedInvestment.date) ? (
+                        <View style={styles.formGroup}>
+                          <Text style={[styles.label, { color: colors.textSecondary }]}>Dates</Text>
+                          <View>
+                            {selectedInvestment.date.map((d: string, i: number) => (
+                              <Text key={d + '-' + i} style={[styles.input, { color: colors.text }]}>
+                                {new Date(d).toLocaleDateString()}
+                              </Text>
+                            ))}
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={styles.formGroup}>
+                          <Text style={[styles.label, { color: colors.textSecondary }]}>Date</Text>
+                          <Text style={[styles.input, { color: colors.text }]}>
+                            {Array.isArray(selectedInvestment.date) ? new Date(selectedInvestment.date[0]).toLocaleDateString() : new Date(selectedInvestment.date).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedInvestment.source && (
+                        <View style={styles.formGroup}>
+                          <Text style={[styles.label, { color: colors.textSecondary }]}>Source</Text>
+                          <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.source}</Text>
+                        </View>
+                      )}
+                      {selectedInvestment.description && (
+                        <View style={styles.formGroup}>
+                          <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
+                          <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.description}</Text>
+                        </View>
+                      )}
                       <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Source</Text>
-                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.source}</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.category}</Text>
                       </View>
-                    )}
-                    {selectedInvestment.description && (
                       <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Description</Text>
-                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.description}</Text>
+                        <Text style={[styles.label, { color: colors.textSecondary }]}>Taxable</Text>
+                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.taxable ? 'Yes' : 'No'}</Text>
                       </View>
-                    )}
-                    <View style={styles.formGroup}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
-                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.category}</Text>
-                    </View>
-                    <View style={styles.formGroup}>
-                      <Text style={[styles.label, { color: colors.textSecondary }]}>Taxable</Text>
-                      <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.taxable ? 'Yes' : 'No'}</Text>
-                    </View>
-                    {selectedInvestment.isRecurring && (
-                      <View style={styles.formGroup}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Recurring</Text>
-                        <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.recurringFrequency}</Text>
-                      </View>
-                    )}
-                    <Button
-                      title={deleting ? 'Deleting...' : 'Delete Investment'}
-                      onPress={async () => {
-                        if (!selectedInvestment || !selectedInvestment.id) return;
-                        setDeleting(true);
-                        try {
-                          await investmentService.deleteInvestment(String(selectedInvestment.id));
-                          setInvestmentDetailModalVisible(false);
-                          setSelectedInvestment(null);
-                          await refreshInvestments(true); // Force refresh from DB
-                          Alert.alert('Deleted', 'Investment deleted successfully');
-                        } catch (error: any) {
-                          console.error('Failed to delete investment:', error, selectedInvestment);
-                          Alert.alert('Error', `Failed to delete investment: ${error?.message || String(error)}`);
-                        } finally {
-                          setDeleting(false);
+                      {selectedInvestment.isRecurring && (
+                        <View style={styles.formGroup}>
+                          <Text style={[styles.label, { color: colors.textSecondary }]}>Recurring</Text>
+                          <Text style={[styles.input, { color: colors.text }]}>{selectedInvestment.recurringFrequency}</Text>
+                        </View>
+                      )}
+                      <Button
+                        title={deleting ? 'Deleting...' : 'Delete Investment'}
+                        onPress={async () => {
+                          if (!selectedInvestment || !selectedInvestment.id) return;
+                          setDeleting(true);
+                          try {
+                            await investmentService.deleteInvestment(String(selectedInvestment.id));
+                            setInvestmentDetailModalVisible(false);
+                            setSelectedInvestment(null);
+                            await refreshInvestments(true); // Force refresh from DB
+                            Alert.alert('Deleted', 'Investment deleted successfully');
+                          } catch (error: any) {
+                            console.error('Failed to delete investment:', error, selectedInvestment);
+                            Alert.alert('Error', `Failed to delete investment: ${error?.message || String(error)}`);
+                          } finally {
+                            setDeleting(false);
+                          }
+                        }}
+                        style={[styles.submitButton, { backgroundColor: colors.error }]
                         }
-                      }}
-                      style={[styles.submitButton, { backgroundColor: colors.error }]
-                      }
-                      disabled={deleting}
-                    />
-                    <Separator height={32} />
-                  </>
-                )}
-              </ScrollView>
-            )}
+                        disabled={deleting}
+                      />
+                      <Separator height={32} />
+                    </>
+                  )}
+                </ScrollView>
+              )}
+            </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </ScreenLock>
   );
 };
 
