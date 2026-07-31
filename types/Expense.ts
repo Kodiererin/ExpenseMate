@@ -4,4 +4,5 @@ export interface Expense {
   description: string;
   price: string;
   tag: string;
+  paymentMode?: string;
 }

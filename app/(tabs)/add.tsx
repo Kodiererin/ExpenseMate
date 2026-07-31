@@ -26,6 +26,8 @@ import { filterText } from '../../utils/validateText';
 
 // Persisted key for user-created custom categories
 const CUSTOM_CATEGORIES_KEY = '@custom_categories';
+// Persisted key for user-created custom payment modes
+const CUSTOM_PAYMENT_MODES_KEY = '@custom_payment_modes';
 
 type CategoryItem = { label: string; value: string };
 
@@ -40,11 +42,45 @@ const DEFAULT_TAGS: CategoryItem[] = [
   { label: 'Health 🏥', value: 'Health' },
   { label: 'Education 📚', value: 'Education' },
   { label: 'PG 🏠', value: 'PG' },
-  { label: 'Papa 🏠', value: 'PAPA' },
-  { label: 'Mummi 🏠', value: 'MUMMI' },
-  { label: 'Nimmi 🏠', value: 'NIMMI' },
-  { label: 'Harsh 🏠', value: 'HARSH' },
+  { label: 'Papa 🏠', value: 'Papa' },
+  { label: 'Mummi 🏠', value: 'Mummi' },
+  { label: 'Nimmi 🏠', value: 'Nimmi' },
+  { label: 'Harsh 🏠', value: 'Harsh' },
 ];
+
+// Built-in payment modes. UPI is the default so past/typical payments show as UPI.
+const DEFAULT_PAYMENT_MODES: string[] = [
+  'UPI',
+  'Credit Card',
+  'Debit Card',
+  'Cash',
+  'Net Banking',
+  'NEFT',
+  'Wallet',
+];
+
+// Map a payment mode to a MaterialCommunityIcons glyph. Unknown/custom modes
+// fall back to a generic icon.
+const getPaymentIcon = (mode: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+  switch (mode) {
+    case 'UPI':
+      return 'cellphone';
+    case 'Credit Card':
+      return 'credit-card';
+    case 'Debit Card':
+      return 'credit-card-outline';
+    case 'Cash':
+      return 'cash';
+    case 'Net Banking':
+      return 'bank';
+    case 'NEFT':
+      return 'bank-transfer';
+    case 'Wallet':
+      return 'wallet';
+    default:
+      return 'card-text-outline';
+  }
+};
 
 export default function AddScreen() {
   const { colors, isDark } = useTheme();
@@ -57,6 +93,12 @@ export default function AddScreen() {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Payment mode state. Defaults to UPI so typical payments are pre-selected.
+  const [paymentMode, setPaymentMode] = useState('UPI');
+  const [paymentModes, setPaymentModes] = useState<string[]>(DEFAULT_PAYMENT_MODES);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [newPaymentMode, setNewPaymentMode] = useState('');
 
   // Animation for Add button
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -111,6 +153,65 @@ export default function AddScreen() {
       }
     })();
   }, []);
+
+  // Load user-created custom payment modes saved in previous sessions
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(CUSTOM_PAYMENT_MODES_KEY);
+        if (!saved) return;
+        const custom: string[] = JSON.parse(saved);
+        if (!Array.isArray(custom) || custom.length === 0) return;
+        setPaymentModes((prev) => {
+          const existing = new Set(prev);
+          const merged = [...prev];
+          custom.forEach((mode) => {
+            if (mode && !existing.has(mode)) {
+              merged.push(mode);
+            }
+          });
+          return merged;
+        });
+      } catch (error) {
+        console.error('Failed to load custom payment modes:', error);
+      }
+    })();
+  }, []);
+
+  // Persist a payment mode to storage if it is not one of the built-in ones
+  const persistPaymentModeIfNew = async (mode: string) => {
+    const value = mode.trim();
+    if (!value) return;
+    if (DEFAULT_PAYMENT_MODES.includes(value)) return;
+    try {
+      const saved = await AsyncStorage.getItem(CUSTOM_PAYMENT_MODES_KEY);
+      const custom: string[] = saved ? JSON.parse(saved) : [];
+      if (custom.includes(value)) return;
+      await AsyncStorage.setItem(
+        CUSTOM_PAYMENT_MODES_KEY,
+        JSON.stringify([...custom, value])
+      );
+    } catch (error) {
+      console.error('Failed to save custom payment mode:', error);
+    }
+  };
+
+  // Add a new custom payment mode from the inline input, then select it
+  const handleAddPaymentMode = async () => {
+    const value = newPaymentMode.trim();
+    if (!value) return;
+    const exists = paymentModes.some(
+      (m) => m.toLowerCase() === value.toLowerCase()
+    );
+    if (!exists) {
+      setPaymentModes((prev) => [...prev, value]);
+      await persistPaymentModeIfNew(value);
+    }
+    setPaymentMode(value);
+    setNewPaymentMode('');
+    setShowAddPayment(false);
+    Keyboard.dismiss();
+  };
 
   // Persist a category to storage if it is not one of the built-in ones
   const persistCategoryIfNew = async (categoryValue: string) => {
@@ -173,6 +274,7 @@ export default function AddScreen() {
       price: numericPrice.toFixed(2), // Store as formatted string
       description: filterText(description.trim()), // Filter text to remove unwanted characters
       date: date.toLocaleDateString('en-US'), // Ensure consistent MM/DD/YYYY format
+      paymentMode: (paymentMode || 'UPI').trim(),
     };
 
     try {
@@ -181,11 +283,15 @@ export default function AddScreen() {
       // Remember new custom categories for future use
       await persistCategoryIfNew(expenseData.tag);
 
+      // Remember new custom payment modes for future use
+      await persistPaymentModeIfNew(expenseData.paymentMode);
+
       // Clear form immediately to show success
       setTag('');
       setPrice('');
       setDescription('');
       setDate(new Date());
+      setPaymentMode('UPI');
       setFeedback({ type: 'success', message: 'Expense added successfully! 🎉' });
       Keyboard.dismiss();
       // No need to manually refresh - the data context will handle it automatically
@@ -396,6 +502,96 @@ export default function AddScreen() {
 
               <Separator height={16} />
 
+              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
+                Payment Mode
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.paymentModeRow}
+              >
+                {paymentModes.map((mode) => {
+                  const selected = paymentMode === mode;
+                  return (
+                    <Pressable
+                      key={mode}
+                      onPress={() => setPaymentMode(mode)}
+                      style={[
+                        styles.paymentChip,
+                        {
+                          backgroundColor: selected ? colors.primary : colors.surface,
+                          borderColor: selected ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={getPaymentIcon(mode)}
+                        size={16}
+                        color={selected ? colors.white : colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.paymentChipText,
+                          { color: selected ? colors.white : colors.text },
+                        ]}
+                      >
+                        {mode}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => setShowAddPayment((v) => !v)}
+                  style={[
+                    styles.paymentChip,
+                    styles.addPaymentChip,
+                    { borderColor: colors.primary },
+                  ]}
+                >
+                  <Ionicons
+                    name={showAddPayment ? 'close' : 'add'}
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.paymentChipText, { color: colors.primary }]}>
+                    {showAddPayment ? 'Cancel' : 'Add'}
+                  </Text>
+                </Pressable>
+              </ScrollView>
+
+              {showAddPayment && (
+                <View style={styles.addPaymentRow}>
+                  <TextInput
+                    style={[
+                      styles.addPaymentInput,
+                      {
+                        color: colors.text,
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                    placeholder="New payment mode (e.g. Amazon Pay)"
+                    value={newPaymentMode}
+                    onChangeText={setNewPaymentMode}
+                    placeholderTextColor={colors.placeholder}
+                    maxLength={25}
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddPaymentMode}
+                  />
+                  <Pressable
+                    onPress={handleAddPaymentMode}
+                    style={[styles.addPaymentButton, { backgroundColor: colors.primary }]}
+                  >
+                    <Text style={[styles.addPaymentButtonText, { color: colors.white }]}>
+                      Add
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              <Separator height={16} />
+
               <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Date</Text>
               <Pressable onPress={() => setShowDatePicker(true)}>
                 <View style={[styles.dateCard, {
@@ -571,6 +767,57 @@ const styles = {
       fontSize: 16,
       fontWeight: '500',
       marginLeft: 12,
+    },
+    paymentModeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 2,
+    },
+    paymentChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    paymentChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      letterSpacing: 0.2,
+    },
+    addPaymentChip: {
+      backgroundColor: 'transparent',
+      borderStyle: 'dashed',
+    },
+    addPaymentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 12,
+    },
+    addPaymentInput: {
+      flex: 1,
+      fontSize: 15,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      minHeight: 46,
+    },
+    addPaymentButton: {
+      paddingHorizontal: 18,
+      paddingVertical: 12,
+      borderRadius: 12,
+      minHeight: 46,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addPaymentButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
     },
     descInputWrapper: {
       borderRadius: 12,

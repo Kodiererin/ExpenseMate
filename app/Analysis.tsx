@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
@@ -40,6 +40,28 @@ const CATEGORY_PALETTE = [
   '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#6366F1',
 ];
 
+// Map a payment mode to a MaterialCommunityIcons glyph for the Payments tab.
+const getPaymentIcon = (mode: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+  switch (mode) {
+    case 'UPI':
+      return 'cellphone';
+    case 'Credit Card':
+      return 'credit-card';
+    case 'Debit Card':
+      return 'credit-card-outline';
+    case 'Cash':
+      return 'cash';
+    case 'Net Banking':
+      return 'bank';
+    case 'NEFT':
+      return 'bank-transfer';
+    case 'Wallet':
+      return 'wallet';
+    default:
+      return 'card-text-outline';
+  }
+};
+
 interface AnalyticsData {
   totalAmount: number;
   totalExpenses: number;
@@ -53,6 +75,7 @@ interface AnalyticsData {
   expenseDistribution: { range: string; count: number; percentage: number }[];
   dayOfWeekPattern: { day: string; amount: number; count: number }[];
   recurringExpenses: { label: string; tag: string; count: number; total: number; average: number }[];
+  paymentMethodAnalysis: { mode: string; amount: number; count: number; percentage: number; color: string }[];
   growthRate: number;
   topSpendingDays: { date: string; amount: number }[];
   categoryTrends: { [key: string]: number };
@@ -154,6 +177,7 @@ export default function Analysis() {
       expenseDistribution: [],
       dayOfWeekPattern: [],
       recurringExpenses: [],
+      paymentMethodAnalysis: [],
       growthRate: 0,
       topSpendingDays: [],
       categoryTrends: {},
@@ -180,6 +204,7 @@ export default function Analysis() {
             date: parsedDate,
             tag: expense.tag || 'Other',
             description: expense.description || '',
+            paymentMode: expense.paymentMode || 'UPI',
             id: expense.id || Math.random().toString()
           };
         } catch (error) {
@@ -368,6 +393,25 @@ export default function Analysis() {
       .sort((a, b) => b.total - a.total)
       .slice(0, 6);
 
+    // Payment method analysis (amount + count per payment mode)
+    const paymentTotals: { [key: string]: { amount: number; count: number } } = {};
+    allExpenses.forEach(e => {
+      const mode = e.paymentMode || 'UPI';
+      if (!paymentTotals[mode]) paymentTotals[mode] = { amount: 0, count: 0 };
+      paymentTotals[mode].amount += e.price;
+      paymentTotals[mode].count += 1;
+    });
+    const paymentMethodAnalysis = Object.entries(paymentTotals)
+      .map(([mode, data]) => ({
+        mode,
+        amount: data.amount,
+        count: data.count,
+        percentage: totalAmount > 0 ? (data.amount / totalAmount) * 100 : 0,
+        color: '',
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .map((item, index) => ({ ...item, color: CATEGORY_PALETTE[index % CATEGORY_PALETTE.length] }));
+
     // Top spending days with improved date handling
     const dailyTotals: { [key: string]: number } = {};
     allExpenses.forEach(expense => {
@@ -434,6 +478,7 @@ export default function Analysis() {
       expenseDistribution,
       dayOfWeekPattern,
       recurringExpenses,
+      paymentMethodAnalysis,
       growthRate,
       topSpendingDays,
       categoryTrends,
@@ -559,6 +604,16 @@ export default function Analysis() {
         });
       }
 
+      if (analyticsData.paymentMethodAnalysis.length > 0) {
+        lines.push('');
+        lines.push('Payment Methods');
+        lines.push('Payment Mode,Amount,Transactions,Percentage');
+        analyticsData.paymentMethodAnalysis.forEach(p => {
+          const safeMode = `"${p.mode.replace(/"/g, '""')}"`;
+          lines.push(`${safeMode},${Math.round(p.amount)},${p.count},${p.percentage.toFixed(1)}%`);
+        });
+      }
+
       const csv = lines.join('\n');
       const fileName = `ExpenseMate_Report_${rangeLabel}_${Date.now()}.csv`;
       const fileUri = FileSystem.documentDirectory + fileName;
@@ -598,7 +653,7 @@ export default function Analysis() {
 
       if (dx > threshold && selectedTab > 0) {
         setSelectedTab(selectedTab - 1);
-      } else if (dx < -threshold && selectedTab < 4) {
+      } else if (dx < -threshold && selectedTab < 5) {
         setSelectedTab(selectedTab + 1);
       }
 
@@ -663,6 +718,7 @@ export default function Analysis() {
     { id: 2, title: 'Categories', icon: 'pie-chart' },
     { id: 3, title: 'Budget', icon: 'wallet' },
     { id: 4, title: 'Patterns', icon: 'time' },
+    { id: 5, title: 'Payments', icon: 'card' },
   ];
 
   const StatCard = ({ title, value, subtitle, icon, color, trend }: any) => (
@@ -1271,6 +1327,124 @@ export default function Analysis() {
     );
   };
 
+  const renderPayments = () => {
+    const donutData = analyticsData.paymentMethodAnalysis.slice(0, 6).map(p => ({
+      name: p.mode.length > 12 ? `${p.mode.slice(0, 11)}…` : p.mode,
+      population: Math.round(p.amount),
+      color: p.color,
+      legendFontColor: colors.textSecondary,
+      legendFontSize: 12,
+    }));
+
+    const mostUsedByCount = analyticsData.paymentMethodAnalysis.reduce(
+      (max, p) => (p.count > max.count ? p : max),
+      { mode: '—', amount: 0, count: 0, percentage: 0, color: '' }
+    );
+    const topByAmount = analyticsData.paymentMethodAnalysis[0];
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Summary highlights */}
+        <View style={styles.statsGrid}>
+          <StatCard
+            title="Top Method"
+            value={topByAmount ? topByAmount.mode : '—'}
+            subtitle={topByAmount ? `${formatINR(topByAmount.amount)} spent` : 'No data'}
+            icon="card"
+            color="#3B82F6"
+          />
+          <StatCard
+            title="Most Frequent"
+            value={mostUsedByCount.count > 0 ? mostUsedByCount.mode : '—'}
+            subtitle={mostUsedByCount.count > 0 ? `${mostUsedByCount.count} transactions` : 'No data'}
+            icon="repeat"
+            color="#10B981"
+          />
+        </View>
+
+        {/* Payment donut */}
+        <View style={[styles.modernChartContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.chartHeader}>
+            <View style={styles.chartTitleContainer}>
+              <View style={[styles.chartIcon, { backgroundColor: `${colors.primary}20` }]}>
+                <Ionicons name="card" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.chartTitle, { color: colors.text }]}>Spending by Payment Mode</Text>
+            </View>
+          </View>
+          {donutData.length > 0 ? (
+            <PieChart
+              data={donutData}
+              width={screenWidth - 60}
+              height={210}
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="8"
+              center={[0, 0]}
+              absolute={false}
+              hasLegend
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Ionicons name="card-outline" size={48} color={colors.textSecondary} style={{ opacity: 0.3 }} />
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No payment data yet</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Payment method list */}
+        <View style={[styles.listContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>💳 Payment Breakdown</Text>
+          {analyticsData.paymentMethodAnalysis.length === 0 ? (
+            <View style={styles.noDataContainer}>
+              <Text style={[styles.noDataText, { color: colors.textSecondary }]}>No payment data available</Text>
+            </View>
+          ) : (
+            analyticsData.paymentMethodAnalysis.map((p) => (
+              <View key={p.mode} style={[styles.categoryCard, { backgroundColor: `${colors.primary}05` }]}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryLeft}>
+                    <View style={[styles.categoryRank, { backgroundColor: p.color }]}>
+                      <MaterialCommunityIcons name={getPaymentIcon(p.mode)} size={16} color="white" />
+                    </View>
+                    <View>
+                      <Text style={[styles.categoryName, { color: colors.text }]}>{p.mode}</Text>
+                      <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
+                        {p.count} transaction{p.count !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.categoryRight}>
+                    <Text style={[styles.categoryAmount, { color: p.color }]}>
+                      {formatINR(p.amount)}
+                    </Text>
+                    <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
+                      avg {formatINR(p.amount / p.count)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.categoryProgress}>
+                  <View style={[styles.progressBar, { backgroundColor: `${colors.border}40` }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${p.percentage}%`, backgroundColor: p.color },
+                      ]}
+                    />
+                  </View>
+                  <Text style={[styles.categoryPercentage, { color: colors.textSecondary }]}>
+                    {p.percentage.toFixed(1)}% of total
+                  </Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    );
+  };
+
   const renderTabContent = () => {
     switch (selectedTab) {
       case 0: return renderOverview();
@@ -1278,6 +1452,7 @@ export default function Analysis() {
       case 2: return renderCategories();
       case 3: return renderBudget();
       case 4: return renderPatterns();
+      case 5: return renderPayments();
       default: return renderOverview();
     }
   };

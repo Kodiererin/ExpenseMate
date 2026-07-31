@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,6 +23,28 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Expense } from '../../domain/Expense';
 import { commonStyles } from '../../styles/commonStyles';
 import { deleteExpenseFromFirestore } from '../../utils/firebaseUtils';
+
+// Map a payment mode to a MaterialCommunityIcons glyph for badges.
+const getPaymentIcon = (mode: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+  switch (mode) {
+    case 'UPI':
+      return 'cellphone';
+    case 'Credit Card':
+      return 'credit-card';
+    case 'Debit Card':
+      return 'credit-card-outline';
+    case 'Cash':
+      return 'cash';
+    case 'Net Banking':
+      return 'bank';
+    case 'NEFT':
+      return 'bank-transfer';
+    case 'Wallet':
+      return 'wallet';
+    default:
+      return 'card-text-outline';
+  }
+};
 
 function formatDate(dateString: string) {
   // Parse "M/D/YYYY" format manually
@@ -63,6 +85,7 @@ export default function HistoryScreen() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   // Filter and sort state (must be top-level)
   const [filterTag, setFilterTag] = useState<string>("");
+  const [filterPayment, setFilterPayment] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("date");
   // Category budgets modal
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -70,6 +93,9 @@ export default function HistoryScreen() {
   // Filter and sort expenses for current month
   const filteredSortedExpenses = useMemo(() => {
     let filtered = filterTag ? expenses.filter(e => e.tag === filterTag) : expenses;
+    if (filterPayment) {
+      filtered = filtered.filter(e => (e.paymentMode || 'UPI') === filterPayment);
+    }
     let sorted = [...filtered];
     if (sortBy === "price") {
       sorted.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
@@ -85,7 +111,51 @@ export default function HistoryScreen() {
       });
     }
     return sorted;
-  }, [expenses, filterTag, sortBy]);
+  }, [expenses, filterTag, filterPayment, sortBy]);
+
+  // Summary metrics for the selected month
+  const summaryStats = useMemo(() => {
+    const amounts = expenses.map(e => parseFloat(e.price)).filter(n => !isNaN(n));
+    const total = amounts.reduce((sum, n) => sum + n, 0);
+    const count = expenses.length;
+    const avg = count > 0 ? total / count : 0;
+    const highest = amounts.length > 0 ? Math.max(...amounts) : 0;
+
+    const categoryTotals: { [key: string]: number } = {};
+    expenses.forEach(e => {
+      const amt = parseFloat(e.price);
+      if (!isNaN(amt)) categoryTotals[e.tag] = (categoryTotals[e.tag] || 0) + amt;
+    });
+    const topCategory = Object.entries(categoryTotals).sort(([, a], [, b]) => b - a)[0]?.[0] || '—';
+
+    // Unique days that had spending
+    const activeDays = new Set(expenses.map(e => e.date)).size;
+
+    return { total, count, avg, highest, topCategory, activeDays };
+  }, [expenses]);
+
+  // Payment method breakdown for the selected month
+  const paymentBreakdown = useMemo(() => {
+    const totals: { [key: string]: { amount: number; count: number } } = {};
+    let grandTotal = 0;
+    expenses.forEach(e => {
+      const amt = parseFloat(e.price);
+      if (isNaN(amt)) return;
+      const mode = e.paymentMode || 'UPI';
+      if (!totals[mode]) totals[mode] = { amount: 0, count: 0 };
+      totals[mode].amount += amt;
+      totals[mode].count += 1;
+      grandTotal += amt;
+    });
+    return Object.entries(totals)
+      .map(([mode, data]) => ({
+        mode,
+        amount: data.amount,
+        count: data.count,
+        percentage: grandTotal > 0 ? (data.amount / grandTotal) * 100 : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [expenses]);
 
   const loadExpensesForMonth = useCallback(() => {
     const fetchedExpenses = getExpensesByMonth(selectedMonth, selectedYear);
@@ -404,7 +474,83 @@ export default function HistoryScreen() {
               <Text style={[styles.expenseCount, { color: colors.textSecondary }]}>
                 {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
               </Text>
+
+              {expenses.length > 0 && (
+                <View style={styles.statGrid}>
+                  <View style={[styles.statTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="calculator-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.statTileValue, { color: colors.text }]}>
+                      ₹{summaryStats.avg.toFixed(0)}
+                    </Text>
+                    <Text style={[styles.statTileLabel, { color: colors.textSecondary }]}>Avg / expense</Text>
+                  </View>
+                  <View style={[styles.statTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="trending-up-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.statTileValue, { color: colors.text }]}>
+                      ₹{summaryStats.highest.toFixed(0)}
+                    </Text>
+                    <Text style={[styles.statTileLabel, { color: colors.textSecondary }]}>Highest</Text>
+                  </View>
+                  <View style={[styles.statTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="star-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.statTileValue, { color: colors.text }]} numberOfLines={1}>
+                      {summaryStats.topCategory}
+                    </Text>
+                    <Text style={[styles.statTileLabel, { color: colors.textSecondary }]}>Top category</Text>
+                  </View>
+                  <View style={[styles.statTile, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Ionicons name="calendar-clear-outline" size={18} color={colors.primary} />
+                    <Text style={[styles.statTileValue, { color: colors.text }]}>
+                      {summaryStats.activeDays}
+                    </Text>
+                    <Text style={[styles.statTileLabel, { color: colors.textSecondary }]}>Active days</Text>
+                  </View>
+                </View>
+              )}
             </Card>
+
+            <Separator height={20} />
+
+            {/* Payment Method Breakdown */}
+            {paymentBreakdown.length > 0 && (
+              <Card>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  💳 Payment Methods
+                </Text>
+                {paymentBreakdown.map((item) => (
+                  <View key={item.mode} style={styles.paymentRow}>
+                    <View style={[styles.paymentIconWrap, { backgroundColor: colors.primary + '15' }]}>
+                      <MaterialCommunityIcons
+                        name={getPaymentIcon(item.mode)}
+                        size={18}
+                        color={colors.primary}
+                      />
+                    </View>
+                    <View style={styles.paymentInfo}>
+                      <View style={styles.paymentInfoTop}>
+                        <Text style={[styles.paymentMode, { color: colors.text }]} numberOfLines={1}>
+                          {item.mode}
+                        </Text>
+                        <Text style={[styles.paymentAmount, { color: colors.primary }]}>
+                          ₹{item.amount.toFixed(0)}
+                        </Text>
+                      </View>
+                      <View style={[styles.paymentBarTrack, { backgroundColor: colors.border + '60' }]}>
+                        <View
+                          style={[
+                            styles.paymentBarFill,
+                            { width: `${item.percentage}%`, backgroundColor: colors.primary },
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.paymentMeta, { color: colors.textSecondary }]}>
+                        {item.count} txn{item.count !== 1 ? 's' : ''} • {item.percentage.toFixed(1)}%
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            )}
 
             <Separator height={20} />
 
@@ -584,6 +730,65 @@ export default function HistoryScreen() {
                 </View>
               </View>
 
+              {/* Payment method filter chips */}
+              {paymentBreakdown.length > 1 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.paymentFilterRow}
+                >
+                  <Pressable
+                    onPress={() => setFilterPayment('')}
+                    style={[
+                      styles.paymentFilterChip,
+                      {
+                        backgroundColor: filterPayment === '' ? colors.primary : colors.surface,
+                        borderColor: filterPayment === '' ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.paymentFilterText,
+                        { color: filterPayment === '' ? colors.white : colors.text },
+                      ]}
+                    >
+                      All
+                    </Text>
+                  </Pressable>
+                  {paymentBreakdown.map((item) => {
+                    const active = filterPayment === item.mode;
+                    return (
+                      <Pressable
+                        key={item.mode}
+                        onPress={() => setFilterPayment(active ? '' : item.mode)}
+                        style={[
+                          styles.paymentFilterChip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.surface,
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={getPaymentIcon(item.mode)}
+                          size={13}
+                          color={active ? colors.white : colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            styles.paymentFilterText,
+                            { color: active ? colors.white : colors.text },
+                          ]}
+                        >
+                          {item.mode}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              )}
+
               {filteredSortedExpenses.length === 0 ? (
                 <Card style={styles.emptyCard}>
                   <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
@@ -604,9 +809,21 @@ export default function HistoryScreen() {
                             <Text style={[styles.expenseCategory, { color: colors.primary }]}>
                               {item.tag}
                             </Text>
-                            <Text style={[styles.expenseDate, { color: colors.textSecondary }]}>
-                              {formatDate(item.date)}
-                            </Text>
+                            <View style={styles.expenseMetaRow}>
+                              <Text style={[styles.expenseDate, { color: colors.textSecondary }]}>
+                                {formatDate(item.date)}
+                              </Text>
+                              <View style={[styles.paymentBadge, { backgroundColor: colors.primary + '15' }]}>
+                                <MaterialCommunityIcons
+                                  name={getPaymentIcon(item.paymentMode || 'UPI')}
+                                  size={12}
+                                  color={colors.primary}
+                                />
+                                <Text style={[styles.paymentBadgeText, { color: colors.primary }]} numberOfLines={1}>
+                                  {item.paymentMode || 'UPI'}
+                                </Text>
+                              </View>
+                            </View>
                           </View>
                           <Text style={[styles.expenseAmount, { color: colors.text }]}>
                             ₹{parseFloat(item.price).toFixed(2)}
@@ -678,6 +895,22 @@ export default function HistoryScreen() {
                   </Text>
                 </View>
 
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
+                    Payment Mode
+                  </Text>
+                  <View style={styles.detailPaymentValue}>
+                    <MaterialCommunityIcons
+                      name={getPaymentIcon(selectedExpense.paymentMode || 'UPI')}
+                      size={18}
+                      color={colors.primary}
+                    />
+                    <Text style={[styles.detailValue, { color: colors.text }]}>
+                      {selectedExpense.paymentMode || 'UPI'}
+                    </Text>
+                  </View>
+                </View>
+
                 {selectedExpense.description && (
                   <View style={styles.detailRow}>
                     <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>
@@ -737,6 +970,121 @@ const styles = {
       fontSize: 14,
       marginTop: 4,
       fontWeight: '500',
+    },
+    statGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+      marginTop: 16,
+    },
+    statTile: {
+      flexGrow: 1,
+      flexBasis: '45%',
+      alignItems: 'flex-start',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+    statTileValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginTop: 6,
+      letterSpacing: 0.2,
+    },
+    statTileLabel: {
+      fontSize: 12,
+      marginTop: 2,
+      fontWeight: '500',
+    },
+    paymentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 14,
+    },
+    paymentIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    paymentInfo: {
+      flex: 1,
+    },
+    paymentInfoTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    paymentMode: {
+      fontSize: 15,
+      fontWeight: '600',
+      flex: 1,
+      marginRight: 8,
+    },
+    paymentAmount: {
+      fontSize: 15,
+      fontWeight: 'bold',
+    },
+    paymentBarTrack: {
+      height: 6,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    paymentBarFill: {
+      height: '100%',
+      borderRadius: 3,
+    },
+    paymentMeta: {
+      fontSize: 12,
+      marginTop: 4,
+      fontWeight: '500',
+    },
+    paymentFilterRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingHorizontal: 4,
+      paddingBottom: 12,
+    },
+    paymentFilterChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 18,
+      borderWidth: 1,
+    },
+    paymentFilterText: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    expenseMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    paymentBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+      maxWidth: 140,
+    },
+    paymentBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    detailPaymentValue: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
     },
     chartContainer: {
       alignItems: 'center',
