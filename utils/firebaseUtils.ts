@@ -98,7 +98,8 @@ export const getExpensesByMonth = async (month: number, year: number): Promise<E
                 date: data.date,
                 description: data.description || '',
                 price: data.price || '0',
-                tag: data.tag || 'Unknown'
+                tag: data.tag || 'Unknown',
+                paymentMode: data.paymentMode || 'UPI'
               } as Expense);
             }
           }
@@ -188,7 +189,8 @@ export const getAllExpenses = async (): Promise<Expense[]> => {
         date: data.date,
         description: data.description,
         price: data.price,
-        tag: data.tag
+        tag: data.tag,
+        paymentMode: data.paymentMode || 'UPI'
       } as Expense);
     });
 
