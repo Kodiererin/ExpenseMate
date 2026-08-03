@@ -13,7 +13,6 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ScreenLock } from '../components/ScreenLock';
 import { ThemedView } from '../components/ThemedView';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -172,16 +171,15 @@ export default function JournalCalendarScreen() {
     };
 
     return (
-        <ScreenLock screen="settings">
-            <ThemedView style={styles.container}>
-                {/* Header */}
-                <View style={[styles.header, { backgroundColor: colors.primary }]}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                        <Ionicons name="arrow-back" size={24} color="white" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Journal History</Text>
-                    <View style={styles.headerRight} />
-                </View>
+        <ThemedView style={styles.container}>
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: colors.primary }]}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <Ionicons name="arrow-back" size={24} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Journal History</Text>
+                <View style={styles.headerRight} />
+            </View>
 
                 <KeyboardAvoidingView
                     style={styles.flex}
@@ -216,105 +214,105 @@ export default function JournalCalendarScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Summary */}
-                        <View style={[styles.summaryCard, { backgroundColor: colors.primary }]}>
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryValue}>{activeDays}</Text>
-                                <Text style={styles.summaryLabel}>Days journaled</Text>
-                            </View>
-                            <View style={styles.summaryDivider} />
-                            <View style={styles.summaryItem}>
-                                <Text style={styles.summaryValue}>{totalEntries}</Text>
-                                <Text style={styles.summaryLabel}>Total entries</Text>
-                            </View>
+                    {/* Summary */}
+                    <View style={[styles.summaryCard, { backgroundColor: colors.primary }]}>
+                        <View style={styles.summaryItem}>
+                            <Text style={styles.summaryValue}>{activeDays}</Text>
+                            <Text style={styles.summaryLabel}>Days journaled</Text>
+                        </View>
+                        <View style={styles.summaryDivider} />
+                        <View style={styles.summaryItem}>
+                            <Text style={styles.summaryValue}>{totalEntries}</Text>
+                            <Text style={styles.summaryLabel}>Total entries</Text>
+                        </View>
+                    </View>
+
+                    {/* Calendar grid */}
+                    <View style={[styles.calendarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <View style={styles.weekHeader}>
+                            {WEEK_DAYS.map((wd) => (
+                                <View key={wd} style={styles.weekDayCell}>
+                                    <Text style={[styles.weekDayText, { color: colors.textSecondary }]}>{wd}</Text>
+                                </View>
+                            ))}
                         </View>
 
-                        {/* Calendar grid */}
-                        <View style={[styles.calendarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                            <View style={styles.weekHeader}>
-                                {WEEK_DAYS.map((wd) => (
-                                    <View key={wd} style={styles.weekDayCell}>
-                                        <Text style={[styles.weekDayText, { color: colors.textSecondary }]}>{wd}</Text>
-                                    </View>
-                                ))}
-                            </View>
-
-                            <View style={styles.grid}>
-                                {calendarCells.map((day, index) => {
-                                    if (day === null) {
-                                        return <View key={`blank-${index}`} style={styles.dayCell} />;
-                                    }
-                                    const hasEntries = !!entriesByDay[day];
-                                    const selected = selectedDay === day;
-                                    const todayCell = isToday(day);
-                                    return (
-                                        <TouchableOpacity
-                                            key={toDateKey(selectedYear, selectedMonth, day)}
+                        <View style={styles.grid}>
+                            {calendarCells.map((day, index) => {
+                                if (day === null) {
+                                    return <View key={`blank-${index}`} style={styles.dayCell} />;
+                                }
+                                const hasEntries = !!entriesByDay[day];
+                                const selected = selectedDay === day;
+                                const todayCell = isToday(day);
+                                return (
+                                    <TouchableOpacity
+                                        key={toDateKey(selectedYear, selectedMonth, day)}
+                                        style={[
+                                            styles.dayCell,
+                                            {
+                                                backgroundColor: selected
+                                                    ? colors.primary
+                                                    : hasEntries
+                                                        ? colors.surface
+                                                        : 'transparent',
+                                                borderColor: todayCell ? colors.primary : 'transparent',
+                                                borderWidth: todayCell ? 1.5 : 0,
+                                            },
+                                        ]}
+                                        onPress={() => handleSelectDay(day)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text
                                             style={[
-                                                styles.dayCell,
-                                                {
-                                                    backgroundColor: selected
-                                                        ? colors.primary
-                                                        : hasEntries
-                                                            ? colors.surface
-                                                            : 'transparent',
-                                                    borderColor: todayCell ? colors.primary : 'transparent',
-                                                    borderWidth: todayCell ? 1.5 : 0,
-                                                },
+                                                styles.dayText,
+                                                { color: selected ? colors.white : colors.text },
                                             ]}
-                                            onPress={() => handleSelectDay(day)}
-                                            activeOpacity={0.7}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.dayText,
-                                                    { color: selected ? colors.white : colors.text },
-                                                ]}
-                                            >
-                                                {day}
-                                            </Text>
-                                            {hasEntries && (
-                                                <View
-                                                    style={[
-                                                        styles.dot,
-                                                        { backgroundColor: selected ? colors.white : colors.success },
-                                                    ]}
-                                                />
-                                            )}
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        </View>
-
-                        {/* Selected day detail */}
-                        {selectedDay !== null && (
-                            <View style={[styles.detailCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                                <Text style={[styles.detailTitle, { color: colors.text }]}>
-                                    {new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString('en-US', {
-                                        weekday: 'long',
-                                        month: 'long',
-                                        day: 'numeric',
-                                    })}
-                                </Text>
-                                {selectedDayEntries.length === 0 ? (
-                                    <View style={styles.emptyDetail}>
-                                        <Ionicons name="document-text-outline" size={40} color={colors.textSecondary} />
-                                        <Text style={[styles.emptyDetailText, { color: colors.textSecondary }]}>
-                                            No entry for this day
+                                            {day}
                                         </Text>
+                                        {hasEntries && (
+                                            <View
+                                                style={[
+                                                    styles.dot,
+                                                    { backgroundColor: selected ? colors.white : colors.success },
+                                                ]}
+                                            />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* Selected day detail */}
+                    {selectedDay !== null && (
+                        <View style={[styles.detailCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                            <Text style={[styles.detailTitle, { color: colors.text }]}>
+                                {new Date(selectedYear, selectedMonth - 1, selectedDay).toLocaleDateString('en-US', {
+                                    weekday: 'long',
+                                    month: 'long',
+                                    day: 'numeric',
+                                })}
+                            </Text>
+                            {selectedDayEntries.length === 0 ? (
+                                <View style={styles.emptyDetail}>
+                                    <Ionicons name="document-text-outline" size={40} color={colors.textSecondary} />
+                                    <Text style={[styles.emptyDetailText, { color: colors.textSecondary }]}>
+                                        No entry for this day
+                                    </Text>
+                                </View>
+                            ) : (
+                                selectedDayEntries.map((entry) => (
+                                    <View
+                                        key={entry.id}
+                                        style={[styles.entryRow, { borderColor: colors.border }]}
+                                    >
+                                        <Text style={styles.entryMood}>{entry.mood || '📝'}</Text>
+                                        <Text style={[styles.entryText, { color: colors.text }]}>{entry.text}</Text>
                                     </View>
-                                ) : (
-                                    selectedDayEntries.map((entry) => (
-                                        <View
-                                            key={entry.id}
-                                            style={[styles.entryRow, { borderColor: colors.border }]}
-                                        >
-                                            <Text style={styles.entryMood}>{entry.mood || '📝'}</Text>
-                                            <Text style={[styles.entryText, { color: colors.text }]}>{entry.text}</Text>
-                                        </View>
-                                    ))
-                                )}
+                                ))
+                            )}
 
                                 {/* Backfill: add a forgotten entry for this (non-future) day */}
                                 {!isSelectedDayInFuture && (
@@ -402,11 +400,10 @@ export default function JournalCalendarScreen() {
                             </View>
                         )}
 
-                        <View style={{ height: 40 }} />
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </ThemedView>
-        </ScreenLock>
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </ThemedView>
     );
 }
 
