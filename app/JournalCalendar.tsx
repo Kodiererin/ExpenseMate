@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -49,6 +49,8 @@ export default function JournalCalendarScreen() {
     const { colors } = useTheme();
     const router = useRouter();
     const { journalEntries, refreshJournal } = useData();
+
+    const scrollViewRef = useRef<ScrollView>(null);
 
     const today = new Date();
     const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth() + 1);
@@ -183,9 +185,15 @@ export default function JournalCalendarScreen() {
 
                 <KeyboardAvoidingView
                     style={styles.flex}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
-                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    <ScrollView
+                        ref={scrollViewRef}
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
                         {/* Month navigation */}
                         <View style={[styles.monthNav, { backgroundColor: colors.card, borderColor: colors.border }]}>
                             <TouchableOpacity
@@ -343,6 +351,11 @@ export default function JournalCalendarScreen() {
                                                 placeholderTextColor={colors.textSecondary}
                                                 value={newEntryText}
                                                 onChangeText={setNewEntryText}
+                                                onFocus={() => {
+                                                    setTimeout(() => {
+                                                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                    }, 300);
+                                                }}
                                                 multiline
                                                 maxLength={1000}
                                                 editable={!savingEntry}
@@ -371,7 +384,12 @@ export default function JournalCalendarScreen() {
                                     ) : (
                                         <TouchableOpacity
                                             style={[styles.addEntryButton, { borderColor: colors.primary }]}
-                                            onPress={() => setIsAddingEntry(true)}
+                                            onPress={() => {
+                                                setIsAddingEntry(true);
+                                                setTimeout(() => {
+                                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                }, 300);
+                                            }}
                                             activeOpacity={0.7}
                                         >
                                             <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
