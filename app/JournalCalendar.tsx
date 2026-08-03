@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -49,6 +50,8 @@ export default function JournalCalendarScreen() {
     const router = useRouter();
     const { journalEntries, refreshJournal } = useData();
 
+    const scrollViewRef = useRef<ScrollView>(null);
+
     const today = new Date();
     const [selectedMonth, setSelectedMonth] = useState<number>(today.getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState<number>(today.getFullYear());
@@ -59,6 +62,26 @@ export default function JournalCalendarScreen() {
     const [newEntryText, setNewEntryText] = useState('');
     const [selectedMood, setSelectedMood] = useState<string>('😊');
     const [savingEntry, setSavingEntry] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    // Track keyboard height so we can lift the input above it
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSub = Keyboard.addListener(showEvent, (e) => {
+            setKeyboardHeight(e.endCoordinates.height);
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
 
     // Map of dateKey -> entries for the selected month
     const entriesByDay = useMemo(() => {
@@ -181,9 +204,18 @@ export default function JournalCalendarScreen() {
 
             <KeyboardAvoidingView
                 style={styles.flex}
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <ScrollView
+                    ref={scrollViewRef}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        keyboardHeight > 0 && { paddingBottom: GRID_PADDING + keyboardHeight },
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
                     {/* Month navigation */}
                     <View style={[styles.monthNav, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <TouchableOpacity
@@ -341,6 +373,11 @@ export default function JournalCalendarScreen() {
                                             placeholderTextColor={colors.textSecondary}
                                             value={newEntryText}
                                             onChangeText={setNewEntryText}
+                                            onFocus={() => {
+                                                setTimeout(() => {
+                                                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                                                }, 300);
+                                            }}
                                             multiline
                                             maxLength={1000}
                                             editable={!savingEntry}
@@ -369,7 +406,12 @@ export default function JournalCalendarScreen() {
                                 ) : (
                                     <TouchableOpacity
                                         style={[styles.addEntryButton, { borderColor: colors.primary }]}
-                                        onPress={() => setIsAddingEntry(true)}
+                                        onPress={() => {
+                                            setIsAddingEntry(true);
+                                            setTimeout(() => {
+                                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                                            }, 300);
+                                        }}
                                         activeOpacity={0.7}
                                     >
                                         <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
