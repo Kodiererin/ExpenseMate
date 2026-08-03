@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -61,6 +62,26 @@ export default function JournalCalendarScreen() {
     const [newEntryText, setNewEntryText] = useState('');
     const [selectedMood, setSelectedMood] = useState<string>('😊');
     const [savingEntry, setSavingEntry] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    // Track keyboard height so we can lift the input above it
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const showSub = Keyboard.addListener(showEvent, (e) => {
+            setKeyboardHeight(e.endCoordinates.height);
+            setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+        });
+        const hideSub = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
 
     // Map of dateKey -> entries for the selected month
     const entriesByDay = useMemo(() => {
@@ -181,38 +202,41 @@ export default function JournalCalendarScreen() {
                 <View style={styles.headerRight} />
             </View>
 
-                <KeyboardAvoidingView
-                    style={styles.flex}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+                <ScrollView
+                    ref={scrollViewRef}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        keyboardHeight > 0 && { paddingBottom: GRID_PADDING + keyboardHeight },
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
-                    <ScrollView
-                        ref={scrollViewRef}
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                    >
-                        {/* Month navigation */}
-                        <View style={[styles.monthNav, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                            <TouchableOpacity
-                                style={[styles.navButton, { backgroundColor: colors.surface }]}
-                                onPress={goToPreviousMonth}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="chevron-back" size={22} color={colors.primary} />
-                            </TouchableOpacity>
-                            <View style={styles.monthLabelWrapper}>
-                                <Text style={[styles.monthLabel, { color: colors.text }]}>{MONTHS[selectedMonth - 1]}</Text>
-                                <Text style={[styles.yearLabel, { color: colors.textSecondary }]}>{selectedYear}</Text>
-                            </View>
-                            <TouchableOpacity
-                                style={[styles.navButton, { backgroundColor: colors.surface }]}
-                                onPress={goToNextMonth}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="chevron-forward" size={22} color={colors.primary} />
-                            </TouchableOpacity>
+                    {/* Month navigation */}
+                    <View style={[styles.monthNav, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                        <TouchableOpacity
+                            style={[styles.navButton, { backgroundColor: colors.surface }]}
+                            onPress={goToPreviousMonth}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="chevron-back" size={22} color={colors.primary} />
+                        </TouchableOpacity>
+                        <View style={styles.monthLabelWrapper}>
+                            <Text style={[styles.monthLabel, { color: colors.text }]}>{MONTHS[selectedMonth - 1]}</Text>
+                            <Text style={[styles.yearLabel, { color: colors.textSecondary }]}>{selectedYear}</Text>
                         </View>
+                        <TouchableOpacity
+                            style={[styles.navButton, { backgroundColor: colors.surface }]}
+                            onPress={goToNextMonth}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="chevron-forward" size={22} color={colors.primary} />
+                        </TouchableOpacity>
+                    </View>
 
                     {/* Summary */}
                     <View style={[styles.summaryCard, { backgroundColor: colors.primary }]}>
@@ -314,91 +338,91 @@ export default function JournalCalendarScreen() {
                                 ))
                             )}
 
-                                {/* Backfill: add a forgotten entry for this (non-future) day */}
-                                {!isSelectedDayInFuture && (
-                                    isAddingEntry ? (
-                                        <View style={[styles.addForm, { borderColor: colors.border }]}>
-                                            <View style={styles.moodRow}>
-                                                {MOODS.map((mood) => (
-                                                    <TouchableOpacity
-                                                        key={mood}
-                                                        onPress={() => setSelectedMood(mood)}
-                                                        style={[
-                                                            styles.moodOption,
-                                                            {
-                                                                backgroundColor:
-                                                                    selectedMood === mood ? colors.primary : colors.surface,
-                                                            },
-                                                        ]}
-                                                        activeOpacity={0.7}
-                                                    >
-                                                        <Text style={styles.moodEmoji}>{mood}</Text>
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </View>
-                                            <TextInput
-                                                style={[
-                                                    styles.addInput,
-                                                    {
-                                                        color: colors.text,
-                                                        backgroundColor: colors.surface,
-                                                        borderColor: colors.border,
-                                                    },
-                                                ]}
-                                                placeholder="What did you learn or do on this day?"
-                                                placeholderTextColor={colors.textSecondary}
-                                                value={newEntryText}
-                                                onChangeText={setNewEntryText}
-                                                onFocus={() => {
-                                                    setTimeout(() => {
-                                                        scrollViewRef.current?.scrollToEnd({ animated: true });
-                                                    }, 300);
-                                                }}
-                                                multiline
-                                                maxLength={1000}
-                                                editable={!savingEntry}
-                                            />
-                                            <View style={styles.addActions}>
+                            {/* Backfill: add a forgotten entry for this (non-future) day */}
+                            {!isSelectedDayInFuture && (
+                                isAddingEntry ? (
+                                    <View style={[styles.addForm, { borderColor: colors.border }]}>
+                                        <View style={styles.moodRow}>
+                                            {MOODS.map((mood) => (
                                                 <TouchableOpacity
-                                                    style={[styles.addActionBtn, { backgroundColor: colors.surface }]}
-                                                    onPress={closeAddEntry}
-                                                    disabled={savingEntry}
+                                                    key={mood}
+                                                    onPress={() => setSelectedMood(mood)}
+                                                    style={[
+                                                        styles.moodOption,
+                                                        {
+                                                            backgroundColor:
+                                                                selectedMood === mood ? colors.primary : colors.surface,
+                                                        },
+                                                    ]}
                                                     activeOpacity={0.7}
                                                 >
-                                                    <Text style={[styles.addActionText, { color: colors.text }]}>Cancel</Text>
+                                                    <Text style={styles.moodEmoji}>{mood}</Text>
                                                 </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.addActionBtn, { backgroundColor: colors.primary, opacity: savingEntry ? 0.6 : 1 }]}
-                                                    onPress={handleAddEntry}
-                                                    disabled={savingEntry}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <Text style={[styles.addActionText, { color: colors.white }]}>
-                                                        {savingEntry ? 'Saving…' : 'Save'}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            </View>
+                                            ))}
                                         </View>
-                                    ) : (
-                                        <TouchableOpacity
-                                            style={[styles.addEntryButton, { borderColor: colors.primary }]}
-                                            onPress={() => {
-                                                setIsAddingEntry(true);
+                                        <TextInput
+                                            style={[
+                                                styles.addInput,
+                                                {
+                                                    color: colors.text,
+                                                    backgroundColor: colors.surface,
+                                                    borderColor: colors.border,
+                                                },
+                                            ]}
+                                            placeholder="What did you learn or do on this day?"
+                                            placeholderTextColor={colors.textSecondary}
+                                            value={newEntryText}
+                                            onChangeText={setNewEntryText}
+                                            onFocus={() => {
                                                 setTimeout(() => {
                                                     scrollViewRef.current?.scrollToEnd({ animated: true });
                                                 }, 300);
                                             }}
-                                            activeOpacity={0.7}
-                                        >
-                                            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-                                            <Text style={[styles.addEntryButtonText, { color: colors.primary }]}>
-                                                {selectedDayEntries.length === 0 ? 'Add entry for this day' : 'Add another entry'}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    )
-                                )}
-                            </View>
-                        )}
+                                            multiline
+                                            maxLength={1000}
+                                            editable={!savingEntry}
+                                        />
+                                        <View style={styles.addActions}>
+                                            <TouchableOpacity
+                                                style={[styles.addActionBtn, { backgroundColor: colors.surface }]}
+                                                onPress={closeAddEntry}
+                                                disabled={savingEntry}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Text style={[styles.addActionText, { color: colors.text }]}>Cancel</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.addActionBtn, { backgroundColor: colors.primary, opacity: savingEntry ? 0.6 : 1 }]}
+                                                onPress={handleAddEntry}
+                                                disabled={savingEntry}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Text style={[styles.addActionText, { color: colors.white }]}>
+                                                    {savingEntry ? 'Saving…' : 'Save'}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        style={[styles.addEntryButton, { borderColor: colors.primary }]}
+                                        onPress={() => {
+                                            setIsAddingEntry(true);
+                                            setTimeout(() => {
+                                                scrollViewRef.current?.scrollToEnd({ animated: true });
+                                            }, 300);
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                                        <Text style={[styles.addEntryButtonText, { color: colors.primary }]}>
+                                            {selectedDayEntries.length === 0 ? 'Add entry for this day' : 'Add another entry'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )
+                            )}
+                        </View>
+                    )}
 
                     <View style={{ height: 40 }} />
                 </ScrollView>
